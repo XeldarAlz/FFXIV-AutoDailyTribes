@@ -1,6 +1,8 @@
 namespace AutoTribeQuests.Core;
 
-internal static class Constants
+// Prefixed AtqConstants (not Constants) to avoid colliding with ECommons.Constants —
+// same convention as PvpAutoLb.Core.PvpAutoLbConstants in the PvP plugin.
+internal static class AtqConstants
 {
     public const int DailyAllowanceCap = 12;
     public const int MaxAcceptsPerTribe = 3;

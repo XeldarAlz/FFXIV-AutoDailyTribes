@@ -1,3 +1,4 @@
+using AutoTribeQuests.Core;
 using AutoTribeQuests.Core.Tasks;
 using AutoTribeQuests.Core.Tribes;
 using AutoTribeQuests.Windows.Components;
@@ -28,7 +29,7 @@ internal static class Header
         ImGui.SameLine();
         var allowance = TribeStateReader.GlobalAllowanceLeft();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted($"   Daily allowance: {Constants.DailyAllowanceCap - allowance} / {Constants.DailyAllowanceCap}");
+            ImGui.TextUnformatted($"   Daily allowance: {AtqConstants.DailyAllowanceCap - allowance} / {AtqConstants.DailyAllowanceCap}");
 
         ImGui.Separator();
     }

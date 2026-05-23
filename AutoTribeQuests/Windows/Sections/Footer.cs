@@ -1,3 +1,4 @@
+using AutoTribeQuests.Core;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 
@@ -9,6 +10,6 @@ internal static class Footer
     {
         ImGui.Separator();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextUnformatted($"Allied Tribes — {Constants.PrimaryCommand} / {Constants.AliasCommand}");
+            ImGui.TextUnformatted($"Allied Tribes — {AtqConstants.PrimaryCommand} / {AtqConstants.AliasCommand}");
     }
 }

@@ -1,8 +1,9 @@
 using AutoTribeQuests.Core.Game;
 using AutoTribeQuests.Core.Ipc;
 using AutoTribeQuests.Core.Tribes;
-using clib.Extensions.ClientStructs.Addons;
+using clib.Extensions;
 using clib.TaskSystem;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using System.Threading.Tasks;
 
 namespace AutoTribeQuests.Core.Tasks;

@@ -35,7 +35,7 @@ public sealed class TribeInfo
     public uint[] AlreadyAcceptedToday = [];
 
     public bool MeetsRankRequirement => Rank >= MinRankForDailies;
-    public int AcceptSlotsRemaining => Math.Max(0, Constants.MaxAcceptsPerTribe - AlreadyAcceptedToday.Length);
+    public int AcceptSlotsRemaining => Math.Max(0, AtqConstants.MaxAcceptsPerTribe - AlreadyAcceptedToday.Length);
 }
 
 public enum TribeEra

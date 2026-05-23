@@ -22,7 +22,7 @@ public sealed class Configuration : IPluginConfiguration
     // Slider/drag callbacks fire every frame; debounce so we don't hammer disk.
     public void SaveDebounced()
     {
-        if (EzThrottler.Throttle(Core.Constants.ThrottleKeys.Save, Core.Constants.SaveThrottleMs))
+        if (EzThrottler.Throttle(Core.AtqConstants.ThrottleKeys.Save, Core.AtqConstants.SaveThrottleMs))
             Save();
     }
 }

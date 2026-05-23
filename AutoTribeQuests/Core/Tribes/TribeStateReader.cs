@@ -20,12 +20,12 @@ internal static unsafe class TribeStateReader
         tribe.RepCur = 0;
         tribe.RepMax = 0;
         tribe.AlreadyAcceptedToday = [];
-        tribe.DailyAllowanceLeft = Constants.DailyAllowanceCap;
+        tribe.DailyAllowanceLeft = AtqConstants.DailyAllowanceCap;
     }
 
     public static int GlobalAllowanceLeft()
     {
         // TODO: read accepted-quests-today counter; until then assume full allowance
-        return Constants.DailyAllowanceCap;
+        return AtqConstants.DailyAllowanceCap;
     }
 }

@@ -43,11 +43,11 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(configWindow);
         WindowSystem.AddWindow(aboutWindow);
 
-        CommandManager.AddHandler(Constants.PrimaryCommand, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(AtqConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
             HelpMessage = "Toggle the Allied Tribes window. /atq config opens settings, /atq about opens credits."
         });
-        CommandManager.AddHandler(Constants.AliasCommand, new CommandInfo(OnCommand)
+        CommandManager.AddHandler(AtqConstants.AliasCommand, new CommandInfo(OnCommand)
         {
             HelpMessage = "Alias for /atq."
         });
@@ -68,8 +68,8 @@ public sealed class Plugin : IDalamudPlugin
         configWindow.Dispose();
         aboutWindow.Dispose();
 
-        CommandManager.RemoveHandler(Constants.PrimaryCommand);
-        CommandManager.RemoveHandler(Constants.AliasCommand);
+        CommandManager.RemoveHandler(AtqConstants.PrimaryCommand);
+        CommandManager.RemoveHandler(AtqConstants.AliasCommand);
 
         CLibMain.Dispose();
         ECommonsMain.Dispose();

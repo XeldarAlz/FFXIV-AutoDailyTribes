@@ -1,3 +1,4 @@
+using AutoTribeQuests.Core;
 using AutoTribeQuests.Core.Tasks;
 using AutoTribeQuests.Core.Tribes;
 using Dalamud.Bindings.ImGui;
@@ -50,7 +51,7 @@ internal static class TribeCard
             ImGui.TextUnformatted($" [{tribe.Era}]");
 
         // Allowance pill on the right.
-        var pillLabel = $"{tribe.AlreadyAcceptedToday.Length}/{Constants.MaxAcceptsPerTribe}";
+        var pillLabel = $"{tribe.AlreadyAcceptedToday.Length}/{AtqConstants.MaxAcceptsPerTribe}";
         var pillWidth = ImGui.CalcTextSize(pillLabel).X + 16 * ImGuiHelpers.GlobalScale;
         ImGui.SameLine(ImGui.GetContentRegionAvail().X + ImGui.GetCursorPosX() - pillWidth);
         AllowancePill.Draw(tribe);

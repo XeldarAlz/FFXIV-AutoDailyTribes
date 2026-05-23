@@ -1,3 +1,4 @@
+using AutoTribeQuests.Core;
 using AutoTribeQuests.Core.Tribes;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -12,11 +13,11 @@ internal static class AllowancePill
     public static void Draw(TribeInfo tribe)
     {
         var taken = tribe.AlreadyAcceptedToday.Length;
-        var label = $"{taken} / {Constants.MaxAcceptsPerTribe}";
+        var label = $"{taken} / {AtqConstants.MaxAcceptsPerTribe}";
 
         var color = taken switch
         {
-            >= Constants.MaxAcceptsPerTribe => Styling.AccentMint,
+            >= AtqConstants.MaxAcceptsPerTribe => Styling.AccentMint,
             > 0 => Styling.AccentAmber,
             _ => Styling.TextDim,
         };
