@@ -98,42 +98,49 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     private async Task AcceptDailies(int remaining, List<uint> accepted)
     {
+        Svc.Chat.Print($"[ADT debug] Entering AcceptDailies: addons=[{ActiveAddons()}]");
+
         for (int i = 0; i < remaining; i++)
         {
             if (tribe.DailyAllowanceLeft <= 0) break;
-            var sisActive = AddonProbes.SelectIconStringActive();
-            var optCount = AddonProbes.SelectIconStringOptionCount();
-            Svc.Chat.Print($"[ADT debug] Loop {i + 1}/{remaining}: SelectIconString active={sisActive}, AtkValues[0].Int={optCount}");
-
-            if (!sisActive)
+            if (!AddonProbes.SelectIconStringActive())
             {
-                Log("Issuer menu closed early — assuming allowance hit or no more offered");
-                break;
-            }
-            if (optCount <= 1)
-            {
-                Log("No more quests offered");
+                Svc.Chat.Print($"[ADT debug] Loop {i + 1}: SelectIconString not active — addons=[{ActiveAddons()}]. Breaking.");
                 break;
             }
 
             Status = $"Accepting quest {i + 1}/{remaining}";
-            Svc.Chat.Print($"[ADT debug] Picking SelectIconString[0]");
+            var beforeAccepted = tribe.AlreadyAcceptedToday.Length;
+            Svc.Chat.Print($"[ADT debug] Loop {i + 1}: picking SelectIconString[0]  (journal: {beforeAccepted} tribe quest(s) accepted today)");
             AddonInteractions.SelectIconStringPick(0);
 
+            // Give the game a few frames to react.
+            for (var f = 0; f < 30; f++) await NextFrame();
+            Svc.Chat.Print($"[ADT debug] After pick: addons=[{ActiveAddons()}]");
+
             await WaitUntilSkipping(
-                () => AddonProbes.JournalAcceptActive() || AddonProbes.SelectYesnoActive(),
+                () => AddonProbes.JournalAcceptActive() || AddonProbes.SelectYesnoActive() || !AddonProbes.SelectIconStringActive(),
                 "WaitForAcceptPrompt",
                 UiSkipOptions.Talk);
 
+            var afterWait = ActiveAddons();
+            Svc.Chat.Print($"[ADT debug] After WaitForAcceptPrompt: addons=[{afterWait}]");
+
             if (AddonProbes.SelectYesnoActive())
             {
+                Svc.Chat.Print("[ADT debug] SelectYesno → clicking Yes");
                 AddonSelectYesno.Yes();
                 await WaitWhile(AddonProbes.SelectYesnoActive, "WaitYesNoClose");
             }
             else if (AddonProbes.JournalAcceptActive())
             {
+                Svc.Chat.Print("[ADT debug] JournalAccept → confirm");
                 AddonInteractions.JournalAcceptConfirm();
                 await WaitWhile(AddonProbes.JournalAcceptActive, "WaitJournalClose");
+            }
+            else
+            {
+                Svc.Chat.Print("[ADT debug] Neither JournalAccept nor SelectYesno appeared — pick callback shape likely wrong");
             }
 
             await WaitUntilSkipping(
@@ -142,12 +149,20 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
                 UiSkipOptions.Talk);
 
             TribeStateReader.Refresh(tribe);
-            if (tribe.AlreadyAcceptedToday.Length > accepted.Count)
+            var afterAccepted = tribe.AlreadyAcceptedToday.Length;
+            Svc.Chat.Print($"[ADT debug] After refresh: journal has {afterAccepted} tribe quest(s) for this tribe");
+            if (afterAccepted > accepted.Count)
                 accepted.Add(tribe.AlreadyAcceptedToday[^1]);
         }
 
         if (AddonProbes.SelectIconStringActive())
             AddonInteractions.SelectIconStringCancel();
+    }
+
+    private static string ActiveAddons()
+    {
+        string[] watch = ["SelectString", "SelectIconString", "JournalAccept", "JournalDetail", "JournalResult", "Talk", "SelectYesno", "Request", "_Notification"];
+        return string.Join(", ", watch.Where(AddonProbes.Ready));
     }
 
     private async Task DelegateToQuestionable(List<uint> accepted)
