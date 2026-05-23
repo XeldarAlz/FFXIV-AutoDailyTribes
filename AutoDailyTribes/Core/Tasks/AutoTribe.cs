@@ -69,8 +69,11 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
     private async Task TravelAndOpenMenu()
     {
         Status = $"Travelling to {tribe.Name}";
+        // Mount + fly when possible; clib's MoveTo dismounts on arrival via the
+        // Dismount flag and falls back to ground movement if the zone doesn't allow flying.
+        var config = MovementConfig.Everything.WithTolerance(3f);
         await MoveTo(tribe.IssuerTerritoryId, tribe.IssuerLocation,
-            MovementConfig.InteractRange,
+            config,
             allowTeleportIfFaster: true);
         await Dismount();
 
