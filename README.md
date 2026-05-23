@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="AutoTribeQuests/Images/Icon.png" width="220" alt="Allied Tribes icon" />
+  <img src="AutoDailyTribes/Images/Icon.png" width="220" alt="Auto Daily Tribes icon" />
 </p>
 
-<h1 align="center">Allied Tribes</h1>
+<h1 align="center">Auto Daily Tribes</h1>
 
 <p align="center">
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoTribeQuests?style=flat-square&color=blue"></a>
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoTribeQuests/total?style=flat-square&color=blue"></a>
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoTribeQuests/release.yml?style=flat-square"></a>
-  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/github/license/XeldarAlz/FFXIV-AutoTribeQuests?style=flat-square"></a>
+  <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square&color=blue"></a>
+  <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoDailyTribes/total?style=flat-square&color=blue"></a>
+  <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoDailyTribes/release.yml?style=flat-square"></a>
+  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/github/license/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square"></a>
   <img alt="Beast Tribes" src="https://img.shields.io/badge/Tribes-ARR%20%E2%86%92%20DT-4FC3D1?style=flat-square">
 </p>
 
@@ -50,7 +50,7 @@ Or press **Run all unlocked** in the header and walk away.
 
 ## Install
 
-Allied Tribes is distributed through XeldarAlz's custom Dalamud plugin repository — one URL, all plugins.
+Auto Daily Tribes is distributed through XeldarAlz's custom Dalamud plugin repository — one URL, all plugins.
 
 1. In-game, run `/xlsettings` → **Experimental**.
 2. Under **Custom Plugin Repositories**, paste:
@@ -58,7 +58,7 @@ Allied Tribes is distributed through XeldarAlz's custom Dalamud plugin repositor
    https://raw.githubusercontent.com/XeldarAlz/DalamudPlugins/main/repo.json
    ```
    Tick **Enabled**, click the **+**, then **Save and Close**.
-3. Open `/xlplugins` → **All Plugins**, search for **Allied Tribes**, and install.
+3. Open `/xlplugins` → **All Plugins**, search for **Auto Daily Tribes**, and install.
 
 Updates are delivered automatically whenever a new release is cut. Any future plugins published under [@XeldarAlz](https://github.com/XeldarAlz) also appear here without needing a new URL.
 
@@ -66,14 +66,14 @@ Updates are delivered automatically whenever a new release is cut. Any future pl
 
 | Command | Action |
 |---|---|
-| `/atq` | Toggle the main window |
-| `/tribequests` | Alias for `/atq` |
-| `/atq config` | Open settings |
-| `/atq about` | Open credits / links |
+| `/adt` | Toggle the main window |
+| `/dailytribes` | Alias for `/adt` |
+| `/adt config` | Open settings |
+| `/adt about` | Open credits / links |
 
 ## Configuration
 
-Open via `/atq config` or the gear icon in the main window's toolbar.
+Open via `/adt config` or the gear icon in the main window's toolbar.
 
 **Behavior**
 - Auto-open window when dailies are available.

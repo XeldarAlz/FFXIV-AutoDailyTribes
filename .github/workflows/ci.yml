@@ -69,10 +69,10 @@ jobs:
           Remove-Item dalamud.zip
 
       - name: Restore
-        run: dotnet restore AutoTribeQuests.sln
+        run: dotnet restore AutoDailyTribes.sln
 
       - name: Build (Release)
-        run: dotnet build AutoTribeQuests.sln --configuration Release --no-restore
+        run: dotnet build AutoDailyTribes.sln --configuration Release --no-restore
 
       - name: Find test projects
         id: find_tests
@@ -86,12 +86,12 @@ jobs:
 
       - name: Run tests
         if: steps.find_tests.outputs.found == 'true'
-        run: dotnet test AutoTribeQuests.sln --configuration Release --no-build --logger "console;verbosity=normal"
+        run: dotnet test AutoDailyTribes.sln --configuration Release --no-build --logger "console;verbosity=normal"
 
       - name: Upload plugin artifact
         if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
-          name: AutoTribeQuests-plugin
-          path: AutoTribeQuests/bin/x64/Release/AutoTribeQuests/latest.zip
+          name: AutoDailyTribes-plugin
+          path: AutoDailyTribes/bin/x64/Release/AutoDailyTribes/latest.zip
           if-no-files-found: warn

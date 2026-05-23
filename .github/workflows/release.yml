@@ -1,4 +1,4 @@
-name: Release AutoTribeQuests
+name: Release AutoDailyTribes
 
 on:
   push:
@@ -68,12 +68,12 @@ jobs:
           Remove-Item dalamud.zip
 
       - name: Build (Release)
-        run: dotnet build AutoTribeQuests.sln --configuration Release
+        run: dotnet build AutoDailyTribes.sln --configuration Release
 
       - name: Stage latest.zip
         shell: pwsh
         run: |
-          $src = 'AutoTribeQuests/bin/x64/Release/AutoTribeQuests/latest.zip'
+          $src = 'AutoDailyTribes/bin/x64/Release/AutoDailyTribes/latest.zip'
           if (-not (Test-Path $src)) { throw "SDK-built plugin zip not found at $src" }
           Copy-Item $src 'latest.zip' -Force
 

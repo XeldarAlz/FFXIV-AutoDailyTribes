@@ -13,9 +13,9 @@
     <Version>1.0.0.0</Version>
     <Authors>XeldarAlz</Authors>
     <Copyright>Copyright (c) XeldarAlz</Copyright>
-    <PackageProjectUrl>https://github.com/XeldarAlz/FFXIV-AutoTribeQuests</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/XeldarAlz/FFXIV-AutoDailyTribes</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/XeldarAlz/FFXIV-AutoTribeQuests</RepositoryUrl>
+    <RepositoryUrl>https://github.com/XeldarAlz/FFXIV-AutoDailyTribes</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <NeutralLanguage>en-US</NeutralLanguage>
   </PropertyGroup>
