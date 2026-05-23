@@ -158,7 +158,7 @@ public static class TribeRegistry
             Era = TribeEra.ShB,
             Kind = TribeKind.Gatherer,              // DoL focus — verified
             MinRankForDailies = 1,
-            IssuerTerritoryId = 815,                // The Rak'tika Greatwood
+            IssuerTerritoryId = 817,                // The Rak'tika Greatwood (was 815 = Amh Araeng)
             IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
         },
         new()
@@ -190,7 +190,7 @@ public static class TribeRegistry
             Era = TribeEra.EW,
             Kind = TribeKind.Gatherer,              // DoL focus — verified
             MinRankForDailies = 1,
-            IssuerTerritoryId = 961,                // Ultima Thule
+            IssuerTerritoryId = 960,                // Ultima Thule (was 961 = Elpis)
             IssuerENpcBaseId = 1043879,             // VERIFY: Geulla
         },
         new()
