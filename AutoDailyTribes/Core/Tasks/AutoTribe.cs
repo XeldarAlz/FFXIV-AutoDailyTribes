@@ -3,6 +3,7 @@ using AutoDailyTribes.Core.Ipc;
 using AutoDailyTribes.Core.Tribes;
 using clib.Extensions;
 using clib.TaskSystem;
+using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using System.Threading.Tasks;
 
@@ -16,12 +17,31 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     protected override async Task Execute()
     {
+        Svc.Chat.Print($"[ADT] Starting {tribe.Name}…");
+        try
+        {
+            await ExecuteInner();
+            Svc.Chat.Print($"[ADT] {tribe.Name}: done.");
+        }
+        catch (Exception ex)
+        {
+            // Strip clib's "[AutoTribe] [scope] " prefix so the chat line is readable.
+            var msg = ex.Message;
+            var lastBracket = msg.LastIndexOf("] ");
+            if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
+            Svc.Chat.PrintError($"[ADT] {tribe.Name} stopped: {msg}");
+            throw;
+        }
+    }
+
+    private async Task ExecuteInner()
+    {
         TribeStateReader.Refresh(tribe);
         IssuerResolver.Resolve(tribe);
 
         ErrorIf(!tribe.Unlocked, $"{tribe.Name}: not unlocked — complete the intro quest in-game first");
         ErrorIf(!tribe.MeetsRankRequirement, $"{tribe.Name}: need rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: failed to resolve issuer NPC instance");
+        ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: BaseId placeholder — run /adt target next to the issuer to capture the real one");
         ErrorIf(!_questionable.IsAvailable, "Questionable plugin not installed/enabled");
 
         var remainingToAccept = Math.Min(tribe.AcceptSlotsRemaining, tribe.DailyAllowanceLeft);
