@@ -39,6 +39,7 @@ public sealed class MainWindow : Window, IDisposable
         using var style = Styling.PushWindowStyle();
 
         TopToolbar.Draw(plugin, ctrl);
+        DependencyBanner.Draw(plugin);
         Header.Draw(ctrl, cfg);
         TribeList.Draw(ctrl, cfg);
         Footer.Draw();

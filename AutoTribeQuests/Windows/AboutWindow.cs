@@ -1,3 +1,5 @@
+using AutoTribeQuests.Core.External;
+using AutoTribeQuests.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -20,11 +22,11 @@ public sealed class AboutWindow : Window, IDisposable
     public AboutWindow() : base("Allied Tribes — About###AutoTribeQuestsAbout")
     {
         Flags = ImGuiWindowFlags.NoCollapse;
-        Size = new Vector2(560, 400);
+        Size = new Vector2(580, 540);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(380, 300),
+            MinimumSize = new Vector2(420, 380),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
     }
@@ -39,6 +41,10 @@ public sealed class AboutWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
         DrawDetailsTable();
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawDependenciesSection();
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -67,14 +73,34 @@ public sealed class AboutWindow : Window, IDisposable
         ImGui.TableSetupColumn("##value", ImGuiTableColumnFlags.WidthStretch);
 
         DrawTextRow("Author", Author);
-        DrawTextRow("Requires", "vnavmesh, Questionable");
-        DrawTextRow("Optional", "Artisan (crafter tribes)");
         DrawLinkRow("GitHub", RepoUrl);
         DrawLinkRow("Report a bug", IssuesUrl);
         DrawLinkRow("Discussions", DiscussionsUrl);
         DrawLinkRow("Security disclosure", SecurityUrl);
 
         ImGui.EndTable();
+    }
+
+    private static void DrawDependenciesSection()
+    {
+        Styling.SectionLabel("Required & optional plugins");
+
+        if (!ImGui.BeginTable("##deps", 3,
+                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoBordersInBody | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.RowBg))
+            return;
+
+        ImGui.TableSetupColumn("##status", ImGuiTableColumnFlags.WidthFixed, 32f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("##name", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("##action", ImGuiTableColumnFlags.WidthFixed, 130f * ImGuiHelpers.GlobalScale);
+
+        foreach (var plugin in ExternalPlugins.All)
+            DependencyRow.Draw(plugin);
+
+        ImGui.EndTable();
+
+        ImGui.Spacing();
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            ImGui.TextWrapped("Install adds the plugin's source repository to Dalamud and queues an install. If a one-click install fails, right-click a plugin name to copy its repo URL and add it manually via /xlsettings → Experimental → Custom Plugin Repositories.");
     }
 
     private static void DrawDescription()
@@ -84,22 +110,10 @@ public sealed class AboutWindow : Window, IDisposable
             ImGui.PushTextWrapPos(0f);
             ImGui.TextUnformatted(
                 "Allied Tribes lists every beast tribe from A Realm Reborn through Dawntrail. " +
-                "Pressing \"Do dailies\" on a row teleports you to that tribe's issuer NPC, " +
-                "accepts the day's quests, hands them off to Questionable to play out, and " +
-                "returns to turn in. Crafter tribes use Artisan via Questionable's internal " +
-                "pipeline — no extra setup needed.");
-            ImGui.PopTextWrapPos();
-        }
-
-        ImGui.Spacing();
-
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-        {
-            ImGui.PushTextWrapPos(0f);
-            ImGui.TextUnformatted(
-                "Bug reports and per-tribe quirk notes are welcome via GitHub issues. " +
-                "If the plugin sits idle on a tribe you've unlocked, check that Questionable " +
-                "has coverage for that quest (Settings → debug → \"IsQuestLocked\" output).");
+                "Tick the tribes you want to run, click \"Run selected\" in the header, and the " +
+                "plugin teleports to each issuer in turn, accepts the day's quests, hands them " +
+                "off to Questionable, and turns them in. The 12-quest daily allowance stops " +
+                "the queue automatically once it's burnt.");
             ImGui.PopTextWrapPos();
         }
     }
