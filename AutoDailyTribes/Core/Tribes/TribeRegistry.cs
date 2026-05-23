@@ -157,7 +157,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 817,                // The Rak'tika Greatwood (was 815 = Amh Araeng)
             IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
-            // No icon file provided — falls back to FontAwesome Leaf via KindIcon.
+            IconFile = "Stewards_Relations.png",    // in-game Qitari society is "Stewards"
         },
         new()
         {
