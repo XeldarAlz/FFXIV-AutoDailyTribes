@@ -26,7 +26,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         }
         catch (Exception ex)
         {
-            // Strip clib's "[AutoTribe] [scope] " prefix so the chat line is readable.
             var msg = ex.Message;
             var lastBracket = msg.LastIndexOf("] ");
             if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
@@ -47,7 +46,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
         Diag($"State: rank={tribe.Rank}/{tribe.MinRankForDailies}, allowance={tribe.DailyAllowanceLeft}, acceptedToday={tribe.AcceptedTodayCount}, inProgress={tribe.InProgressQuestIds.Length}, currentTerritory={Svc.ClientState.TerritoryType}, issuerTerritory={tribe.IssuerTerritoryId}");
 
-        // FIRST: get on the right map regardless of quest state. User's expectation is unconditional.
         if (Svc.ClientState.TerritoryType != tribe.IssuerTerritoryId)
         {
             Status = $"Teleporting to {tribe.Name}";
@@ -67,7 +65,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
         if (!await EnsureCorrectJob()) return;
 
-        // Only walk to the NPC when we actually need to accept new quests — otherwise Questionable handles routing.
         if (remainingToAccept > 0)
         {
             await TravelToIssuer();
@@ -75,7 +72,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
             await AcceptDailies(remainingToAccept);
         }
 
-        // Refresh once after accepts: whatever's in the journal now is what Questionable picks up.
         TribeStateReader.Refresh(tribe);
         var accepted = tribe.InProgressQuestIds;
         ErrorIf(accepted.Length == 0, "No quests accepted and none in journal");
@@ -124,16 +120,13 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         await Dismount();
     }
 
-    // Drive whatever prompt is open and re-interact when nothing is — keep "pressing confirm"
-    // until AcceptedTodayCount reaches the target. No per-quest state machine: the journal is
-    // the source of truth, and Talk dialogue gets advanced inline.
     private async Task AcceptDailies(int slotsToFill)
     {
         var startCount = tribe.AcceptedTodayCount;
         var targetCount = Math.Min(startCount + slotsToFill, AdtConstants.MaxAcceptsPerTribe);
         Diag($"AcceptDailies: {startCount} → {targetCount} (+{slotsToFill})");
 
-        const int maxFrames = 3600; // ~60s at 60fps; covers the slowest NPC chain comfortably
+        const int maxFrames = 3600;
         var frame = 0;
         var lastInteractFrame = -100;
 
@@ -142,8 +135,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
             await NextFrame();
             frame++;
 
-            // Refresh journal periodically — once the count hits target we're done regardless
-            // of which prompt is on screen.
             if (frame % 20 == 0)
             {
                 TribeStateReader.Refresh(tribe);
@@ -156,8 +147,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
                 }
             }
 
-            // Advance whichever prompt is up. Order: confirmation dialogs first, then Talk,
-            // then the menus that actually pick a quest.
             if (AddonProbes.SelectYesnoActive())
             {
                 AddonSelectYesno.Yes();
@@ -226,8 +215,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
     private async Task DelegateToQuestionable(uint[] accepted)
     {
         Status = $"Delegating {accepted.Length} quest(s) to Questionable";
-        // Questionable picks up accepted tribe quests from the journal on its own — no need to seed its priority list.
-        // StartQuest returning false means IPC rejected it — otherwise we'd hang in WaitUntilThenFalse waiting for IsRunning that never flips.
         ErrorIf(!_questionable.StartQuest(accepted[0]),
             $"Questionable.StartQuest rejected quest {accepted[0]:X} ({QuestName(accepted[0])})");
         await WaitUntilThenFalse(_questionable.IsRunning, "QuestionableRun");

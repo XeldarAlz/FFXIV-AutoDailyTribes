@@ -32,7 +32,6 @@ internal static class TribeIcon
             }
         }
 
-        // Reserve the same footprint so the cards align whether or not an icon is present.
         var cursor = ImGui.GetCursorPos();
         KindIcon.Draw(tribe.Kind);
         ImGui.SetCursorPos(cursor + new Vector2(size, 0));

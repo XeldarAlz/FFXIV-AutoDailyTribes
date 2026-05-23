@@ -11,7 +11,10 @@ internal static class Header
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        // Preserve click-order — cfg.SelectedTribes is a List populated in the order the user ticked cards.
+        var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
+        var allowanceUsed = AdtConstants.DailyAllowanceCap - allowanceLeft;
+        var allowanceExhausted = allowanceLeft <= 0;
+
         var byId = TribeRegistry.Tribes.ToDictionary(t => t.BeastTribeId);
         var selected = cfg.SelectedTribes
             .Where(byId.ContainsKey)
@@ -21,17 +24,19 @@ internal static class Header
         var runnable = selected
             .Where(t => t.Unlocked
                      && t.MeetsRankRequirement
-                     && (t.AcceptSlotsRemaining > 0 || t.HasInProgressQuests))
+                     && ((t.AcceptSlotsRemaining > 0 && !allowanceExhausted) || t.HasInProgressQuests))
             .ToArray();
 
         var canRun = runnable.Length > 0 && !controller.Running;
         if (ActionButton.Draw($"Run selected ({runnable.Length})", enabled: canRun, width: 200))
             controller.RunAll(runnable);
-        Tooltip.For(selected.Length == 0
-            ? "Tick the circle on the tribe cards below to add them to the batch."
-            : runnable.Length < selected.Length
-                ? $"{selected.Length} selected, {runnable.Length} runnable — locked/maxed tribes are skipped."
-                : $"Runs {runnable.Length} tribe(s) back-to-back. Allowance cap stops the queue early.");
+        Tooltip.For(allowanceExhausted && runnable.Length == 0
+            ? $"All {AdtConstants.DailyAllowanceCap} daily quests done — try again after reset."
+            : selected.Length == 0
+                ? "Tick the circle on the tribe cards below to add them to the batch."
+                : runnable.Length < selected.Length
+                    ? $"{selected.Length} selected, {runnable.Length} runnable — locked/maxed tribes are skipped."
+                    : $"Runs {runnable.Length} tribe(s) back-to-back. Allowance cap stops the queue early.");
 
         ImGui.SameLine();
         using (ImRaii.Disabled(!controller.Running))
@@ -50,11 +55,12 @@ internal static class Header
         }
 
         ImGui.SameLine();
-        var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
-        var allowanceUsed = AdtConstants.DailyAllowanceCap - allowanceLeft;
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
+        var allowanceColor = allowanceExhausted ? Styling.AccentAmber : Styling.TextDim;
+        using (ImRaii.PushColor(ImGuiCol.Text, allowanceColor))
             ImGui.TextUnformatted($"   Daily: {allowanceUsed} / {AdtConstants.DailyAllowanceCap}   ·   Reset in {FormatResetCountdown()}");
-        Tooltip.For("FFXIV daily reset is 15:00 UTC. Allowance and per-tribe slots refill then.");
+        Tooltip.For(allowanceExhausted
+            ? $"All {AdtConstants.DailyAllowanceCap} daily allowances used. Reset is 15:00 UTC."
+            : "FFXIV daily reset is 15:00 UTC. Allowance and per-tribe slots refill then.");
 
         ImGui.Separator();
     }

@@ -9,10 +9,10 @@ internal static unsafe class JobSwitcher
 {
     private const int MaxGearsets = 100;
 
-    private const byte DohFirst = 8;   // CRP
-    private const byte DohLast  = 15;  // CUL
-    private const byte DolFirst = 16;  // MIN
-    private const byte DolLast  = 18;  // FSH
+    private const byte DohFirst = 8;
+    private const byte DohLast  = 15;
+    private const byte DolFirst = 16;
+    private const byte DolLast  = 18;
 
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
@@ -23,7 +23,6 @@ internal static unsafe class JobSwitcher
         return ps == null ? (byte)0 : ps->CurrentClassJobId;
     }
 
-    // null = current class already qualifies / no swap configured. Combat tribes always return null.
     public static byte? ResolveTargetJob(TribeInfo tribe, Configuration cfg)
     {
         var ps = PlayerState.Instance();
@@ -84,7 +83,6 @@ internal static unsafe class JobSwitcher
                 return (byte)specificJob;
 
             case JobChoice.Current:
-                // Only reachable when current isn't in this category — fall back to highest in range.
                 return PickByLevel(first, last, highest: true);
 
             case JobChoice.HighestXP:

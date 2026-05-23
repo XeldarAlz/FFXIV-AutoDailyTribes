@@ -18,7 +18,6 @@ internal static unsafe class TribeStateReader
         tribe.RepCur = ps->GetBeastTribeCurrentReputation(tribeId);
         tribe.RepMax = ps->GetBeastTribeNeededReputation(tribeId);
 
-        // Rank ≥ 1 ⇔ intro quest done; avoids hardcoding intro quest IDs per tribe.
         tribe.Unlocked = tribe.Rank >= 1;
 
         var questSheet = Svc.Data.GetExcelSheet<Quest>();
@@ -33,7 +32,6 @@ internal static unsafe class TribeStateReader
         return qm != null ? (int)qm->GetBeastTribeAllowance() : AdtConstants.DailyAllowanceCap;
     }
 
-    // Drops out the moment a quest is turned in — pair with CountAcceptedToday for "can accept more" gating.
     private static uint[] ScanInProgress(uint beastTribeId, QuestManager* qm, Lumina.Excel.ExcelSheet<Quest>? questSheet)
     {
         if (questSheet == null) return [];

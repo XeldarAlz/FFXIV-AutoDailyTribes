@@ -12,11 +12,9 @@ internal static class TribeCard
 {
     public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
     {
-        // Includes "slots maxed but quests still in journal" — AutoTribe then skips travel and just delegates.
         var hasWork = tribe.AcceptSlotsRemaining > 0 || tribe.HasInProgressQuests;
         var doneToday = tribe.Unlocked && tribe.MeetsRankRequirement && !hasWork;
 
-        // Drop completed tribes from the saved selection so they don't render as "selected" after reset wraps around.
         if (doneToday && cfg.SelectedTribes.Remove(tribe.BeastTribeId))
             cfg.SaveDebounced();
 

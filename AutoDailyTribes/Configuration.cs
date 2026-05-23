@@ -11,17 +11,15 @@ public sealed class Configuration : IPluginConfiguration
     public bool AutoShowIfDailiesAvailable { get; set; } = true;
 
     public JobChoice CrafterJobType { get; set; } = JobChoice.HighestXP;
-    public uint SelectedCrafterJob { get; set; } = 8;  // CRP
+    public uint SelectedCrafterJob { get; set; } = 8;
 
     public JobChoice GathererJobType { get; set; } = JobChoice.HighestXP;
-    public uint SelectedGathererJob { get; set; } = 16; // MIN
+    public uint SelectedGathererJob { get; set; } = 16;
 
-    // List, not HashSet, so click-order is preserved for batch runs.
     public List<uint> SelectedTribes { get; set; } = [];
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 
-    // Slider/drag callbacks fire every frame; debounce so we don't hammer disk.
     public void SaveDebounced()
     {
         if (EzThrottler.Throttle(Core.AdtConstants.ThrottleKeys.Save, Core.AdtConstants.SaveThrottleMs))

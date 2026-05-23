@@ -5,8 +5,6 @@ using Lumina.Excel.Sheets;
 
 namespace AutoDailyTribes.Core.Debug;
 
-// /adt target — dumps current target's BaseId + zone to chat. Used to capture
-// real IssuerENpcBaseId values when seeding new TribeRegistry rows.
 internal static unsafe class TargetDumper
 {
     public static void Dump()

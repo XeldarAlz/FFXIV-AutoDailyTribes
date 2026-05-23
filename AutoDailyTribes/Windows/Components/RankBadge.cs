@@ -11,14 +11,14 @@ internal static class RankBadge
 {
     private static readonly string[] RankNames =
     [
-        "Neutral",    // 1
-        "Recognized", // 2
-        "Friendly",   // 3
-        "Trusted",    // 4
-        "Respected",  // 5
-        "Honored",    // 6
-        "Sworn",      // 7
-        "Bloodsworn", // 8
+        "Neutral",
+        "Recognized",
+        "Friendly",
+        "Trusted",
+        "Respected",
+        "Honored",
+        "Sworn",
+        "Bloodsworn",
     ];
 
     public static void Draw(TribeInfo tribe)
