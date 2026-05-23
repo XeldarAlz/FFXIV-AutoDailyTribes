@@ -207,6 +207,12 @@ public static class TribeRegistry
         },
 
         // === DT ===
+        // Territory IDs verified against xivapi/ffxiv-datamining TerritoryType.csv:
+        //   1187 = Urqopacha, 1188 = Kozama'uka, 1189 = Yak T'el, 1190 = Shaaloani.
+        // (1186 is Solution Nine — earlier values were off-by-one, hence the
+        //  "teleports to Solution Nine then walks to a random NPC" bug.)
+        // IssuerENpcBaseId still needs in-game capture for each. Use /atq target
+        // while standing next to the issuer to log its real BaseId.
         new()
         {
             BeastTribeId = 18,
@@ -214,18 +220,18 @@ public static class TribeRegistry
             Era = TribeEra.DT,
             Kind = TribeKind.Combat,                // DoW/DoM focus — Patch 7.1
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1187,               // VERIFY: Kozama'uka (Dock Poga, X:37.2 Y:16.8)
-            IssuerENpcBaseId = 1052000,             // VERIFY: placeholder — needs in-game lookup
+            IssuerTerritoryId = 1188,               // Kozama'uka — Dock Poga (X:37.2, Y:16.8)
+            IssuerENpcBaseId = 1052000,             // VERIFY: capture with /atq target
         },
         new()
         {
             BeastTribeId = 19,
             Name = "Mamool Ja",
             Era = TribeEra.DT,
-            Kind = TribeKind.Gatherer,              // DoL focus — Patch 7.2
+            Kind = TribeKind.Gatherer,              // DoL focus — Patch 7.25
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1188,               // VERIFY: Yak T'el (Gok Golma, X:33.2 Y:36.0)
-            IssuerENpcBaseId = 1052100,             // VERIFY: placeholder — needs in-game lookup
+            IssuerTerritoryId = 1189,               // Yak T'el — Gok Golma (X:33.2, Y:36.0)
+            IssuerENpcBaseId = 1052100,             // VERIFY: capture with /atq target
         },
         new()
         {
@@ -234,8 +240,8 @@ public static class TribeRegistry
             Era = TribeEra.DT,
             Kind = TribeKind.Crafter,               // DoH focus — Patch 7.35
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1186,               // VERIFY: Urqopacha (Worlar's Echo, X:30.5 Y:34.2)
-            IssuerENpcBaseId = 1052200,             // VERIFY: placeholder — needs in-game lookup
+            IssuerTerritoryId = 1187,               // Urqopacha — Solace (X:31, Y:37)
+            IssuerENpcBaseId = 1052200,             // VERIFY: capture with /atq target
         },
     ];
 

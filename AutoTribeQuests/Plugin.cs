@@ -1,4 +1,5 @@
 using AutoTribeQuests.Core;
+using AutoTribeQuests.Core.Debug;
 using AutoTribeQuests.Core.Tasks;
 using AutoTribeQuests.Windows;
 using clib;
@@ -48,7 +49,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(AtqConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Toggle the Allied Tribes window. /atq config opens settings, /atq deps opens the dependencies window, /atq about opens credits."
+            HelpMessage = "Toggle the Allied Tribes window. /atq config | deps | about | target (dump current target's BaseId)."
         });
         CommandManager.AddHandler(AtqConstants.AliasCommand, new CommandInfo(OnCommand)
         {
@@ -88,6 +89,8 @@ public sealed class Plugin : IDalamudPlugin
             ToggleAboutUi();
         else if (trimmed.Equals("deps", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("dependencies", StringComparison.OrdinalIgnoreCase))
             ToggleDependenciesUi();
+        else if (trimmed.Equals("target", StringComparison.OrdinalIgnoreCase))
+            TargetDumper.Dump();
         else
             ToggleMainUi();
     }
