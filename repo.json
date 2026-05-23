@@ -1,31 +1,31 @@
 [
-    {
-        "Author": "XeldarAlz",
-        "Name": "Auto Daily Tribes",
-        "InternalName": "AutoDailyTribes",
-        "AssemblyVersion": "1.0.0.0",
-        "TestingAssemblyVersion": "1.0.0.0",
-        "Description": "Auto runs all daily tribe quests for you.",
-        "Punchline": "Daily allied tribe quests, hands-off.",
-        "RepoUrl": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes",
-        "ApplicableVersion": "any",
-        "Tags": [
-            "beast tribes",
-            "allied tribes",
-            "daily quests",
-            "automation"
-        ],
-        "CategoryTags": [
-            "utility"
-        ],
-        "DalamudApiLevel": 15,
-        "IconUrl": "https://raw.githubusercontent.com/XeldarAlz/FFXIV-AutoDailyTribes/master/AutoDailyTribes/Images/Icon.png",
-        "DownloadLinkInstall": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
-        "DownloadLinkUpdate": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
-        "DownloadLinkTesting": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
-        "IsTestingExclusive": false,
-        "AcceptsFeedback": true,
-        "DownloadCount": 0,
-        "LastUpdate": "0"
-    }
+  {
+    "Author": "XeldarAlz",
+    "Name": "Auto Daily Tribes",
+    "InternalName": "AutoDailyTribes",
+    "AssemblyVersion": "1.0.0.0",
+    "TestingAssemblyVersion": "1.0.0.0",
+    "Description": "Auto runs all daily tribe quests for you.",
+    "Punchline": "Daily allied tribe quests, hands-off.",
+    "RepoUrl": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes",
+    "ApplicableVersion": "any",
+    "Tags": [
+      "beast tribes",
+      "allied tribes",
+      "daily quests",
+      "automation"
+    ],
+    "CategoryTags": [
+      "utility"
+    ],
+    "DalamudApiLevel": 15,
+    "IconUrl": "https://raw.githubusercontent.com/XeldarAlz/FFXIV-AutoDailyTribes/master/AutoDailyTribes/Images/Icon.png",
+    "DownloadLinkInstall": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
+    "DownloadLinkTesting": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest/download/latest.zip",
+    "IsTestingExclusive": false,
+    "AcceptsFeedback": true,
+    "DownloadCount": 0,
+    "LastUpdate": "1779576577"
+  }
 ]
