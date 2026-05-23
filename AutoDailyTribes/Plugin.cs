@@ -21,6 +21,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
     internal Configuration Configuration { get; }
+    internal static Configuration Cfg { get; private set; } = null!;
     internal WindowSystem WindowSystem { get; } = new("AutoDailyTribes");
     internal AutoTribeController Controller { get; }
 
@@ -35,6 +36,7 @@ public sealed class Plugin : IDalamudPlugin
         CLibMain.Init(PluginInterface, this, CLibModule.Automation);
 
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Cfg = Configuration;
         Controller = new AutoTribeController();
 
         mainWindow = new MainWindow(this);

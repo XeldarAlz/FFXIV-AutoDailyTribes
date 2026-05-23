@@ -16,7 +16,8 @@ public sealed class Configuration : IPluginConfiguration
     public JobChoice GathererJobType { get; set; } = JobChoice.HighestXP;
     public uint SelectedGathererJob { get; set; } = 16; // MIN
 
-    public HashSet<uint> SelectedTribes { get; set; } = [];
+    // List, not HashSet, so click-order is preserved for batch runs.
+    public List<uint> SelectedTribes { get; set; } = [];
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 
