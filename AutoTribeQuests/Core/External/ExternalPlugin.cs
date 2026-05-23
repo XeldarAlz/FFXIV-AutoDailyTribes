@@ -25,6 +25,11 @@ public static class ExternalPlugins
     public static readonly IReadOnlyDictionary<ExternalPlugin, ExternalPluginInfo> Catalog
         = new Dictionary<ExternalPlugin, ExternalPluginInfo>
     {
+        // Repo URLs verified 2026-05-23. The historical plugins.carvel.li URL for
+        // Questionable has a broken cert (RemoteCertificateNameMismatch); the plugin
+        // moved to PunishXIV ownership and is now served via the puni.sh meta repo.
+        // Artisan was also reshuffled onto the same meta repo. vnavmesh lives on
+        // the per-author endpoint /api/repository/veyn (awgil's plugins).
         [ExternalPlugin.Vnavmesh] = new(
             InternalName: "vnavmesh",
             DisplayName: "vnavmesh",
@@ -34,13 +39,13 @@ public static class ExternalPlugins
         [ExternalPlugin.Questionable] = new(
             InternalName: "Questionable",
             DisplayName: "Questionable",
-            RepoUrl: "https://plugins.carvel.li/",
+            RepoUrl: "https://puni.sh/api/plugins",
             Purpose: "Plays out each daily quest after the plugin accepts it.",
             Required: true),
         [ExternalPlugin.Artisan] = new(
             InternalName: "Artisan",
             DisplayName: "Artisan",
-            RepoUrl: "https://love.puni.sh/ment.json",
+            RepoUrl: "https://puni.sh/api/plugins",
             Purpose: "Crafter tribes — invoked by Questionable's internal pipeline.",
             Required: false),
     };
