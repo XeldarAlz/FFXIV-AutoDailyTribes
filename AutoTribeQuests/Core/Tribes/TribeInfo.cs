@@ -53,12 +53,12 @@ public static class TribeEraExtensions
     // shown on each card next to the tribe name where space is tight.
     public static string DisplayName(this TribeEra era) => era switch
     {
-        TribeEra.ARR => "A Realm Reborn 1.0",
-        TribeEra.HW  => "Heavensward 2.0",
-        TribeEra.SB  => "Stormblood 3.0",
-        TribeEra.ShB => "Shadowbringers 4.0",
-        TribeEra.EW  => "Endwalker 5.0",
-        TribeEra.DT  => "Dawntrail 6.0",
+        TribeEra.ARR => "A Realm Reborn 2.0",
+        TribeEra.HW  => "Heavensward 3.0",
+        TribeEra.SB  => "Stormblood 4.0",
+        TribeEra.ShB => "Shadowbringers 5.0",
+        TribeEra.EW  => "Endwalker 6.0",
+        TribeEra.DT  => "Dawntrail 7.0",
         _ => era.ToString(),
     };
 }

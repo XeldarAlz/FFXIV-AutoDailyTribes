@@ -58,10 +58,6 @@ internal static class TribeCard
             ImGui.TextUnformatted(tribe.Name);
         ImGui.SetWindowFontScale(1.0f);
 
-        ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextUnformatted($" [{tribe.Era}]");
-
         var pillLabel = $"{tribe.AlreadyAcceptedToday.Length}/{AtqConstants.MaxAcceptsPerTribe}";
         var pillWidth = ImGui.CalcTextSize(pillLabel).X + 16 * ImGuiHelpers.GlobalScale;
         ImGui.SameLine(ImGui.GetContentRegionAvail().X + ImGui.GetCursorPosX() - pillWidth);
