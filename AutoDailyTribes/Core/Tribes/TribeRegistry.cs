@@ -234,7 +234,7 @@ public static class TribeRegistry
             Kind = TribeKind.Gatherer,              // DoL focus — Patch 7.25
             MinRankForDailies = 1,
             IssuerTerritoryId = 1189,               // Yak T'el — Gok Golma (X:33.2, Y:36.0)
-            IssuerENpcBaseId = 1052100,             // VERIFY: capture with /adt target
+            IssuerENpcBaseId = 1052560,             // Kageel Ja (verified in-game 2026-05-23)
             IconFile = "Mamool_Ja_Relations.png",
         },
         new()

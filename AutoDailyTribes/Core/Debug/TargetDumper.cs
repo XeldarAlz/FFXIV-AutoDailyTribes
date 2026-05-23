@@ -30,7 +30,7 @@ internal static unsafe class TargetDumper
         var residentName = Svc.Data.GetExcelSheet<ENpcResident>()
             ?.GetRowOrDefault(baseId)?.Singular.ToString() ?? name;
 
-        Svc.Chat.Print($"[ADT] Target: BaseId={baseId}  Name=\"{residentName}\"  (instanceId=0x{target->GetGameObjectId():X})");
+        Svc.Chat.Print($"[ADT] Target: BaseId={baseId}  Name=\"{residentName}\"");
         Svc.Log.Info($"[TargetDumper] territory={territoryId} BaseId={baseId} name='{residentName}'");
     }
 }
