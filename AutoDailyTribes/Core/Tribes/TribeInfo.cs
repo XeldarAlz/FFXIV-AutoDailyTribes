@@ -16,8 +16,7 @@ public sealed class TribeInfo
     // Filename under Images/Tribes/. Null falls back to the FontAwesome KindIcon.
     public string? IconFile { get; init; }
 
-    // Tribes whose daily list is one extra SelectString hop away (entry-menu
-    // before the SelectIconString). 0 = daily list opens directly.
+    // Index into the entry-menu SelectString for tribes with an extra hop. 0 = daily list opens directly.
     public int IssuerSelectStringIndex { get; init; } = 0;
 
     public ulong IssuerInstanceId;
@@ -27,10 +26,19 @@ public sealed class TribeInfo
     public int Rank;
     public int RepCur, RepMax;
     public int DailyAllowanceLeft;
-    public uint[] AlreadyAcceptedToday = [];
+
+    // Accepted-but-not-turned-in journal quests, full 0x10000|id form (what Questionable expects masked to 16-bit).
+    public uint[] InProgressQuestIds = [];
+
+    // Daily slots consumed for this tribe today including turn-ins (which drop out of InProgressQuestIds).
+    public int AcceptedTodayCount;
 
     public bool MeetsRankRequirement => Rank >= MinRankForDailies;
-    public int AcceptSlotsRemaining => Math.Max(0, AdtConstants.MaxAcceptsPerTribe - AlreadyAcceptedToday.Length);
+    public int AcceptSlotsRemaining => Math.Max(0, AdtConstants.MaxAcceptsPerTribe - AcceptedTodayCount);
+    public bool HasInProgressQuests => InProgressQuestIds.Length > 0;
+
+    // Rep bar capped at the threshold for the next rank, awaiting the issuer's rank-up quest.
+    public bool CanRankUp => Unlocked && Rank < AdtConstants.MaxTribeRank && RepMax > 0 && RepCur >= RepMax;
 }
 
 public enum TribeEra
