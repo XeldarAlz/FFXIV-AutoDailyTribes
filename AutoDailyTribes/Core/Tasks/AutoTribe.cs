@@ -79,20 +79,25 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         await Dismount();
 
         Status = $"Talking to {tribe.Name} issuer";
+        await OpenIssuerMenu();
+    }
 
-        // Air-dismount lands the player in a brief Jumping condition that
-        // rejects InteractWith ("Unable to execute command while jumping").
-        // Wait for the player to settle.
+    // Opens (or re-opens) the issuer's daily-quest list. Used by
+    // TravelAndOpenMenu on first contact AND by AcceptDailies between picks
+    // — most tribes close the menu entirely after accepting one quest, so we
+    // have to re-talk for each subsequent daily.
+    private async Task OpenIssuerMenu()
+    {
+        // Air-dismount + landing puts the player into a brief Jumping condition
+        // that rejects InteractWith. Wait for them to settle.
         await WaitWhile(
             () => Svc.Condition[ConditionFlag.Jumping]
                || Svc.Condition[ConditionFlag.Jumping61]
                || Svc.Condition[ConditionFlag.Casting],
-            "WaitForLanding");
+            "WaitForSettled");
 
         Svc.Chat.Print($"[ADT debug] Interacting with issuer ({tribe.IssuerInstanceId:X})");
 
-        // Retry interact a few times — the game can briefly reject input
-        // around landing / animation locks even after Jumping clears.
         var talked = false;
         for (var attempt = 0; attempt < 5 && !talked; attempt++)
         {
@@ -116,7 +121,7 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         var firstMenu = AddonProbes.SelectIconStringActive() ? "SelectIconString"
                       : AddonProbes.SelectStringActive() ? "SelectString"
                       : "?";
-        Svc.Chat.Print($"[ADT debug] First menu opened: {firstMenu}");
+        Svc.Chat.Print($"[ADT debug] Menu opened: {firstMenu}");
 
         if (AddonProbes.SelectStringActive())
         {
@@ -134,10 +139,19 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         for (int i = 0; i < remaining; i++)
         {
             if (tribe.DailyAllowanceLeft <= 0) break;
+
+            // First iteration: menu is already open from TravelAndOpenMenu.
+            // Subsequent iterations: most tribes close the menu after each
+            // accept, so re-talk to the NPC to reopen it.
             if (!AddonProbes.SelectIconStringActive())
             {
-                Svc.Chat.Print($"[ADT debug] Loop {i + 1}: SelectIconString not active — addons=[{ActiveAddons()}]. Breaking.");
-                break;
+                Svc.Chat.Print($"[ADT debug] Loop {i + 1}: menu closed — reopening");
+                await OpenIssuerMenu();
+                if (!AddonProbes.SelectIconStringActive())
+                {
+                    Svc.Chat.Print($"[ADT debug] Loop {i + 1}: menu still not active after reopen, breaking");
+                    break;
+                }
             }
 
             Status = $"Accepting quest {i + 1}/{remaining}";
