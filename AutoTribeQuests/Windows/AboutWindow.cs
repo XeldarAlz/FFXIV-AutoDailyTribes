@@ -1,21 +1,32 @@
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
+using ECommons.DalamudServices;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace AutoTribeQuests.Windows;
 
 public sealed class AboutWindow : Window, IDisposable
 {
-    public AboutWindow() : base("About — Allied Tribes###AutoTribeQuestsAbout")
+    private const string RepoUrl = "https://github.com/XeldarAlz/FFXIV-AutoTribeQuests";
+    private const string IssuesUrl = "https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/issues";
+    private const string DiscussionsUrl = "https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/discussions";
+    private const string SecurityUrl = "https://github.com/XeldarAlz/FFXIV-AutoTribeQuests/security/advisories/new";
+    private const string Author = "XeldarAlz";
+    private const string License = "AGPL-3.0-or-later";
+
+    public AboutWindow() : base("Allied Tribes — About###AutoTribeQuestsAbout")
     {
+        Flags = ImGuiWindowFlags.NoCollapse;
+        Size = new Vector2(560, 400);
+        SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(360, 220),
-            MaximumSize = new Vector2(520, 600),
+            MinimumSize = new Vector2(380, 300),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
-        Size = new Vector2(380, 260);
-        SizeCondition = ImGuiCond.FirstUseEver;
     }
 
     public void Dispose() { }
@@ -24,29 +35,118 @@ public sealed class AboutWindow : Window, IDisposable
     {
         using var style = Styling.PushWindowStyle();
 
-        ImGui.SetWindowFontScale(1.30f);
+        DrawHeader();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawDetailsTable();
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawDescription();
+    }
+
+    private static void DrawHeader()
+    {
+        ImGui.SetWindowFontScale(1.20f);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
             ImGui.TextUnformatted("Allied Tribes");
         ImGui.SetWindowFontScale(1.0f);
 
+        var version = typeof(AboutWindow).Assembly.GetName().Version?.ToString() ?? "?";
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted("Daily allied tribe quests, hands-off.");
+            ImGui.TextUnformatted($"build {version} · {License}");
+    }
 
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+    private static void DrawDetailsTable()
+    {
+        if (!ImGui.BeginTable("##about_table", 2,
+                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoBordersInBody | ImGuiTableFlags.PadOuterX))
+            return;
 
-        ImGui.TextWrapped("Teleports to each tribe issuer, accepts the day's quests, hands them off to Questionable, and turns them in. Crafter tribes also use Artisan via Questionable's internal pipeline.");
+        ImGui.TableSetupColumn("##label", ImGuiTableColumnFlags.WidthFixed, 150f * ImGuiHelpers.GlobalScale);
+        ImGui.TableSetupColumn("##value", ImGuiTableColumnFlags.WidthStretch);
 
-        ImGui.Spacing();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+        DrawTextRow("Author", Author);
+        DrawTextRow("Requires", "vnavmesh, Questionable");
+        DrawTextRow("Optional", "Artisan (crafter tribes)");
+        DrawLinkRow("GitHub", RepoUrl);
+        DrawLinkRow("Report a bug", IssuesUrl);
+        DrawLinkRow("Discussions", DiscussionsUrl);
+        DrawLinkRow("Security disclosure", SecurityUrl);
+
+        ImGui.EndTable();
+    }
+
+    private static void DrawDescription()
+    {
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
         {
-            ImGui.TextUnformatted("Requires: vnavmesh, Questionable");
-            ImGui.TextUnformatted("Optional: Artisan (crafter tribes)");
+            ImGui.PushTextWrapPos(0f);
+            ImGui.TextUnformatted(
+                "Allied Tribes lists every beast tribe from A Realm Reborn through Dawntrail. " +
+                "Pressing \"Do dailies\" on a row teleports you to that tribe's issuer NPC, " +
+                "accepts the day's quests, hands them off to Questionable to play out, and " +
+                "returns to turn in. Crafter tribes use Artisan via Questionable's internal " +
+                "pipeline — no extra setup needed.");
+            ImGui.PopTextWrapPos();
         }
 
         ImGui.Spacing();
+
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+        {
+            ImGui.PushTextWrapPos(0f);
+            ImGui.TextUnformatted(
+                "Bug reports and per-tribe quirk notes are welcome via GitHub issues. " +
+                "If the plugin sits idle on a tribe you've unlocked, check that Questionable " +
+                "has coverage for that quest (Settings → debug → \"IsQuestLocked\" output).");
+            ImGui.PopTextWrapPos();
+        }
+    }
+
+    private static void DrawTextRow(string label, string value)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted("github.com/XeldarAlz/FFXIV-AutoTribeQuests");
+            ImGui.TextUnformatted(label);
+        ImGui.TableSetColumnIndex(1);
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
+            ImGui.TextUnformatted(value);
+    }
+
+    private static void DrawLinkRow(string label, string url)
+    {
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
+            ImGui.TextUnformatted(label);
+
+        ImGui.TableSetColumnIndex(1);
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTeal))
+        {
+            ImGui.PushTextWrapPos(ImGui.GetContentRegionMax().X);
+            ImGui.TextUnformatted(url);
+            ImGui.PopTextWrapPos();
+        }
+        if (!ImGui.IsItemHovered()) return;
+
+        using (ImRaii.Tooltip())
+            ImGui.TextUnformatted("Click to open · right-click to copy");
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) OpenInBrowser(url);
+        else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(url);
+    }
+
+    private static void OpenInBrowser(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Svc.Log.Warning(ex, "[AutoTribeQuests] failed to launch browser for {0}, copied to clipboard instead", url);
+            ImGui.SetClipboardText(url);
+        }
     }
 }
