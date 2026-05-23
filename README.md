@@ -130,7 +130,9 @@ Open via `/atq config` or the gear icon in the main window's toolbar.
 ### Dawntrail
 | Tribe | Status | Notes |
 |---|---|---|
-| Pelupelu | ❔ | TBD — verify Questionable coverage first |
+| Pelupelu | ❔ | Combat (7.1) — verify Questionable coverage first |
+| Mamool Ja | ❔ | Crafter / DoH (7.2) |
+| Yok Huy | ❔ | Gatherer / DoL (7.3) |
 
 ## License
 

@@ -209,11 +209,31 @@ public static class TribeRegistry
             BeastTribeId = 18,
             Name = "Pelupelu",
             Era = TribeEra.DT,
-            Kind = TribeKind.Combat,                // VERIFY: kind
+            Kind = TribeKind.Combat,                // Patch 7.1 — verify in-game
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1187,               // VERIFY: Tuliyollal-region territory
+            IssuerTerritoryId = 1184,               // VERIFY: Tuliyollal/Solution Nine region
             IssuerENpcBaseId = 1052000,             // VERIFY: placeholder — needs in-game lookup
             // Verify Questionable has quest data coverage before enabling this row in earnest.
+        },
+        new()
+        {
+            BeastTribeId = 19,
+            Name = "Mamool Ja",
+            Era = TribeEra.DT,
+            Kind = TribeKind.Crafter,               // Patch 7.2 DoH crafter tribe
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 1188,               // VERIFY: Yak T'el or adjacent
+            IssuerENpcBaseId = 1052100,             // VERIFY: placeholder — needs in-game lookup
+        },
+        new()
+        {
+            BeastTribeId = 20,
+            Name = "Yok Huy",
+            Era = TribeEra.DT,
+            Kind = TribeKind.Gatherer,              // Patch 7.3 DoL gatherer tribe
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 1189,               // VERIFY: Shaaloani
+            IssuerENpcBaseId = 1052200,             // VERIFY: placeholder — needs in-game lookup
         },
     ];
 
