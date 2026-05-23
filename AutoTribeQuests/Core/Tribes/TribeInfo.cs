@@ -46,3 +46,19 @@ public enum TribeEra
     EW,
     DT,
 }
+
+public static class TribeEraExtensions
+{
+    // Long-form name used for section titles in the UI. Short enum value still
+    // shown on each card next to the tribe name where space is tight.
+    public static string DisplayName(this TribeEra era) => era switch
+    {
+        TribeEra.ARR => "A Realm Reborn 1.0",
+        TribeEra.HW  => "Heavensward 2.0",
+        TribeEra.SB  => "Stormblood 3.0",
+        TribeEra.ShB => "Shadowbringers 4.0",
+        TribeEra.EW  => "Endwalker 5.0",
+        TribeEra.DT  => "Dawntrail 6.0",
+        _ => era.ToString(),
+    };
+}

@@ -19,7 +19,7 @@ internal static class TribeList
             var tribes = TribeRegistry.ByEra(era).ToArray();
             if (tribes.Length == 0) continue;
 
-            Styling.SectionLabel(era.ToString());
+            Styling.SectionLabel(era.DisplayName());
 
             DrawGrid(tribes, controller, cfg);
             ImGui.Spacing();

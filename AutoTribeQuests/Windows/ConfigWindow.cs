@@ -61,7 +61,7 @@ public sealed class ConfigWindow : Window, IDisposable
             if (tribes.Length == 0) continue;
 
             using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted(era.ToString());
+                ImGui.TextUnformatted(era.DisplayName());
 
             foreach (var tribe in tribes)
             {
