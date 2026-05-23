@@ -1,10 +1,11 @@
 using Dalamud.Plugin.Ipc;
+using ECommons.DalamudServices;
 
-namespace AutoTribeQuests;
+namespace AutoTribeQuests.Core.Ipc;
 
 // Typed wrapper over Questionable's CallGate endpoints.
-// IPC strings verified against WigglyMuffin/Questionable @ Questionable/External/QuestionableIpc.cs.
-public sealed class QuestionableIPC
+// Verified against WigglyMuffin/Questionable @ Questionable/External/QuestionableIpc.cs.
+internal sealed class QuestionableIPC
 {
     private readonly ICallGateSubscriber<bool> _isRunning;
     private readonly ICallGateSubscriber<uint> _getCurrentQuestId;
@@ -17,14 +18,14 @@ public sealed class QuestionableIPC
 
     public QuestionableIPC()
     {
-        _isRunning = Service.PluginInterface.GetIpcSubscriber<bool>("Questionable.IsRunning");
-        _getCurrentQuestId = Service.PluginInterface.GetIpcSubscriber<uint>("Questionable.GetCurrentQuestId");
-        _isQuestLocked = Service.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.IsQuestLocked");
-        _startQuest = Service.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.StartQuest");
-        _startSingleQuest = Service.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.StartSingleQuest");
-        _addQuestPriority = Service.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.AddQuestPriority");
-        _insertQuestPriority = Service.PluginInterface.GetIpcSubscriber<int, uint, bool>("Questionable.InsertQuestPriority");
-        _clearQuestPriority = Service.PluginInterface.GetIpcSubscriber<bool>("Questionable.ClearQuestPriority");
+        _isRunning = Svc.PluginInterface.GetIpcSubscriber<bool>("Questionable.IsRunning");
+        _getCurrentQuestId = Svc.PluginInterface.GetIpcSubscriber<uint>("Questionable.GetCurrentQuestId");
+        _isQuestLocked = Svc.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.IsQuestLocked");
+        _startQuest = Svc.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.StartQuest");
+        _startSingleQuest = Svc.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.StartSingleQuest");
+        _addQuestPriority = Svc.PluginInterface.GetIpcSubscriber<uint, bool>("Questionable.AddQuestPriority");
+        _insertQuestPriority = Svc.PluginInterface.GetIpcSubscriber<int, uint, bool>("Questionable.InsertQuestPriority");
+        _clearQuestPriority = Svc.PluginInterface.GetIpcSubscriber<bool>("Questionable.ClearQuestPriority");
     }
 
     public bool IsAvailable => _isRunning.HasFunction;

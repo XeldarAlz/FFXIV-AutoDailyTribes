@@ -1,46 +1,92 @@
+using AutoTribeQuests.Core;
+using AutoTribeQuests.Core.Tasks;
+using AutoTribeQuests.Windows;
 using clib;
+using Dalamud.Game.Command;
+using Dalamud.IoC;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using System.Threading;
-using System.Threading.Tasks;
+using ECommons;
 
 namespace AutoTribeQuests;
 
-public sealed class Plugin(IDalamudPluginInterface pluginInterface, ICommandManager cmd) : IAsyncDalamudPlugin
+public sealed class Plugin : IDalamudPlugin
 {
-    public static Config Config { get; private set; } = null!;
+    [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
+    [PluginService] internal static ICommandManager CommandManager { get; private set; } = null!;
+    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
+    [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
+    [PluginService] internal static IPluginLog Log { get; private set; } = null!;
 
-    private readonly WindowSystem WindowSystem = new("AutoTribeQuests");
-    private MainWindow? _wndMain;
+    internal Configuration Configuration { get; }
+    internal WindowSystem WindowSystem { get; } = new("AutoTribeQuests");
+    internal AutoTribeController Controller { get; }
 
-    public async Task LoadAsync(CancellationToken cancellationToken)
+    private readonly MainWindow mainWindow;
+    private readonly ConfigWindow configWindow;
+    private readonly AboutWindow aboutWindow;
+
+    public Plugin()
     {
-        if (!pluginInterface.ConfigDirectory.Exists)
-            pluginInterface.ConfigDirectory.Create();
+        ECommonsMain.Init(PluginInterface, this);
+        CLibMain.Init(PluginInterface, this, CLibModule.Automation);
 
-        CLibMain.Init(pluginInterface, this, CLibModule.Automation);
-        Service.Initialize(this, pluginInterface);
+        Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        Controller = new AutoTribeController();
 
-        Config = new Config();
-        Config.Load(pluginInterface.ConfigFile);
-        Config.Modified += () => Config.Save(pluginInterface.ConfigFile);
+        mainWindow = new MainWindow(this);
+        configWindow = new ConfigWindow(this);
+        aboutWindow = new AboutWindow();
 
-        _wndMain = new();
-        WindowSystem.AddWindow(_wndMain);
+        WindowSystem.AddWindow(mainWindow);
+        WindowSystem.AddWindow(configWindow);
+        WindowSystem.AddWindow(aboutWindow);
 
-        cmd.AddHandler("/atq", new((_, _) => _wndMain.IsOpen ^= true) { HelpMessage = "Toggle Allied Tribes window" });
+        CommandManager.AddHandler(Constants.PrimaryCommand, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "Toggle the Allied Tribes window. /atq config opens settings, /atq about opens credits."
+        });
+        CommandManager.AddHandler(Constants.AliasCommand, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "Alias for /atq."
+        });
 
-        pluginInterface.UiBuilder.Draw += WindowSystem.Draw;
-        pluginInterface.UiBuilder.OpenMainUi += () => _wndMain.IsOpen = true;
-        pluginInterface.UiBuilder.OpenConfigUi += () => _wndMain.IsOpen = true;
+        PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
+        PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
+        PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
     }
 
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
-        CLibMain.Dispose();
-        cmd.RemoveHandler("/atq");
+        PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
+        PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
+        PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
+
         WindowSystem.RemoveAllWindows();
-        _wndMain?.Dispose();
+        mainWindow.Dispose();
+        configWindow.Dispose();
+        aboutWindow.Dispose();
+
+        CommandManager.RemoveHandler(Constants.PrimaryCommand);
+        CommandManager.RemoveHandler(Constants.AliasCommand);
+
+        CLibMain.Dispose();
+        ECommonsMain.Dispose();
     }
+
+    private void OnCommand(string command, string args)
+    {
+        var trimmed = args.Trim();
+        if (trimmed.Equals("config", StringComparison.OrdinalIgnoreCase))
+            ToggleConfigUi();
+        else if (trimmed.Equals("about", StringComparison.OrdinalIgnoreCase))
+            ToggleAboutUi();
+        else
+            ToggleMainUi();
+    }
+
+    public void ToggleMainUi() => mainWindow.Toggle();
+    public void ToggleConfigUi() => configWindow.Toggle();
+    public void ToggleAboutUi() => aboutWindow.Toggle();
 }
