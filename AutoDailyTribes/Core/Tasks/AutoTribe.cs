@@ -45,185 +45,191 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: BaseId placeholder — run /adt target next to the issuer to capture the real one");
         ErrorIf(!_questionable.IsAvailable, "Questionable plugin not installed/enabled");
 
+        Diag($"State: rank={tribe.Rank}/{tribe.MinRankForDailies}, allowance={tribe.DailyAllowanceLeft}, acceptedToday={tribe.AcceptedTodayCount}, inProgress={tribe.InProgressQuestIds.Length}, currentTerritory={Svc.ClientState.TerritoryType}, issuerTerritory={tribe.IssuerTerritoryId}");
+
+        // FIRST: get on the right map regardless of quest state. User's expectation is unconditional.
+        if (Svc.ClientState.TerritoryType != tribe.IssuerTerritoryId)
+        {
+            Status = $"Teleporting to {tribe.Name}";
+            Diag($"Teleporting to territory {tribe.IssuerTerritoryId} (current: {Svc.ClientState.TerritoryType})");
+            await TeleportTo(tribe.IssuerTerritoryId, tribe.IssuerLocation, allowSameZoneTeleport: false);
+            await WaitUntilTerritory(tribe.IssuerTerritoryId);
+            Diag($"Arrived at territory {Svc.ClientState.TerritoryType}");
+        }
+
         var remainingToAccept = Math.Min(tribe.AcceptSlotsRemaining, tribe.DailyAllowanceLeft);
-        if (remainingToAccept <= 0 && tribe.AlreadyAcceptedToday.Length == 0)
+        if (remainingToAccept <= 0 && !tribe.HasInProgressQuests)
         {
             Status = "Nothing to do";
+            Diag("Nothing to do — no daily slots remaining and no in-progress quests in journal");
             return;
         }
 
-        var accepted = new List<uint>(tribe.AlreadyAcceptedToday);
+        if (!await EnsureCorrectJob()) return;
 
+        // Only walk to the NPC when we actually need to accept new quests — otherwise Questionable handles routing.
         if (remainingToAccept > 0)
         {
-            await TravelAndOpenMenu();
-            await AcceptDailies(remainingToAccept, accepted);
+            await TravelToIssuer();
+            Status = $"Talking to {tribe.Name} issuer";
+            await AcceptDailies(remainingToAccept);
         }
 
-        ErrorIf(accepted.Count == 0, "No quests accepted and none in journal");
+        // Refresh once after accepts: whatever's in the journal now is what Questionable picks up.
+        TribeStateReader.Refresh(tribe);
+        var accepted = tribe.InProgressQuestIds;
+        ErrorIf(accepted.Length == 0, "No quests accepted and none in journal");
 
         await DelegateToQuestionable(accepted);
 
         Status = "Done";
     }
 
-    private async Task TravelAndOpenMenu()
+    private async Task<bool> EnsureCorrectJob()
+    {
+        var target = JobSwitcher.ResolveTargetJob(tribe, Plugin.Cfg);
+        if (target is null) return true;
+        if (JobSwitcher.CurrentClassJob() == target.Value) return true;
+
+        var gearsetId = JobSwitcher.FindGearsetForJob(target.Value);
+        if (gearsetId < 0)
+        {
+            Warning($"{tribe.Name}: no gearset found for required job {target.Value} — skipping");
+            return false;
+        }
+
+        Status = $"Switching to gearset {gearsetId}";
+        Diag($"Equipping gearset {gearsetId} (target ClassJob {target.Value})");
+        if (!JobSwitcher.EquipGearset(gearsetId))
+        {
+            Warning($"{tribe.Name}: EquipGearset rejected (in combat / mounted / etc.) — skipping");
+            return false;
+        }
+
+        for (var f = 0; f < 120; f++)
+        {
+            await NextFrame();
+            if (JobSwitcher.CurrentClassJob() == target.Value) break;
+        }
+        return true;
+    }
+
+    private async Task TravelToIssuer()
     {
         Status = $"Travelling to {tribe.Name}";
-        // Mount + fly when possible; clib's MoveTo dismounts on arrival via the
-        // Dismount flag and falls back to ground movement if the zone doesn't allow flying.
         var config = MovementConfig.Everything.WithTolerance(3f);
         await MoveTo(tribe.IssuerTerritoryId, tribe.IssuerLocation,
             config,
             allowTeleportIfFaster: true);
         await Dismount();
-
-        Status = $"Talking to {tribe.Name} issuer";
-        await OpenIssuerMenu();
     }
 
-    // Opens (or re-opens) the issuer's daily-quest list. Used by
-    // TravelAndOpenMenu on first contact AND by AcceptDailies between picks
-    // — most tribes close the menu entirely after accepting one quest, so we
-    // have to re-talk for each subsequent daily.
-    private async Task OpenIssuerMenu()
+    // Drive whatever prompt is open and re-interact when nothing is — keep "pressing confirm"
+    // until AcceptedTodayCount reaches the target. No per-quest state machine: the journal is
+    // the source of truth, and Talk dialogue gets advanced inline.
+    private async Task AcceptDailies(int slotsToFill)
     {
-        // Air-dismount + landing puts the player into a brief Jumping condition
-        // that rejects InteractWith. Wait for them to settle.
-        await WaitWhile(
-            () => Svc.Condition[ConditionFlag.Jumping]
-               || Svc.Condition[ConditionFlag.Jumping61]
-               || Svc.Condition[ConditionFlag.Casting],
-            "WaitForSettled");
+        var startCount = tribe.AcceptedTodayCount;
+        var targetCount = Math.Min(startCount + slotsToFill, AdtConstants.MaxAcceptsPerTribe);
+        Diag($"AcceptDailies: {startCount} → {targetCount} (+{slotsToFill})");
 
-        Svc.Chat.Print($"[ADT debug] Interacting with issuer ({tribe.IssuerInstanceId:X})");
+        const int maxFrames = 3600; // ~60s at 60fps; covers the slowest NPC chain comfortably
+        var frame = 0;
+        var lastInteractFrame = -100;
 
-        var talked = false;
-        for (var attempt = 0; attempt < 5 && !talked; attempt++)
+        while (frame < maxFrames)
         {
-            ErrorIf(!AddonInteractions.InteractWith(tribe.IssuerInstanceId), "Failed to interact with issuer NPC");
-            for (var f = 0; f < 60; f++)
+            await NextFrame();
+            frame++;
+
+            // Refresh journal periodically — once the count hits target we're done regardless
+            // of which prompt is on screen.
+            if (frame % 20 == 0)
             {
-                await NextFrame();
-                if (AddonProbes.TalkActive() || AddonProbes.SelectStringActive() || AddonProbes.SelectIconStringActive())
+                TribeStateReader.Refresh(tribe);
+                Status = $"Accepted {tribe.AcceptedTodayCount}/{targetCount}";
+                if (tribe.AcceptedTodayCount >= targetCount)
                 {
-                    talked = true;
-                    break;
-                }
-            }
-        }
-        ErrorIf(!talked, "Issuer didn't open a dialog after 5 attempts");
-        await WaitUntilSkipping(
-            () => AddonProbes.SelectIconStringActive() || AddonProbes.SelectStringActive(),
-            "WaitForIssuerMenu",
-            UiSkipOptions.Talk);
-
-        var firstMenu = AddonProbes.SelectIconStringActive() ? "SelectIconString"
-                      : AddonProbes.SelectStringActive() ? "SelectString"
-                      : "?";
-        Svc.Chat.Print($"[ADT debug] Menu opened: {firstMenu}");
-
-        if (AddonProbes.SelectStringActive())
-        {
-            Svc.Chat.Print($"[ADT debug] Picking SelectString[{tribe.IssuerSelectStringIndex}] as entry hop");
-            AddonSelectString.Select(tribe.IssuerSelectStringIndex);
-            await WaitUntil(AddonProbes.SelectIconStringActive, "WaitForDailyList");
-            Svc.Chat.Print("[ADT debug] SelectIconString daily list now active");
-        }
-    }
-
-    private async Task AcceptDailies(int remaining, List<uint> accepted)
-    {
-        Svc.Chat.Print($"[ADT debug] Entering AcceptDailies: addons=[{ActiveAddons()}]");
-
-        for (int i = 0; i < remaining; i++)
-        {
-            if (tribe.DailyAllowanceLeft <= 0) break;
-
-            // First iteration: menu is already open from TravelAndOpenMenu.
-            // Subsequent iterations: most tribes close the menu after each
-            // accept, so re-talk to the NPC to reopen it.
-            if (!AddonProbes.SelectIconStringActive())
-            {
-                Svc.Chat.Print($"[ADT debug] Loop {i + 1}: menu closed — reopening");
-                await OpenIssuerMenu();
-                if (!AddonProbes.SelectIconStringActive())
-                {
-                    Svc.Chat.Print($"[ADT debug] Loop {i + 1}: menu still not active after reopen, breaking");
-                    break;
+                    Diag($"AcceptDailies: reached {tribe.AcceptedTodayCount}/{targetCount}");
+                    if (AddonProbes.SelectIconStringActive()) AddonInteractions.SelectIconStringCancel();
+                    return;
                 }
             }
 
-            Status = $"Accepting quest {i + 1}/{remaining}";
-            var beforeAccepted = tribe.AlreadyAcceptedToday.Length;
-            Svc.Chat.Print($"[ADT debug] Loop {i + 1}: picking SelectIconString[0]  (journal: {beforeAccepted} tribe quest(s) accepted today)");
-            AddonInteractions.SelectIconStringPick(0);
-
-            // Give the game a few frames to react.
-            for (var f = 0; f < 30; f++) await NextFrame();
-            Svc.Chat.Print($"[ADT debug] After pick: addons=[{ActiveAddons()}]");
-
-            await WaitUntilSkipping(
-                () => AddonProbes.JournalAcceptActive() || AddonProbes.SelectYesnoActive() || !AddonProbes.SelectIconStringActive(),
-                "WaitForAcceptPrompt",
-                UiSkipOptions.Talk);
-
-            var afterWait = ActiveAddons();
-            Svc.Chat.Print($"[ADT debug] After WaitForAcceptPrompt: addons=[{afterWait}]");
-
+            // Advance whichever prompt is up. Order: confirmation dialogs first, then Talk,
+            // then the menus that actually pick a quest.
             if (AddonProbes.SelectYesnoActive())
             {
-                Svc.Chat.Print("[ADT debug] SelectYesno → clicking Yes");
                 AddonSelectYesno.Yes();
-                await WaitWhile(AddonProbes.SelectYesnoActive, "WaitYesNoClose");
-            }
-            else if (AddonProbes.JournalAcceptActive())
-            {
-                Svc.Chat.Print("[ADT debug] JournalAccept → confirm");
-                AddonInteractions.JournalAcceptConfirm();
-                await WaitWhile(AddonProbes.JournalAcceptActive, "WaitJournalClose");
-            }
-            else
-            {
-                Svc.Chat.Print("[ADT debug] Neither JournalAccept nor SelectYesno appeared — pick callback shape likely wrong");
-            }
-
-            await WaitUntilSkipping(
-                () => AddonProbes.SelectIconStringActive() || (!AddonProbes.TalkActive() && !AddonProbes.JournalAcceptActive()),
-                "WaitMenuReopen",
-                UiSkipOptions.Talk);
-
-            TribeStateReader.Refresh(tribe);
-            var afterAccepted = tribe.AlreadyAcceptedToday.Length;
-            Svc.Chat.Print($"[ADT debug] After refresh: journal has {afterAccepted} tribe quest(s) for this tribe");
-            if (afterAccepted > accepted.Count)
-                accepted.Add(tribe.AlreadyAcceptedToday[^1]);
-        }
-
-        if (AddonProbes.SelectIconStringActive())
-            AddonInteractions.SelectIconStringCancel();
-    }
-
-    private static string ActiveAddons()
-    {
-        string[] watch = ["SelectString", "SelectIconString", "JournalAccept", "JournalDetail", "JournalResult", "Talk", "SelectYesno", "Request", "_Notification"];
-        return string.Join(", ", watch.Where(AddonProbes.Ready));
-    }
-
-    private async Task DelegateToQuestionable(List<uint> accepted)
-    {
-        Status = $"Delegating {accepted.Count} quest(s) to Questionable";
-        _questionable.ClearPriority();
-        foreach (var q in accepted)
-        {
-            if (_questionable.IsQuestLocked(q))
-            {
-                Warning($"Questionable says quest {q} ({QuestName(q)}) is locked — skipping");
+                await PauseFrames(10);
                 continue;
             }
-            _questionable.AddPriority(q);
+            if (AddonProbes.JournalAcceptActive())
+            {
+                AddonInteractions.JournalAcceptConfirm();
+                await PauseFrames(10);
+                continue;
+            }
+            if (AddonProbes.TalkActive())
+            {
+                AddonInteractions.ProgressTalk();
+                await PauseFrames(3);
+                continue;
+            }
+            if (AddonProbes.SelectIconStringActive())
+            {
+                AddonInteractions.SelectIconStringPick(0);
+                await PauseFrames(10);
+                continue;
+            }
+            if (AddonProbes.SelectStringActive())
+            {
+                AddonSelectString.Select(tribe.IssuerSelectStringIndex);
+                await PauseFrames(10);
+                continue;
+            }
+
+            // Nothing on screen — re-interact, but only if we're not already in a conversation.
+            // OccupiedInQuestEvent / OccupiedInEvent are what FFXIV sets while an NPC dialog is
+            // active; spamming InteractWith during that closes the dialog we just opened. This is
+            // the same gate Questionable uses (DoInteract waits on these condition flags).
+            var inConversation = Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
+                              || Svc.Condition[ConditionFlag.OccupiedInEvent];
+
+            if (!inConversation
+                && frame - lastInteractFrame >= 180  // 3s @ ~60fps — Questionable's _continueAt is 0.5s but we add slack for the dialog to actually surface
+                && !Svc.Condition[ConditionFlag.Jumping]
+                && !Svc.Condition[ConditionFlag.Jumping61]
+                && !Svc.Condition[ConditionFlag.Casting])
+            {
+                var ok = AddonInteractions.InteractWith(tribe.IssuerInstanceId);
+                Diag($"Frame {frame}: re-interacting → triggered={ok}");
+                lastInteractFrame = frame;
+            }
         }
-        _questionable.StartQuest(accepted[0]);
+
+        Warning($"AcceptDailies: timed out at {tribe.AcceptedTodayCount}/{targetCount} after {maxFrames} frames");
+        if (AddonProbes.SelectIconStringActive()) AddonInteractions.SelectIconStringCancel();
+    }
+
+    private async Task PauseFrames(int n)
+    {
+        for (var i = 0; i < n; i++) await NextFrame();
+    }
+
+    private void Diag(string msg)
+    {
+        Svc.Chat.Print($"[ADT debug] {msg}");
+        Svc.Log.Info($"[{tribe.Name}] {msg}");
+    }
+
+    private async Task DelegateToQuestionable(uint[] accepted)
+    {
+        Status = $"Delegating {accepted.Length} quest(s) to Questionable";
+        // Questionable picks up accepted tribe quests from the journal on its own — no need to seed its priority list.
+        // StartQuest returning false means IPC rejected it — otherwise we'd hang in WaitUntilThenFalse waiting for IsRunning that never flips.
+        ErrorIf(!_questionable.StartQuest(accepted[0]),
+            $"Questionable.StartQuest rejected quest {accepted[0]:X} ({QuestName(accepted[0])})");
         await WaitUntilThenFalse(_questionable.IsRunning, "QuestionableRun");
     }
 }
