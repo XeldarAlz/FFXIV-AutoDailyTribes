@@ -1,0 +1,181 @@
+name: Release AutoTribeQuests
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  # Manual fallback: when auto-tag pushes a tag via GITHUB_TOKEN, GitHub
+  # sometimes refuses to cascade-trigger this workflow. Dispatch on the tag
+  # ref to publish the release without having to delete and re-push the tag.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.0.0). Defaults to the ref this is dispatched on.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Resolve target tag
+        id: tag
+        shell: bash
+        run: |
+          ref_name="${{ github.ref_name }}"
+          input_tag="${{ inputs.tag }}"
+          if [ -n "$input_tag" ]; then
+            target="$input_tag"
+          else
+            target="$ref_name"
+          fi
+          if [[ ! "$target" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::Resolved target '$target' is not a v*.*.* tag — pass the tag input or dispatch on a tag ref."
+            exit 1
+          fi
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "version=${target#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $target"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.tag.outputs.target }}
+          submodules: recursive
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download Dalamud dev build
+        shell: pwsh
+        # Track staging while API 15 / Patch 7.50 is in beta — the release
+        # channel is still API 14 and won't satisfy Dalamud.NET.Sdk 15.x.
+        # Revert to /latest.zip once Dalamud 15 GAs.
+        run: |
+          $dalamudUrl = "https://goatcorp.github.io/dalamud-distrib/stg/latest.zip"
+          $dalamudDir = "$env:AppData\XIVLauncher\addon\Hooks\dev"
+          New-Item -ItemType Directory -Force -Path $dalamudDir | Out-Null
+          Invoke-WebRequest -Uri $dalamudUrl -OutFile dalamud.zip
+          Expand-Archive -Path dalamud.zip -DestinationPath $dalamudDir -Force
+          Remove-Item dalamud.zip
+
+      - name: Build (Release)
+        run: dotnet build AutoTribeQuests.sln --configuration Release
+
+      - name: Stage latest.zip
+        shell: pwsh
+        run: |
+          $src = 'AutoTribeQuests/bin/x64/Release/AutoTribeQuests/latest.zip'
+          if (-not (Test-Path $src)) { throw "SDK-built plugin zip not found at $src" }
+          Copy-Item $src 'latest.zip' -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.tag.outputs.target }}
+          name: ${{ steps.tag.outputs.target }}
+          files: latest.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Fetch total download count
+        id: count
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          total=$(gh api "repos/${{ github.repository }}/releases" --paginate \
+            --jq '[.[].assets[].download_count] | add // 0')
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+          echo "Total downloads across all releases: $total"
+
+      - name: Update local repo.json
+        shell: pwsh
+        run: |
+          $v = '${{ steps.tag.outputs.version }}'
+          $path = 'repo.json'
+          $json = Get-Content -Raw -Path $path | ConvertFrom-Json
+          $json[0].AssemblyVersion = $v
+          $json[0].TestingAssemblyVersion = $v
+          $json[0].DownloadCount = [int]'${{ steps.count.outputs.total }}'
+          $json[0] | Add-Member -NotePropertyName 'LastUpdate' -NotePropertyValue ([string][int][double]::Parse((Get-Date -UFormat %s))) -Force
+          # -AsArray preserves the array wrapper; piping a single-element array through | unrolls it and loses the [ ... ] Dalamud requires.
+          ConvertTo-Json -InputObject $json -Depth 10 -AsArray | Set-Content -Path $path -Encoding utf8
+
+      - name: Commit local repo.json
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add repo.json
+          if (-not (git status --porcelain)) {
+            Write-Host 'No changes to commit.'
+            exit 0
+          }
+          git commit -m "Release ${{ steps.tag.outputs.target }}: bump repo.json"
+          # Rebase onto latest master to avoid push rejection if a concurrent
+          # workflow (e.g. DownloadCount bump) advanced master during the build.
+          for ($i = 1; $i -le 5; $i++) {
+            git fetch origin master
+            git rebase origin/master
+            git push origin HEAD:master
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Write-Host "Push rejected (attempt $i); retrying after rebase..."
+            Start-Sleep -Seconds 2
+          }
+          Write-Error 'Failed to push repo.json bump after 5 attempts.'
+          exit 1
+
+      # Mirror this plugin's entry into the multi-plugin hub repo so users
+      # only need to add one Dalamud URL to get all of @XeldarAlz's plugins.
+      # The hub repo holds a JSON array; we upsert (update or append) the
+      # entry keyed by InternalName.
+      - name: Mirror entry into DalamudPlugins hub
+        if: ${{ env.HUB_REPO_PAT != '' }}
+        env:
+          HUB_REPO_PAT: ${{ secrets.HUB_REPO_PAT }}
+        shell: pwsh
+        run: |
+          $pat = $env:HUB_REPO_PAT
+          git clone --depth 1 "https://x-access-token:$pat@github.com/XeldarAlz/DalamudPlugins.git" hub
+          Push-Location hub
+          $localEntry = (Get-Content -Raw -Path '../repo.json' | ConvertFrom-Json)[0]
+          $hub = Get-Content -Raw -Path 'repo.json' | ConvertFrom-Json
+          $hub = @($hub)
+          $existing = $hub | Where-Object { $_.InternalName -eq $localEntry.InternalName } | Select-Object -First 1
+          if ($existing) {
+            $idx = [Array]::IndexOf($hub, $existing)
+            $hub[$idx] = $localEntry
+          } else {
+            $hub = $hub + $localEntry
+          }
+          ConvertTo-Json -InputObject $hub -Depth 10 -AsArray | Set-Content -Path 'repo.json' -Encoding utf8
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add repo.json
+          if (-not (git status --porcelain)) {
+            Write-Host 'Hub repo.json already up to date.'
+            Pop-Location
+            exit 0
+          }
+          git commit -m "Bump $($localEntry.InternalName) to $($localEntry.AssemblyVersion)"
+          for ($i = 1; $i -le 5; $i++) {
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+            if ($LASTEXITCODE -eq 0) { Pop-Location; exit 0 }
+            Write-Host "Hub push rejected (attempt $i); retrying after rebase..."
+            Start-Sleep -Seconds 2
+          }
+          Pop-Location
+          Write-Error 'Failed to push hub update after 5 attempts.'
+          exit 1
