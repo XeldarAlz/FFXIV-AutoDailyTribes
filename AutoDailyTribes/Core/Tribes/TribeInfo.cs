@@ -13,6 +13,9 @@ public sealed class TribeInfo
     public required uint IssuerENpcBaseId { get; init; }
     public uint[] AltIssuerENpcBaseIds { get; init; } = [];
 
+    // Filename under Images/Tribes/. Null falls back to the FontAwesome KindIcon.
+    public string? IconFile { get; init; }
+
     // Tribes whose daily list is one extra SelectString hop away (entry-menu
     // before the SelectIconString). 0 = daily list opens directly.
     public int IssuerSelectStringIndex { get; init; } = 0;

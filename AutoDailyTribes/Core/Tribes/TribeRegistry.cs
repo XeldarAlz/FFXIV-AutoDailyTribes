@@ -16,6 +16,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 145,                // Eastern Thanalan
             IssuerENpcBaseId = 1006722,             // VERIFY: Swift
+            IconFile = "Amalj'aa_Relations.png",
         },
         new()
         {
@@ -26,6 +27,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 152,                // East Shroud
             IssuerENpcBaseId = 1006821,             // VERIFY: Komuxio
+            IconFile = "Sylphic_Relations.png",
         },
         new()
         {
@@ -36,6 +38,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 180,                // Outer La Noscea
             IssuerENpcBaseId = 1006747,             // VERIFY: Drekkenfrau
+            IconFile = "Kobold_Relations.png",
         },
         new()
         {
@@ -46,6 +49,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 138,                // Western La Noscea
             IssuerENpcBaseId = 1006750,             // VERIFY: Novv
+            IconFile = "Sahagin_Relations.png",
         },
         new()
         {
@@ -56,6 +60,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 154,                // North Shroud
             IssuerENpcBaseId = 1007599,             // VERIFY: Scarlet
+            IconFile = "Ixali_Relations.png",
         },
 
         // === HW ===
@@ -68,6 +73,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 401,                // Sea of Clouds
             IssuerENpcBaseId = 1009196,             // VERIFY: Sonu Vanu
+            IconFile = "Vanu_Relations.png",
         },
         new()
         {
@@ -78,6 +84,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 398,                // The Dravanian Forelands
             IssuerENpcBaseId = 1009197,             // VERIFY: Kal Jaagu
+            IconFile = "Vath_Relations.png",
         },
         new()
         {
@@ -88,6 +95,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 400,                // The Churning Mists
             IssuerENpcBaseId = 1010055,             // VERIFY: Mogmill
+            IconFile = "Moogle_Relations.png",
         },
 
         // === SB ===
@@ -101,6 +109,7 @@ public static class TribeRegistry
             IssuerTerritoryId = 613,                // The Ruby Sea
             IssuerENpcBaseId = 1018289,             // VERIFY: Mizuki
             IssuerSelectStringIndex = 0,            // may need entry-menu hop — verify in-game
+            IconFile = "Kojin_Relations.png",
         },
         new()
         {
@@ -111,6 +120,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 612,                // The Fringes
             IssuerENpcBaseId = 1018291,             // VERIFY: Vira
+            IconFile = "Ananta_Relations.png",
         },
         new()
         {
@@ -123,6 +133,7 @@ public static class TribeRegistry
             IssuerENpcBaseId = 1023154,             // VERIFY: Kingu Goishi
             // Namazu's first daily can pop a clan selector — needs per-tribe handling
             // before the SelectIconStringPick(0) call in AutoTribe.Execute.
+            IconFile = "Namazu_Relations.png",
         },
 
         // === ShB ===
@@ -135,6 +146,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 816,                // Il Mheg
             IssuerENpcBaseId = 1027706,             // VERIFY: Wayslan-selan
+            IconFile = "Dreamspinners_Relations.png",   // in-game Pixie tribe is "Dreamspinners"
         },
         new()
         {
@@ -145,6 +157,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 817,                // The Rak'tika Greatwood (was 815 = Amh Araeng)
             IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
+            // No icon file provided — falls back to FontAwesome Leaf via KindIcon.
         },
         new()
         {
@@ -155,6 +168,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 814,                // Kholusia
             IssuerENpcBaseId = 1031820,             // VERIFY: Bzhonk
+            IconFile = "Dwarf_Relations.png",
         },
 
         // === EW ===
@@ -167,6 +181,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 957,                // Thavnair
             IssuerENpcBaseId = 1037551,             // VERIFY: Chamraj
+            IconFile = "Arkasodara_Relations.png",
         },
         new()
         {
@@ -177,6 +192,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 960,                // Ultima Thule (was 961 = Elpis)
             IssuerENpcBaseId = 1043879,             // VERIFY: Geulla
+            IconFile = "Omicron_Relations.png",
         },
         new()
         {
@@ -189,6 +205,7 @@ public static class TribeRegistry
             IssuerENpcBaseId = 1042881,             // VERIFY: Cherubeloff
             // Loporrits hub has multiple issuer NPCs — once a primary is verified,
             // add the others to AltIssuerENpcBaseIds.
+            IconFile = "Loporrit_Relations.png",
         },
 
         // === DT ===
@@ -207,6 +224,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 1188,               // Kozama'uka — Dock Poga (X:37.2, Y:16.8)
             IssuerENpcBaseId = 1052000,             // VERIFY: capture with /adt target
+            IconFile = "Pelupelu_Relations.png",
         },
         new()
         {
@@ -217,6 +235,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 1189,               // Yak T'el — Gok Golma (X:33.2, Y:36.0)
             IssuerENpcBaseId = 1052100,             // VERIFY: capture with /adt target
+            IconFile = "Mamool_Ja_Relations.png",
         },
         new()
         {
@@ -227,6 +246,7 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 1187,               // Urqopacha — Solace (X:31, Y:37)
             IssuerENpcBaseId = 1052200,             // VERIFY: capture with /adt target
+            IconFile = "Yok_Huy_Relations.png",
         },
     ];
 

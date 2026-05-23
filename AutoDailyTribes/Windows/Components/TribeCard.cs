@@ -52,12 +52,15 @@ internal static class TribeCard
 
     private static void DrawHeader(TribeInfo tribe)
     {
-        KindIcon.Draw(tribe.Kind);
+        TribeIcon.Draw(tribe);
         ImGui.SameLine();
 
         ImGui.SetWindowFontScale(1.10f);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
+        {
+            ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted(tribe.Name);
+        }
         ImGui.SetWindowFontScale(1.0f);
 
         var pillLabel = $"{tribe.AlreadyAcceptedToday.Length}/{AdtConstants.MaxAcceptsPerTribe}";
