@@ -26,6 +26,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly MainWindow mainWindow;
     private readonly ConfigWindow configWindow;
     private readonly AboutWindow aboutWindow;
+    private readonly DependenciesWindow dependenciesWindow;
 
     public Plugin()
     {
@@ -38,14 +39,16 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
         aboutWindow = new AboutWindow();
+        dependenciesWindow = new DependenciesWindow();
 
         WindowSystem.AddWindow(mainWindow);
         WindowSystem.AddWindow(configWindow);
         WindowSystem.AddWindow(aboutWindow);
+        WindowSystem.AddWindow(dependenciesWindow);
 
         CommandManager.AddHandler(AtqConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Toggle the Allied Tribes window. /atq config opens settings, /atq about opens credits."
+            HelpMessage = "Toggle the Allied Tribes window. /atq config opens settings, /atq deps opens the dependencies window, /atq about opens credits."
         });
         CommandManager.AddHandler(AtqConstants.AliasCommand, new CommandInfo(OnCommand)
         {
@@ -67,6 +70,7 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.Dispose();
         configWindow.Dispose();
         aboutWindow.Dispose();
+        dependenciesWindow.Dispose();
 
         CommandManager.RemoveHandler(AtqConstants.PrimaryCommand);
         CommandManager.RemoveHandler(AtqConstants.AliasCommand);
@@ -82,6 +86,8 @@ public sealed class Plugin : IDalamudPlugin
             ToggleConfigUi();
         else if (trimmed.Equals("about", StringComparison.OrdinalIgnoreCase))
             ToggleAboutUi();
+        else if (trimmed.Equals("deps", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("dependencies", StringComparison.OrdinalIgnoreCase))
+            ToggleDependenciesUi();
         else
             ToggleMainUi();
     }
@@ -89,4 +95,5 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleMainUi() => mainWindow.Toggle();
     public void ToggleConfigUi() => configWindow.Toggle();
     public void ToggleAboutUi() => aboutWindow.Toggle();
+    public void ToggleDependenciesUi() => dependenciesWindow.Toggle();
 }

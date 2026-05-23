@@ -1,5 +1,3 @@
-using AutoTribeQuests.Core.External;
-using AutoTribeQuests.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -22,11 +20,11 @@ public sealed class AboutWindow : Window, IDisposable
     public AboutWindow() : base("Allied Tribes — About###AutoTribeQuestsAbout")
     {
         Flags = ImGuiWindowFlags.NoCollapse;
-        Size = new Vector2(580, 540);
+        Size = new Vector2(560, 400);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(420, 380),
+            MinimumSize = new Vector2(380, 300),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
     }
@@ -41,10 +39,6 @@ public sealed class AboutWindow : Window, IDisposable
         ImGui.Separator();
         ImGui.Spacing();
         DrawDetailsTable();
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-        DrawDependenciesSection();
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -79,28 +73,6 @@ public sealed class AboutWindow : Window, IDisposable
         DrawLinkRow("Security disclosure", SecurityUrl);
 
         ImGui.EndTable();
-    }
-
-    private static void DrawDependenciesSection()
-    {
-        Styling.SectionLabel("Required & optional plugins");
-
-        if (!ImGui.BeginTable("##deps", 3,
-                ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.NoBordersInBody | ImGuiTableFlags.PadOuterX | ImGuiTableFlags.RowBg))
-            return;
-
-        ImGui.TableSetupColumn("##status", ImGuiTableColumnFlags.WidthFixed, 32f * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("##name", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("##action", ImGuiTableColumnFlags.WidthFixed, 130f * ImGuiHelpers.GlobalScale);
-
-        foreach (var plugin in ExternalPlugins.All)
-            DependencyRow.Draw(plugin);
-
-        ImGui.EndTable();
-
-        ImGui.Spacing();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextWrapped("Install adds the plugin's source repository to Dalamud and queues an install. If a one-click install fails, right-click a plugin name to copy its repo URL and add it manually via /xlsettings → Experimental → Custom Plugin Repositories.");
     }
 
     private static void DrawDescription()

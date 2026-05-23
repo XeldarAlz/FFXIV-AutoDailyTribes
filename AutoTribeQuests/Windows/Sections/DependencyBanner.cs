@@ -33,8 +33,8 @@ internal static class DependencyBanner
                 ImGui.TextUnformatted($"Missing required: {names}");
 
             ImGui.SameLine(ImGui.GetContentRegionAvail().X);
-            if (ImGui.SmallButton("Open About"))
-                plugin.ToggleAboutUi();
+            if (ImGui.SmallButton("Manage"))
+                plugin.ToggleDependenciesUi();
         }
     }
 }
