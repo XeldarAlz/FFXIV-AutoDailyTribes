@@ -20,10 +20,12 @@ internal static unsafe class AddonProbes
     public static bool SelectYesnoActive() => Ready("SelectYesno");
     public static bool JournalAcceptActive() => Ready("JournalAccept");
 
+    // Per WigglyMuffin/Questionable: option count is at AtkValues[5].Int,
+    // option text at AtkValues[7 + 3*i].
     public static int SelectIconStringOptionCount()
     {
         var a = Get("SelectIconString");
-        if (a == null || a->AtkValuesCount < 1) return 0;
-        return a->AtkValues[0].Int;
+        if (a == null || a->AtkValuesCount < 6) return 0;
+        return a->AtkValues[5].Int;
     }
 }

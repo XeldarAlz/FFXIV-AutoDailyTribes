@@ -24,32 +24,27 @@ internal static unsafe class AddonInteractions
         a->ReceiveEvent(AtkEventType.MouseClick, 0, &evt, &data);
     }
 
+    // Callback shapes verified against WigglyMuffin/Questionable's InteractionUiController:
+    // SelectIconString / SelectString / SelectYesno / JournalResult all use
+    // FireCallbackInt(N) — a single AtkValue containing the index (or 0/1 for yes/no).
     public static void SelectIconStringPick(int index)
     {
         var a = AddonProbes.Get("SelectIconString");
         if (a == null || !a->IsReady) return;
-        Span<AtkValue> v = stackalloc AtkValue[2];
-        v[0].SetInt(1);
-        v[1].SetInt(index);
-        fixed (AtkValue* p = v)
-            a->FireCallback(2, p, true);
+        a->FireCallbackInt(index);
     }
 
     public static void SelectIconStringCancel()
     {
         var a = AddonProbes.Get("SelectIconString");
         if (a == null || !a->IsReady) return;
-        AtkValue v = default;
-        v.SetInt(-1);
-        a->FireCallback(1, &v, true);
+        a->FireCallbackInt(-1);
     }
 
     public static void JournalAcceptConfirm()
     {
         var a = AddonProbes.Get("JournalAccept");
         if (a == null || !a->IsReady) return;
-        AtkValue v = default;
-        v.SetInt(0);
-        a->FireCallback(1, &v, true);
+        a->FireCallbackInt(0);
     }
 }
