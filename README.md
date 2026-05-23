@@ -17,6 +17,10 @@
 
 ---
 
+<p align="center">
+  <img src="AutoDailyTribes/Images/demo.gif" alt="Auto Daily Tribes demo" />
+</p>
+
 ## What it does
 
 Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawntrail in one window. Tick the tribes you want, press **Run selected**, and the plugin teleports to each issuer, accepts the day's quests, plays them out, and turns them in.
