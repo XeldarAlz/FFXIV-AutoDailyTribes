@@ -1,9 +1,12 @@
 namespace AutoTribeQuests.Core.Tribes;
 
-// All 18 Allied Tribes (ARR through DT).
+// All 20 Allied Tribes (ARR through DT 7.35).
 //
 // Adding a new tribe = add one entry below. Adjusting per-tribe dialog quirks =
 // edit IssuerSelectStringIndex / AltIssuerENpcBaseIds.
+//
+// Kind reflects which class category the dailies require. Verified against
+// icy-veins / consolegameswiki / thegamer (DT) sources, not memory.
 //
 // Every IssuerENpcBaseId marked VERIFY: still needs to be confirmed against the
 // live game data. The path of least resistance:
@@ -64,7 +67,7 @@ public static class TribeRegistry
             BeastTribeId = 5,
             Name = "Ixal",
             Era = TribeEra.ARR,
-            Kind = TribeKind.Crafter,
+            Kind = TribeKind.Crafter,               // DoH-only daily focus (rank-1 unlock @ Ehcatl, North Shroud)
             MinRankForDailies = 1,
             IssuerTerritoryId = 154,                // North Shroud
             IssuerENpcBaseId = 1007599,             // VERIFY: Scarlet
@@ -129,7 +132,7 @@ public static class TribeRegistry
             BeastTribeId = 11,
             Name = "Namazu",
             Era = TribeEra.SB,
-            Kind = TribeKind.Mixed,
+            Kind = TribeKind.Mixed,                 // DoH + DoL — verified
             MinRankForDailies = 1,
             IssuerTerritoryId = 614,                // Yanxia
             IssuerENpcBaseId = 1023154,             // VERIFY: Kingu Goishi
@@ -153,7 +156,7 @@ public static class TribeRegistry
             BeastTribeId = 13,
             Name = "Qitari",
             Era = TribeEra.ShB,
-            Kind = TribeKind.Combat,
+            Kind = TribeKind.Gatherer,              // DoL focus — verified
             MinRankForDailies = 1,
             IssuerTerritoryId = 815,                // The Rak'tika Greatwood
             IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
@@ -185,7 +188,7 @@ public static class TribeRegistry
             BeastTribeId = 16,
             Name = "Omicron",
             Era = TribeEra.EW,
-            Kind = TribeKind.Combat,
+            Kind = TribeKind.Gatherer,              // DoL focus — verified
             MinRankForDailies = 1,
             IssuerTerritoryId = 961,                // Ultima Thule
             IssuerENpcBaseId = 1043879,             // VERIFY: Geulla
@@ -195,7 +198,7 @@ public static class TribeRegistry
             BeastTribeId = 17,
             Name = "Loporrits",
             Era = TribeEra.EW,
-            Kind = TribeKind.Mixed,
+            Kind = TribeKind.Crafter,               // DoH focus — verified
             MinRankForDailies = 1,
             IssuerTerritoryId = 959,                // Mare Lamentorum
             IssuerENpcBaseId = 1042881,             // VERIFY: Cherubeloff
@@ -209,20 +212,19 @@ public static class TribeRegistry
             BeastTribeId = 18,
             Name = "Pelupelu",
             Era = TribeEra.DT,
-            Kind = TribeKind.Combat,                // Patch 7.1 — verify in-game
+            Kind = TribeKind.Combat,                // DoW/DoM focus — Patch 7.1
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1184,               // VERIFY: Tuliyollal/Solution Nine region
+            IssuerTerritoryId = 1187,               // VERIFY: Kozama'uka (Dock Poga, X:37.2 Y:16.8)
             IssuerENpcBaseId = 1052000,             // VERIFY: placeholder — needs in-game lookup
-            // Verify Questionable has quest data coverage before enabling this row in earnest.
         },
         new()
         {
             BeastTribeId = 19,
             Name = "Mamool Ja",
             Era = TribeEra.DT,
-            Kind = TribeKind.Crafter,               // Patch 7.2 DoH crafter tribe
+            Kind = TribeKind.Gatherer,              // DoL focus — Patch 7.2
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1188,               // VERIFY: Yak T'el or adjacent
+            IssuerTerritoryId = 1188,               // VERIFY: Yak T'el (Gok Golma, X:33.2 Y:36.0)
             IssuerENpcBaseId = 1052100,             // VERIFY: placeholder — needs in-game lookup
         },
         new()
@@ -230,9 +232,9 @@ public static class TribeRegistry
             BeastTribeId = 20,
             Name = "Yok Huy",
             Era = TribeEra.DT,
-            Kind = TribeKind.Gatherer,              // Patch 7.3 DoL gatherer tribe
+            Kind = TribeKind.Crafter,               // DoH focus — Patch 7.35
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1189,               // VERIFY: Shaaloani
+            IssuerTerritoryId = 1186,               // VERIFY: Urqopacha (Worlar's Echo, X:30.5 Y:34.2)
             IssuerENpcBaseId = 1052200,             // VERIFY: placeholder — needs in-game lookup
         },
     ];

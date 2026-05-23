@@ -117,22 +117,22 @@ Open via `/atq config` or the gear icon in the main window's toolbar.
 | Tribe | Status | Notes |
 |---|---|---|
 | Pixies | ❔ | Combat — Il Mheg |
-| Qitari | ❔ | Combat — The Rak'tika Greatwood |
-| Dwarves | ❔ | Crafter — Kholusia |
+| Qitari | ❔ | Gatherer (DoL) — The Rak'tika Greatwood |
+| Dwarves | ❔ | Crafter (DoH) — Kholusia |
 
 ### Endwalker
 | Tribe | Status | Notes |
 |---|---|---|
 | Arkasodara | ❔ | Combat — Thavnair |
-| Omicron | ❔ | Combat — Ultima Thule |
-| Loporrits | ❔ | Mixed — Mare Lamentorum |
+| Omicron | ❔ | Gatherer (DoL) — Ultima Thule |
+| Loporrits | ❔ | Crafter (DoH) — Mare Lamentorum |
 
 ### Dawntrail
 | Tribe | Status | Notes |
 |---|---|---|
-| Pelupelu | ❔ | Combat (7.1) — verify Questionable coverage first |
-| Mamool Ja | ❔ | Crafter / DoH (7.2) |
-| Yok Huy | ❔ | Gatherer / DoL (7.3) |
+| Pelupelu | ❔ | Combat (7.1) — Kozama'uka, Dock Poga |
+| Mamool Ja | ❔ | Gatherer / DoL (7.2) — Yak T'el, Gok Golma |
+| Yok Huy | ❔ | Crafter / DoH (7.35) — Urqopacha, Worlar's Echo |
 
 ## License
 
