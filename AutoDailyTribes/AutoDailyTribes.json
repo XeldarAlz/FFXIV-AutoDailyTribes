@@ -3,7 +3,7 @@
     "Name": "Auto Daily Tribes",
     "InternalName": "AutoDailyTribes",
     "Punchline": "Daily allied tribe quests, hands-off.",
-    "Description": "Teleports to each allied tribe daily issuer, accepts the available dailies, delegates them to Questionable, then handles turn-in.\n\nRequires vnavmesh and Questionable. Optional: Artisan (for crafter tribes).",
+    "Description": "Auto runs all daily tribe quests for you.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes",
     "IconUrl": "",
