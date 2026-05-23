@@ -10,24 +10,19 @@ internal static class RankBadge
 {
     public static void Draw(TribeInfo tribe)
     {
-        if (!tribe.Unlocked)
-        {
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted("Locked");
-            return;
-        }
+        var label = tribe.Unlocked ? $"Rank {tribe.Rank}" : "Locked";
+        var labelColor = tribe.Unlocked ? Styling.TextSecondary : Styling.TextMuted;
 
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted($"Rank {tribe.Rank}");
+        using (ImRaii.PushColor(ImGuiCol.Text, labelColor))
+            ImGui.TextUnformatted(label);
 
-        if (tribe.RepMax > 0)
-        {
-            var fraction = Math.Clamp((float)tribe.RepCur / tribe.RepMax, 0f, 1f);
-            DrawRepBar(fraction);
-        }
+        var fraction = tribe.RepMax > 0
+            ? Math.Clamp((float)tribe.RepCur / tribe.RepMax, 0f, 1f)
+            : 0f;
+        DrawRepBar(fraction, tribe.Unlocked);
     }
 
-    private static void DrawRepBar(float fraction)
+    private static void DrawRepBar(float fraction, bool active)
     {
         var drawList = ImGui.GetWindowDrawList();
         var origin = ImGui.GetCursorScreenPos();
@@ -39,7 +34,8 @@ internal static class RankBadge
         if (fraction > 0)
         {
             var fillEnd = new Vector2(origin.X + width * fraction, end.Y);
-            drawList.AddRectFilled(origin, fillEnd, ImGui.GetColorU32(Styling.AccentTeal), 2f);
+            var fillColor = active ? Styling.AccentTeal : Styling.BorderDim;
+            drawList.AddRectFilled(origin, fillEnd, ImGui.GetColorU32(fillColor), 2f);
         }
         ImGui.Dummy(new Vector2(width, height));
     }

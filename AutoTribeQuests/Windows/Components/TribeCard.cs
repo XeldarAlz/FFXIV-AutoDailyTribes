@@ -2,7 +2,6 @@ using AutoTribeQuests.Core;
 using AutoTribeQuests.Core.Tasks;
 using AutoTribeQuests.Core.Tribes;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
@@ -15,31 +14,46 @@ internal static class TribeCard
     {
         var disabled = cfg.DisabledTribes.Contains(tribe.BeastTribeId);
         var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
-        var runnable = tribe.Unlocked
+        var selectable = tribe.Unlocked
             && tribe.MeetsRankRequirement
             && tribe.AcceptSlotsRemaining > 0
             && !disabled
             && !controller.Running;
 
-        var border = ResolveBorder(tribe, disabled, selected, controller.Running);
-        var bg = Vector4.Lerp(Styling.CardBg, Styling.EraTint(tribe.Era), 1f);
-        var size = new Vector2(-1, Layout.TribeCardHeight * ImGuiHelpers.GlobalScale);
+        var startScreen = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var height = Layout.TribeCardHeight * ImGuiHelpers.GlobalScale;
+        var endScreen = startScreen + new Vector2(width, height);
+        var hovered = ImGui.IsMouseHoveringRect(startScreen, endScreen);
 
-        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", size, bg, border, selected ? 1.8f : 1.2f))
+        var border = ResolveBorder(tribe, disabled, selected, controller.Running);
+        var bg = ResolveBg(tribe, selected, hovered, disabled);
+
+        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height), bg, border, selected ? 1.8f : 1.2f))
         {
-            DrawHeaderRow(tribe, cfg, runnable, selected);
+            DrawHeader(tribe);
             ImGui.Spacing();
             RankBadge.Draw(tribe);
-            ImGui.Spacing();
-            DrawActionRow(tribe, controller, cfg, runnable);
+        }
+
+        if (hovered)
+        {
+            DrawTooltip(tribe, selectable, selected, disabled);
+            if (selectable)
+            {
+                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
+                    else cfg.SelectedTribes.Add(tribe.BeastTribeId);
+                    cfg.SaveDebounced();
+                }
+            }
         }
     }
 
-    private static void DrawHeaderRow(TribeInfo tribe, Configuration cfg, bool runnable, bool selected)
+    private static void DrawHeader(TribeInfo tribe)
     {
-        DrawSelectToggle(tribe, cfg, enabled: runnable, selected);
-        ImGui.SameLine();
-
         KindIcon.Draw(tribe.Kind);
         ImGui.SameLine();
 
@@ -54,44 +68,30 @@ internal static class TribeCard
         AllowancePill.Draw(tribe);
     }
 
-    private static void DrawSelectToggle(TribeInfo tribe, Configuration cfg, bool enabled, bool selected)
+    private static void DrawTooltip(TribeInfo tribe, bool selectable, bool selected, bool disabled)
     {
-        var icon = selected ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Circle;
-        var color = !enabled
-            ? Styling.TextMuted
-            : selected ? Styling.AccentTeal : Styling.TextDim;
-
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        using (ImRaii.PushColor(ImGuiCol.Button, Vector4.Zero))
-        using (ImRaii.PushColor(ImGuiCol.ButtonHovered, Styling.CardBgSoft))
-        using (ImRaii.PushColor(ImGuiCol.ButtonActive, Styling.CardBgSoft))
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-        using (ImRaii.Disabled(!enabled))
-        {
-            if (ImGui.Button($"{icon.ToIconString()}##sel_{tribe.BeastTribeId}"))
-            {
-                if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
-                else cfg.SelectedTribes.Add(tribe.BeastTribeId);
-                cfg.SaveDebounced();
-            }
-        }
-        if (enabled)
-            Tooltip.For(selected ? "Click to deselect this tribe from batch run" : "Click to add this tribe to the batch run");
+        using var tt = ImRaii.Tooltip();
+        if (disabled)
+            ImGui.TextUnformatted("Disabled in config");
+        else if (!tribe.Unlocked)
+            ImGui.TextUnformatted("Tribe not yet unlocked — complete the intro quest in-game first");
+        else if (!tribe.MeetsRankRequirement)
+            ImGui.TextUnformatted($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
+        else if (tribe.AcceptSlotsRemaining <= 0)
+            ImGui.TextUnformatted("All daily slots already used for this tribe today");
+        else if (selected)
+            ImGui.TextUnformatted("Click to remove from batch run");
+        else
+            ImGui.TextUnformatted("Click to add to batch run");
     }
 
-    private static void DrawActionRow(TribeInfo tribe, AutoTribeController controller, Configuration cfg, bool runnable)
+    private static Vector4 ResolveBg(TribeInfo tribe, bool selected, bool hovered, bool disabled)
     {
-        if (ActionButton.Draw("Do dailies", enabled: runnable, width: -1))
-            controller.Run(tribe);
-
-        if (!tribe.Unlocked)
-            Tooltip.For("Tribe not yet unlocked — complete the intro quest in-game first");
-        else if (!tribe.MeetsRankRequirement)
-            Tooltip.For($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        else if (tribe.AcceptSlotsRemaining <= 0)
-            Tooltip.For("All daily slots already used for this tribe today");
-        else if (cfg.DisabledTribes.Contains(tribe.BeastTribeId))
-            Tooltip.For("Disabled in config");
+        if (disabled || !tribe.Unlocked) return Styling.CardBg * 0.6f;
+        if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.15f);
+        if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.10f);
+        if (hovered) return Styling.CardBgHover;
+        return Vector4.Lerp(Styling.CardBg, Styling.EraTint(tribe.Era), 1f);
     }
 
     private static Vector4 ResolveBorder(TribeInfo tribe, bool disabled, bool selected, bool running)
