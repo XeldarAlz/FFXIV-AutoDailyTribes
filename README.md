@@ -8,7 +8,7 @@
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoDailyTribes/total?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoDailyTribes/release.yml?style=flat-square"></a>
-  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/github/license/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square"></a>
+  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue?style=flat-square"></a>
 </p>
 
 <p align="center">
