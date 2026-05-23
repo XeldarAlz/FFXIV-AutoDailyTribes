@@ -1,12 +1,9 @@
 namespace AutoDailyTribes.Core.Tribes;
 
-// VERIFY: each IssuerENpcBaseId is a placeholder until confirmed in-game.
-// Stand next to the issuer NPC, target it, run /adt target, paste the BaseId.
 public static class TribeRegistry
 {
     public static readonly TribeInfo[] Tribes =
     [
-        // === ARR ===
         new()
         {
             BeastTribeId = 1,
@@ -15,7 +12,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 145,                // Eastern Thanalan
-            IssuerENpcBaseId = 1006722,             // VERIFY: Swift
+            IssuerENpcBaseId = 1005550,             // Swift
             IconFile = "Amalj'aa_Relations.png",
         },
         new()
@@ -26,7 +23,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 152,                // East Shroud
-            IssuerENpcBaseId = 1006821,             // VERIFY: Komuxio
+            IssuerENpcBaseId = 1005561,             // Komuxio
             IconFile = "Sylphic_Relations.png",
         },
         new()
@@ -37,7 +34,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 180,                // Outer La Noscea
-            IssuerENpcBaseId = 1006747,             // VERIFY: Drekkenfrau
+            IssuerENpcBaseId = 1005928,             // Drekkenfrau
             IconFile = "Kobold_Relations.png",
         },
         new()
@@ -48,7 +45,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 138,                // Western La Noscea
-            IssuerENpcBaseId = 1006750,             // VERIFY: Novv
+            IssuerENpcBaseId = 1005938,             // Novv
             IconFile = "Sahagin_Relations.png",
         },
         new()
@@ -56,14 +53,13 @@ public static class TribeRegistry
             BeastTribeId = 5,
             Name = "Ixal",
             Era = TribeEra.ARR,
-            Kind = TribeKind.Crafter,               // DoH-only daily focus (rank-1 unlock @ Ehcatl, North Shroud)
+            Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 154,                // North Shroud
-            IssuerENpcBaseId = 1007599,             // VERIFY: Scarlet
+            IssuerENpcBaseId = 1009211,             // Yazel Ahuatan the Able
+            AltIssuerENpcBaseIds = [1009214],       // Tazel Meyean the Lettered
             IconFile = "Ixali_Relations.png",
         },
-
-        // === HW ===
         new()
         {
             BeastTribeId = 6,
@@ -72,7 +68,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 401,                // Sea of Clouds
-            IssuerENpcBaseId = 1009196,             // VERIFY: Sonu Vanu
+            IssuerENpcBaseId = 1016089,             // Muna Vanu
             IconFile = "Vanu_Relations.png",
         },
         new()
@@ -83,7 +79,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 398,                // The Dravanian Forelands
-            IssuerENpcBaseId = 1009197,             // VERIFY: Kal Jaagu
+            IssuerENpcBaseId = 1016803,             // Vath Keeneye
             IconFile = "Vath_Relations.png",
         },
         new()
@@ -94,11 +90,9 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 400,                // The Churning Mists
-            IssuerENpcBaseId = 1010055,             // VERIFY: Mogmill
+            IssuerENpcBaseId = 1017171,             // Mogmill
             IconFile = "Moogle_Relations.png",
         },
-
-        // === SB ===
         new()
         {
             BeastTribeId = 9,
@@ -107,8 +101,8 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 613,                // The Ruby Sea
-            IssuerENpcBaseId = 1018289,             // VERIFY: Mizuki
-            IssuerSelectStringIndex = 0,            // may need entry-menu hop — verify in-game
+            IssuerENpcBaseId = 1024217,             // Zukin
+            IssuerSelectStringIndex = 0,
             IconFile = "Kojin_Relations.png",
         },
         new()
@@ -119,7 +113,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 612,                // The Fringes
-            IssuerENpcBaseId = 1018291,             // VERIFY: Vira
+            IssuerENpcBaseId = 1024773,             // Eshana
             IconFile = "Ananta_Relations.png",
         },
         new()
@@ -127,16 +121,12 @@ public static class TribeRegistry
             BeastTribeId = 11,
             Name = "Namazu",
             Era = TribeEra.SB,
-            Kind = TribeKind.Mixed,                 // DoH + DoL — verified
+            Kind = TribeKind.Mixed,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 614,                // Yanxia
-            IssuerENpcBaseId = 1023154,             // VERIFY: Kingu Goishi
-            // Namazu's first daily can pop a clan selector — needs per-tribe handling
-            // before the SelectIconStringPick(0) call in AutoTribe.Execute.
+            IssuerTerritoryId = 622,                // Yanxia
+            IssuerENpcBaseId = 1025602,             // Seigetsu the Enlightened
             IconFile = "Namazu_Relations.png",
         },
-
-        // === ShB ===
         new()
         {
             BeastTribeId = 12,
@@ -145,19 +135,19 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 816,                // Il Mheg
-            IssuerENpcBaseId = 1027706,             // VERIFY: Wayslan-selan
-            IconFile = "Dreamspinners_Relations.png",   // in-game Pixie tribe is "Dreamspinners"
+            IssuerENpcBaseId = 1031809,             // Uin Nee
+            IconFile = "Dreamspinners_Relations.png",
         },
         new()
         {
             BeastTribeId = 13,
             Name = "Qitari",
             Era = TribeEra.ShB,
-            Kind = TribeKind.Gatherer,              // DoL focus — verified
+            Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 817,                // The Rak'tika Greatwood (was 815 = Amh Araeng)
-            IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
-            IconFile = "Stewards_Relations.png",    // in-game Qitari society is "Stewards"
+            IssuerTerritoryId = 817,                // The Rak'tika Greatwood
+            IssuerENpcBaseId = 1032643,             // Qhoterl Pasol
+            IconFile = "Stewards_Relations.png",
         },
         new()
         {
@@ -166,12 +156,10 @@ public static class TribeRegistry
             Era = TribeEra.ShB,
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 814,                // Kholusia
-            IssuerENpcBaseId = 1031820,             // VERIFY: Bzhonk
+            IssuerTerritoryId = 813,                // Kholusia
+            IssuerENpcBaseId = 1033712,             // Regitt
             IconFile = "Dwarf_Relations.png",
         },
-
-        // === EW ===
         new()
         {
             BeastTribeId = 15,
@@ -180,7 +168,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 957,                // Thavnair
-            IssuerENpcBaseId = 1037551,             // VERIFY: Chamraj
+            IssuerENpcBaseId = 1042301,             // Maru
             IconFile = "Arkasodara_Relations.png",
         },
         new()
@@ -188,10 +176,10 @@ public static class TribeRegistry
             BeastTribeId = 16,
             Name = "Omicron",
             Era = TribeEra.EW,
-            Kind = TribeKind.Gatherer,              // DoL focus — verified
+            Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 960,                // Ultima Thule (was 961 = Elpis)
-            IssuerENpcBaseId = 1043879,             // VERIFY: Geulla
+            IssuerTerritoryId = 960,                // Ultima Thule
+            IssuerENpcBaseId = 1043417,             // Stigma-4
             IconFile = "Omicron_Relations.png",
         },
         new()
@@ -199,31 +187,21 @@ public static class TribeRegistry
             BeastTribeId = 17,
             Name = "Loporrits",
             Era = TribeEra.EW,
-            Kind = TribeKind.Crafter,               // DoH focus — verified
+            Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 959,                // Mare Lamentorum
-            IssuerENpcBaseId = 1042881,             // VERIFY: Cherubeloff
-            // Loporrits hub has multiple issuer NPCs — once a primary is verified,
-            // add the others to AltIssuerENpcBaseIds.
+            IssuerENpcBaseId = 1044403,             // Managingway
             IconFile = "Loporrit_Relations.png",
         },
-
-        // === DT ===
-        // Territory IDs verified against xivapi/ffxiv-datamining TerritoryType.csv:
-        //   1187 = Urqopacha, 1188 = Kozama'uka, 1189 = Yak T'el, 1190 = Shaaloani.
-        // (1186 is Solution Nine — earlier values were off-by-one, hence the
-        //  "teleports to Solution Nine then walks to a random NPC" bug.)
-        // IssuerENpcBaseId still needs in-game capture for each. Use /adt target
-        // while standing next to the issuer to log its real BaseId.
         new()
         {
             BeastTribeId = 18,
             Name = "Pelupelu",
             Era = TribeEra.DT,
-            Kind = TribeKind.Combat,                // DoW/DoM focus — Patch 7.1
+            Kind = TribeKind.Combat,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1188,               // Kozama'uka — Dock Poga (X:37.2, Y:16.8)
-            IssuerENpcBaseId = 1052000,             // VERIFY: capture with /adt target
+            IssuerTerritoryId = 1188,               // Kozama'uka
+            IssuerENpcBaseId = 1051711,             // Yubli
             IconFile = "Pelupelu_Relations.png",
         },
         new()
@@ -231,10 +209,10 @@ public static class TribeRegistry
             BeastTribeId = 19,
             Name = "Mamool Ja",
             Era = TribeEra.DT,
-            Kind = TribeKind.Gatherer,              // DoL focus — Patch 7.25
+            Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1189,               // Yak T'el — Gok Golma (X:33.2, Y:36.0)
-            IssuerENpcBaseId = 1052560,             // Kageel Ja (verified in-game 2026-05-23)
+            IssuerTerritoryId = 1189,               // Yak T'el
+            IssuerENpcBaseId = 1052560,             // Kageel Ja
             IconFile = "Mamool_Ja_Relations.png",
         },
         new()
@@ -242,10 +220,10 @@ public static class TribeRegistry
             BeastTribeId = 20,
             Name = "Yok Huy",
             Era = TribeEra.DT,
-            Kind = TribeKind.Crafter,               // DoH focus — Patch 7.35
+            Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 1187,               // Urqopacha — Solace (X:31, Y:37)
-            IssuerENpcBaseId = 1052200,             // VERIFY: capture with /adt target
+            IssuerTerritoryId = 1187,               // Urqopacha
+            IssuerENpcBaseId = 1054635,             // Vuyargur
             IconFile = "Yok_Huy_Relations.png",
         },
     ];
