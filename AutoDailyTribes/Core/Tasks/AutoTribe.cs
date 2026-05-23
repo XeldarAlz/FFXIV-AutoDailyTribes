@@ -3,6 +3,7 @@ using AutoDailyTribes.Core.Ipc;
 using AutoDailyTribes.Core.Tribes;
 using clib.Extensions;
 using clib.TaskSystem;
+using Dalamud.Game.ClientState.Conditions;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using System.Threading.Tasks;
@@ -78,8 +79,35 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         await Dismount();
 
         Status = $"Talking to {tribe.Name} issuer";
+
+        // Air-dismount lands the player in a brief Jumping condition that
+        // rejects InteractWith ("Unable to execute command while jumping").
+        // Wait for the player to settle.
+        await WaitWhile(
+            () => Svc.Condition[ConditionFlag.Jumping]
+               || Svc.Condition[ConditionFlag.Jumping61]
+               || Svc.Condition[ConditionFlag.Casting],
+            "WaitForLanding");
+
         Svc.Chat.Print($"[ADT debug] Interacting with issuer ({tribe.IssuerInstanceId:X})");
-        ErrorIf(!AddonInteractions.InteractWith(tribe.IssuerInstanceId), "Failed to interact with issuer NPC");
+
+        // Retry interact a few times — the game can briefly reject input
+        // around landing / animation locks even after Jumping clears.
+        var talked = false;
+        for (var attempt = 0; attempt < 5 && !talked; attempt++)
+        {
+            ErrorIf(!AddonInteractions.InteractWith(tribe.IssuerInstanceId), "Failed to interact with issuer NPC");
+            for (var f = 0; f < 60; f++)
+            {
+                await NextFrame();
+                if (AddonProbes.TalkActive() || AddonProbes.SelectStringActive() || AddonProbes.SelectIconStringActive())
+                {
+                    talked = true;
+                    break;
+                }
+            }
+        }
+        ErrorIf(!talked, "Issuer didn't open a dialog after 5 attempts");
         await WaitUntilSkipping(
             () => AddonProbes.SelectIconStringActive() || AddonProbes.SelectStringActive(),
             "WaitForIssuerMenu",
