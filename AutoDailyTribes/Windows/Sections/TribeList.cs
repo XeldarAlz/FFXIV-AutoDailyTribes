@@ -11,7 +11,10 @@ internal static class TribeList
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        foreach (var era in Enum.GetValues<TribeEra>())
+        // Newest expansion first: DT → EW → ShB → SB → HW → ARR. The selected
+        // BattleHistory is roughly "most current content first" which is what
+        // most players are working on.
+        foreach (var era in Enum.GetValues<TribeEra>().Reverse())
         {
             var tribes = TribeRegistry.ByEra(era).ToArray();
             if (tribes.Length == 0) continue;

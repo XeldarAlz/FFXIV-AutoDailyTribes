@@ -9,13 +9,13 @@ public sealed class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
 
     public bool AutoShowIfDailiesAvailable { get; set; } = true;
-    public bool StopAtAllowanceCap { get; set; } = true;
-    public bool ShowDebugUI { get; set; } = false;
 
-    public CrafterJobChoice CrafterJobType { get; set; } = CrafterJobChoice.HighestXP;
-    public uint SelectedCrafterJob { get; set; } = 8; // CRP
+    public JobChoice CrafterJobType { get; set; } = JobChoice.HighestXP;
+    public uint SelectedCrafterJob { get; set; } = 8;  // CRP
 
-    public HashSet<uint> DisabledTribes { get; set; } = [];
+    public JobChoice GathererJobType { get; set; } = JobChoice.HighestXP;
+    public uint SelectedGathererJob { get; set; } = 16; // MIN
+
     public HashSet<uint> SelectedTribes { get; set; } = [];
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
@@ -28,7 +28,7 @@ public sealed class Configuration : IPluginConfiguration
     }
 }
 
-public enum CrafterJobChoice
+public enum JobChoice
 {
     Specific,
     Current,

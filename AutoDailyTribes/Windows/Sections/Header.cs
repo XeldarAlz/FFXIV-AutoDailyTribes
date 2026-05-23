@@ -18,8 +18,7 @@ internal static class Header
         var runnable = selected
             .Where(t => t.Unlocked
                      && t.MeetsRankRequirement
-                     && t.AcceptSlotsRemaining > 0
-                     && !cfg.DisabledTribes.Contains(t.BeastTribeId))
+                     && t.AcceptSlotsRemaining > 0)
             .ToArray();
 
         var canRun = runnable.Length > 0 && !controller.Running;

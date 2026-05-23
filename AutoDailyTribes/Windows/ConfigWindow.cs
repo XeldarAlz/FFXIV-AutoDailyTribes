@@ -1,4 +1,3 @@
-using AutoDailyTribes.Core.Tribes;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -8,18 +7,38 @@ namespace AutoDailyTribes.Windows;
 
 public sealed class ConfigWindow : Window, IDisposable
 {
+    private static readonly (uint id, string label)[] CrafterJobs =
+    [
+        (8,  "Carpenter (CRP)"),
+        (9,  "Blacksmith (BSM)"),
+        (10, "Armorer (ARM)"),
+        (11, "Goldsmith (GSM)"),
+        (12, "Leatherworker (LTW)"),
+        (13, "Weaver (WVR)"),
+        (14, "Alchemist (ALC)"),
+        (15, "Culinarian (CUL)"),
+    ];
+
+    private static readonly (uint id, string label)[] GathererJobs =
+    [
+        (16, "Miner (MIN)"),
+        (17, "Botanist (BTN)"),
+        (18, "Fisher (FSH)"),
+    ];
+
     private readonly Plugin plugin;
 
     public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
     {
         this.plugin = plugin;
+        Flags = ImGuiWindowFlags.NoCollapse;
+        Size = new Vector2(460, 480);
+        SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(380, 260),
-            MaximumSize = new Vector2(620, 800),
+            MinimumSize = new Vector2(420, 320),
+            MaximumSize = new Vector2(680, 900),
         };
-        Size = new Vector2(420, 360);
-        SizeCondition = ImGuiCond.FirstUseEver;
     }
 
     public void Dispose() { }
@@ -29,50 +48,98 @@ public sealed class ConfigWindow : Window, IDisposable
         var cfg = plugin.Configuration;
         using var style = Styling.PushWindowStyle();
 
+        DrawBehaviorSection(cfg);
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawJobSection(
+            cfg,
+            "Crafter tribes",
+            "Ixal · Moogles · Dwarves · Loporrits · Yok Huy",
+            "DoH",
+            cfg.CrafterJobType,
+            cfg.SelectedCrafterJob,
+            CrafterJobs,
+            type => cfg.CrafterJobType = type,
+            id   => cfg.SelectedCrafterJob = id);
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawJobSection(
+            cfg,
+            "Gatherer tribes",
+            "Qitari · Omicron · Mamool Ja",
+            "DoL",
+            cfg.GathererJobType,
+            cfg.SelectedGathererJob,
+            GathererJobs,
+            type => cfg.GathererJobType = type,
+            id   => cfg.SelectedGathererJob = id);
+    }
+
+    private static void DrawBehaviorSection(Configuration cfg)
+    {
         Styling.SectionLabel("Behavior");
 
         var b = cfg.AutoShowIfDailiesAvailable;
-        if (ImGui.Checkbox("Open window automatically when dailies are available", ref b))
-        { cfg.AutoShowIfDailiesAvailable = b; cfg.SaveDebounced(); }
-
-        b = cfg.StopAtAllowanceCap;
-        if (ImGui.Checkbox("Stop when 12/day cap is reached", ref b))
-        { cfg.StopAtAllowanceCap = b; cfg.SaveDebounced(); }
-
-        b = cfg.ShowDebugUI;
-        if (ImGui.Checkbox("Show debug UI", ref b))
-        { cfg.ShowDebugUI = b; cfg.SaveDebounced(); }
-
-        ImGui.Spacing();
-        Styling.SectionLabel("Tribes");
-        DrawTribeToggles(cfg);
-
-        ImGui.Spacing();
-        Styling.SectionLabel("Crafter tribes");
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextWrapped("Job selection for Ixal / Moogles / Dwarves / Loporrits will land here. For now they use the highest-XP DoH job available.");
+        if (ImGui.Checkbox("Open this window when dailies are available after login", ref b))
+        {
+            cfg.AutoShowIfDailiesAvailable = b;
+            cfg.SaveDebounced();
+        }
     }
 
-    private static void DrawTribeToggles(Configuration cfg)
+    private static void DrawJobSection(
+        Configuration cfg,
+        string title,
+        string scope,
+        string discipline,
+        JobChoice currentType,
+        uint currentJobId,
+        (uint id, string label)[] options,
+        Action<JobChoice> setType,
+        Action<uint> setJob)
     {
-        foreach (var era in Enum.GetValues<TribeEra>())
+        Styling.SectionLabel(title);
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            ImGui.TextUnformatted(scope);
+        ImGui.Spacing();
+
+        DrawJobModeRadio(cfg, $"Use my currently equipped {discipline} job", JobChoice.Current, currentType, setType, discipline);
+        DrawJobModeRadio(cfg, $"Use highest-leveled {discipline} job",       JobChoice.HighestXP, currentType, setType, discipline);
+        DrawJobModeRadio(cfg, $"Use lowest-leveled {discipline} job",        JobChoice.LowestXP, currentType, setType, discipline);
+
+        var specific = currentType == JobChoice.Specific;
+        if (ImGui.RadioButton($"Specific {discipline} job:##{discipline}_specific", specific))
         {
-            var tribes = TribeRegistry.ByEra(era).ToArray();
-            if (tribes.Length == 0) continue;
+            setType(JobChoice.Specific);
+            cfg.SaveDebounced();
+        }
+        ImGui.SameLine();
+        DrawJobCombo(discipline, options, currentJobId, setJob, cfg, enabled: specific);
+    }
 
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted(era.DisplayName());
+    private static void DrawJobModeRadio(Configuration cfg, string label, JobChoice mode, JobChoice current, Action<JobChoice> setter, string discipline)
+    {
+        if (ImGui.RadioButton($"{label}##{discipline}_{mode}", current == mode))
+        {
+            setter(mode);
+            cfg.SaveDebounced();
+        }
+    }
 
-            foreach (var tribe in tribes)
-            {
-                var enabled = !cfg.DisabledTribes.Contains(tribe.BeastTribeId);
-                if (ImGui.Checkbox(tribe.Name + "##" + tribe.BeastTribeId, ref enabled))
-                {
-                    if (enabled) cfg.DisabledTribes.Remove(tribe.BeastTribeId);
-                    else cfg.DisabledTribes.Add(tribe.BeastTribeId);
-                    cfg.SaveDebounced();
-                }
-            }
+    private static void DrawJobCombo(string discipline, (uint id, string label)[] options, uint currentId, Action<uint> setter, Configuration cfg, bool enabled)
+    {
+        var idx = Array.FindIndex(options, o => o.id == currentId);
+        if (idx < 0) idx = 0;
+
+        using var disabled = ImRaii.Disabled(!enabled);
+        ImGui.SetNextItemWidth(200);
+        var labels = options.Select(o => o.label).ToArray();
+        if (ImGui.Combo($"##{discipline}_combo", ref idx, labels, labels.Length))
+        {
+            setter(options[idx].id);
+            cfg.SaveDebounced();
         }
     }
 }

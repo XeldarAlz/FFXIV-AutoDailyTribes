@@ -12,12 +12,10 @@ internal static class TribeCard
 {
     public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
     {
-        var disabled = cfg.DisabledTribes.Contains(tribe.BeastTribeId);
         var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
         var selectable = tribe.Unlocked
             && tribe.MeetsRankRequirement
             && tribe.AcceptSlotsRemaining > 0
-            && !disabled
             && !controller.Running;
 
         var startScreen = ImGui.GetCursorScreenPos();
@@ -26,8 +24,8 @@ internal static class TribeCard
         var endScreen = startScreen + new Vector2(width, height);
         var hovered = ImGui.IsMouseHoveringRect(startScreen, endScreen);
 
-        var border = ResolveBorder(tribe, disabled, selected, controller.Running);
-        var bg = ResolveBg(tribe, selected, hovered, disabled);
+        var border = ResolveBorder(tribe, selected, controller.Running);
+        var bg = ResolveBg(tribe, selected, hovered);
 
         using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height), bg, border, selected ? 1.8f : 1.2f))
         {
@@ -38,7 +36,7 @@ internal static class TribeCard
 
         if (hovered)
         {
-            DrawTooltip(tribe, selectable, selected, disabled);
+            DrawTooltip(tribe, selected);
             if (selectable)
             {
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -68,12 +66,10 @@ internal static class TribeCard
         AllowancePill.Draw(tribe);
     }
 
-    private static void DrawTooltip(TribeInfo tribe, bool selectable, bool selected, bool disabled)
+    private static void DrawTooltip(TribeInfo tribe, bool selected)
     {
         using var tt = ImRaii.Tooltip();
-        if (disabled)
-            ImGui.TextUnformatted("Disabled in config");
-        else if (!tribe.Unlocked)
+        if (!tribe.Unlocked)
             ImGui.TextUnformatted("Tribe not yet unlocked — complete the intro quest in-game first");
         else if (!tribe.MeetsRankRequirement)
             ImGui.TextUnformatted($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
@@ -85,18 +81,17 @@ internal static class TribeCard
             ImGui.TextUnformatted("Click to add to batch run");
     }
 
-    private static Vector4 ResolveBg(TribeInfo tribe, bool selected, bool hovered, bool disabled)
+    private static Vector4 ResolveBg(TribeInfo tribe, bool selected, bool hovered)
     {
-        if (disabled || !tribe.Unlocked) return Styling.CardBg * 0.6f;
+        if (!tribe.Unlocked) return Styling.CardBg * 0.6f;
         if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.15f);
         if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.10f);
         if (hovered) return Styling.CardBgHover;
         return Vector4.Lerp(Styling.CardBg, Styling.EraTint(tribe.Era), 1f);
     }
 
-    private static Vector4 ResolveBorder(TribeInfo tribe, bool disabled, bool selected, bool running)
+    private static Vector4 ResolveBorder(TribeInfo tribe, bool selected, bool running)
     {
-        if (disabled) return Styling.BorderLocked;
         if (!tribe.Unlocked) return Styling.BorderLocked;
         if (running) return Styling.PulseColor(Styling.BorderActive, Styling.AccentTealSoft, Styling.PulseMedium);
         if (selected) return Styling.AccentTeal;
