@@ -16,9 +16,6 @@ public sealed class Configuration : IPluginConfiguration
     public uint SelectedCrafterJob { get; set; } = 8; // CRP
 
     public HashSet<uint> DisabledTribes { get; set; } = [];
-
-    // Per-tribe selection for the "Run selected" batch action. Persists across
-    // reloads so the player doesn't have to re-tick boxes every login.
     public HashSet<uint> SelectedTribes { get; set; } = [];
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);

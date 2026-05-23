@@ -5,7 +5,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// Single-glyph badge that conveys the tribe's nature (combat/crafter/gatherer/mixed).
 internal static class KindIcon
 {
     public static void Draw(TribeKind kind)

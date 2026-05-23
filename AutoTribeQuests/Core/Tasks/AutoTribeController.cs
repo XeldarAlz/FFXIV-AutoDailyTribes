@@ -3,11 +3,6 @@ using clib.Services;
 
 namespace AutoTribeQuests.Core.Tasks;
 
-// Thin orchestrator above clib's Automation. Provides high-level methods
-// the UI binds to: "run this tribe" / "run all unlocked tribes".
-//
-// Automation itself is single-slot — Start() cancels the current task. Use
-// the queue parameter to chain multiple tribes back-to-back.
 internal sealed class AutoTribeController
 {
     public bool Running => Svc.Automation.Running;

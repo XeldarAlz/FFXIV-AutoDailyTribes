@@ -5,10 +5,8 @@ using Lumina.Excel.Sheets;
 
 namespace AutoTribeQuests.Core.Debug;
 
-// Debug command bound to /atq target. Logs the currently-targeted ENpc's
-// BaseId + name and the player's current TerritoryType to chat. Use it to
-// capture the real IssuerENpcBaseId for each tribe — stand next to the
-// issuer, target it, /atq target, paste the result into TribeRegistry.cs.
+// /atq target — dumps current target's BaseId + zone to chat. Used to capture
+// real IssuerENpcBaseId values when seeding new TribeRegistry rows.
 internal static unsafe class TargetDumper
 {
     public static void Dump()
@@ -29,9 +27,8 @@ internal static unsafe class TargetDumper
 
         var baseId = target->BaseId;
         var name = target->NameString;
-        var npcResident = Svc.Data.GetExcelSheet<ENpcResident>()
-            ?.GetRowOrDefault(baseId);
-        var residentName = npcResident?.Singular.ToString() ?? name;
+        var residentName = Svc.Data.GetExcelSheet<ENpcResident>()
+            ?.GetRowOrDefault(baseId)?.Singular.ToString() ?? name;
 
         Svc.Chat.Print($"[ATQ] Target: BaseId={baseId}  Name=\"{residentName}\"  (instanceId=0x{target->GetGameObjectId():X})");
         Svc.Log.Info($"[TargetDumper] territory={territoryId} BaseId={baseId} name='{residentName}'");

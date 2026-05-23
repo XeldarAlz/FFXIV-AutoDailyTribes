@@ -7,9 +7,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace AutoTribeQuests.Windows.Sections;
 
-// The main content area: era-grouped sections of tribe cards laid out as a
-// responsive grid. Each card auto-fills its column; column count comes from
-// Layout.TribeCardColumnsDefault and the available content width.
 internal static class TribeList
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)

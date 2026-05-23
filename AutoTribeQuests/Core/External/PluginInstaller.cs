@@ -4,12 +4,6 @@ using System.Threading.Tasks;
 
 namespace AutoTribeQuests.Core.External;
 
-// Wraps ECommons' DalamudReflector.AddPlugin — same pattern AutoDuty's
-// PluginInstaller helper uses. Adds the repo URL if it isn't already present
-// and triggers a Dalamud-internal InstallPluginAsync.
-//
-// Maintains an in-flight set so the UI can show a "Installing..." button state
-// without overlapping installs.
 public static class PluginInstaller
 {
     private static readonly HashSet<ExternalPlugin> InFlight = [];

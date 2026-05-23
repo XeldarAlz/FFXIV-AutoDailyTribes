@@ -2,12 +2,8 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Core.Tribes;
 
-// Static description (id / name / kind / locations) plus mutable live state
-// (rank / allowance / accepted-today). Single record class so the UI can data-bind
-// to one object per row and the automation coroutine can read+write through it.
 public sealed class TribeInfo
 {
-    // === Static identity ===
     public required uint BeastTribeId { get; init; }
     public required string Name { get; init; }
     public required TribeEra Era { get; init; }
@@ -17,16 +13,13 @@ public sealed class TribeInfo
     public required uint IssuerENpcBaseId { get; init; }
     public uint[] AltIssuerENpcBaseIds { get; init; } = [];
 
-    // Tribes where the daily list is one extra SelectString hop away. Default 0
-    // means the addon opens directly on SelectIconString. Override for tribes
-    // with side menus (Kojin "Show me what's on offer today", etc.).
+    // Tribes whose daily list is one extra SelectString hop away (entry-menu
+    // before the SelectIconString). 0 = daily list opens directly.
     public int IssuerSelectStringIndex { get; init; } = 0;
 
-    // === Resolved on first use ===
     public ulong IssuerInstanceId;
     public Vector3 IssuerLocation;
 
-    // === Live state, refreshed before every Draw / Execute ===
     public bool Unlocked;
     public int Rank;
     public int RepCur, RepMax;
@@ -49,8 +42,6 @@ public enum TribeEra
 
 public static class TribeEraExtensions
 {
-    // Long-form name used for section titles in the UI. Short enum value still
-    // shown on each card next to the tribe name where space is tight.
     public static string DisplayName(this TribeEra era) => era switch
     {
         TribeEra.ARR => "A Realm Reborn 2.0",

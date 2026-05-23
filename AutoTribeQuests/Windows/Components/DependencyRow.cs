@@ -8,17 +8,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// One row in the deps grid:
-//
-//   ✓  vnavmesh  (required)                 [   installed   ]
-//      Pathfinding and walking to NPCs.
-//   ✗  Questionable  (required)             [    Install    ]
-//      Plays out each daily quest...
-//   ○  Artisan  (optional)                  [    Install    ]
-//      Crafter tribes...
-//
-// Right-clicking the row name copies the repo URL to clipboard, in case the
-// one-click install fails and the user needs to paste it manually.
 internal static class DependencyRow
 {
     public static void Draw(ExternalPlugin plugin)
@@ -29,19 +18,15 @@ internal static class DependencyRow
 
         ImGui.TableNextRow();
 
-        // Status icon
         ImGui.TableSetColumnIndex(0);
         DrawStatusIcon(installed, info.Required);
 
-        // Name + role
         ImGui.TableSetColumnIndex(1);
-        DrawName(info, installed);
+        DrawName(info);
 
-        // Action
         ImGui.TableSetColumnIndex(2);
-        DrawAction(plugin, info, installed, installing);
+        DrawAction(plugin, installed, installing);
 
-        // Description row spans columns 1+2
         ImGui.TableNextRow();
         ImGui.TableSetColumnIndex(1);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
@@ -61,7 +46,7 @@ internal static class DependencyRow
             ImGui.TextUnformatted(icon.ToIconString());
     }
 
-    private static void DrawName(ExternalPluginInfo info, bool installed)
+    private static void DrawName(ExternalPluginInfo info)
     {
         ImGui.AlignTextToFramePadding();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
@@ -79,7 +64,7 @@ internal static class DependencyRow
         }
     }
 
-    private static void DrawAction(ExternalPlugin plugin, ExternalPluginInfo info, bool installed, bool installing)
+    private static void DrawAction(ExternalPlugin plugin, bool installed, bool installing)
     {
         var size = new Vector2(110 * ImGuiHelpers.GlobalScale, 0);
         if (installed)

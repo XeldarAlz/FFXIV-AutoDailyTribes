@@ -6,8 +6,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// Compact rank display: "Rank 4" label with a thin reputation progress bar
-// underneath. Locked tribes get a dim "locked" line instead.
 internal static class RankBadge
 {
     public static void Draw(TribeInfo tribe)

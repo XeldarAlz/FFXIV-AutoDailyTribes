@@ -2,15 +2,9 @@ using ECommons.DalamudServices;
 using Lumina.Data.Files;
 using Lumina.Data.Parsing.Layer;
 using Lumina.Excel.Sheets;
-using System.Numerics;
 
 namespace AutoTribeQuests.Core.Tribes;
 
-// Reads the territory's planevent.lgb file via Lumina, scans for the issuer's
-// EventNPC instance, and writes back the live-world InstanceId + position.
-//
-// This is the same trick vsatisfy uses in CraftTurnin.cs to locate vendor + turn-in
-// NPCs without hardcoding coordinates.
 internal static class IssuerResolver
 {
     public static void Resolve(TribeInfo tribe)
@@ -42,6 +36,8 @@ internal static class IssuerResolver
                 var baseId = ((LayerCommon.ENPCInstanceObject)instance.Object).ParentData.ParentData.BaseId;
                 if (baseId != tribe.IssuerENpcBaseId && !tribe.AltIssuerENpcBaseIds.Contains(baseId)) continue;
 
+                // InstanceId in the lgb is a 32-bit local id; the live game object id
+                // packs it with a leading 1-bit world marker. Mirrors vsatisfy/CraftTurnin.
                 tribe.IssuerInstanceId = (1ul << 32) | instance.InstanceId;
                 tribe.IssuerLocation = new(
                     instance.Transform.Translation.X,

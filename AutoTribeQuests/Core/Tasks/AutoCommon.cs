@@ -5,9 +5,6 @@ using System.Threading.Tasks;
 
 namespace AutoTribeQuests.Core.Tasks;
 
-// Shared helpers for tribe-automation tasks. Subclasses Dalamud's TaskBase
-// (from clib) so they pick up MoveTo / TeleportTo / InteractWith and the
-// cooperative-cancel framework.
 public abstract class AutoCommon : TaskBase
 {
     protected async Task WaitUntilSkipTalk(Func<bool> condition, string scopeName)

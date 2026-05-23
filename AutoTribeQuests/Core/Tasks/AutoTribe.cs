@@ -8,15 +8,6 @@ using System.Threading.Tasks;
 
 namespace AutoTribeQuests.Core.Tasks;
 
-// Single-tribe coroutine. Composed by AutoTribeController for multi-tribe runs.
-//
-// Lifecycle:
-//   1. Travel to issuer
-//   2. Open daily menu (handles SelectString → SelectIconString hop if needed)
-//   3. Accept up to 3 quests (or until allowance hits 0)
-//   4. Hand the accepted quest IDs to Questionable's priority queue
-//   5. Wait for Questionable.IsRunning to flip false
-//   6. Turn-in fallback if any quest is still active in the journal (TODO)
 public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 {
     private readonly QuestionableIPC _questionable = new();

@@ -5,8 +5,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// Themed primary button. Dim border-only style when disabled, accent fill
-// when active. Sized via Layout.ActionButtonHeight.
 internal static class ActionButton
 {
     public static bool Draw(string label, bool enabled = true, float width = 0)

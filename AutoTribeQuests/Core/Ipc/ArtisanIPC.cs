@@ -3,8 +3,6 @@ using ECommons.DalamudServices;
 
 namespace AutoTribeQuests.Core.Ipc;
 
-// Optional dependency, only relevant when Questionable's own crafting path
-// can't reach the recipe (rare). Mostly here as a diagnostic / fallback hook.
 internal sealed class ArtisanIPC
 {
     private readonly ICallGateSubscriber<ushort, int, object> _craftItem;

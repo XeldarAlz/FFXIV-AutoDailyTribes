@@ -6,30 +6,19 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows;
 
-// Central theme for the plugin. Cool/fresh palette — primary accent is teal,
-// kind-coded warm/green/violet accents differentiate combat/crafter/gatherer
-// /mixed tribes. Era-keyed tint provides a subtle visual grouping inside the
-// tribe grid.
-//
-// All public statics are intentionally simple Vector4s and helpers so a new
-// component can grab Styling.AccentTeal or Styling.CardBg without needing
-// to know how the theme is composed.
 internal static class Styling
 {
-    // === Primary palette ===
-    public static readonly Vector4 AccentTeal     = new(0.32f, 0.78f, 0.78f, 1.00f); // running, primary action
-    public static readonly Vector4 AccentTealSoft = new(0.50f, 0.90f, 0.90f, 1.00f); // pulse partner
-    public static readonly Vector4 AccentMint     = new(0.46f, 0.86f, 0.66f, 1.00f); // success / done
-    public static readonly Vector4 AccentAmber    = new(0.92f, 0.74f, 0.34f, 1.00f); // warning / partial
-    public static readonly Vector4 AccentRose     = new(0.93f, 0.42f, 0.50f, 1.00f); // blocked / error
+    public static readonly Vector4 AccentTeal     = new(0.32f, 0.78f, 0.78f, 1.00f);
+    public static readonly Vector4 AccentTealSoft = new(0.50f, 0.90f, 0.90f, 1.00f);
+    public static readonly Vector4 AccentMint     = new(0.46f, 0.86f, 0.66f, 1.00f);
+    public static readonly Vector4 AccentAmber    = new(0.92f, 0.74f, 0.34f, 1.00f);
+    public static readonly Vector4 AccentRose     = new(0.93f, 0.42f, 0.50f, 1.00f);
 
-    // === Kind-coded tribe accents ===
-    public static readonly Vector4 KindCombat   = new(0.90f, 0.42f, 0.45f, 1.00f); // muted red
-    public static readonly Vector4 KindCrafter  = new(0.95f, 0.74f, 0.36f, 1.00f); // warm gold
-    public static readonly Vector4 KindGatherer = new(0.50f, 0.82f, 0.52f, 1.00f); // leafy green
-    public static readonly Vector4 KindMixed    = new(0.72f, 0.55f, 0.93f, 1.00f); // violet
+    public static readonly Vector4 KindCombat   = new(0.90f, 0.42f, 0.45f, 1.00f);
+    public static readonly Vector4 KindCrafter  = new(0.95f, 0.74f, 0.36f, 1.00f);
+    public static readonly Vector4 KindGatherer = new(0.50f, 0.82f, 0.52f, 1.00f);
+    public static readonly Vector4 KindMixed    = new(0.72f, 0.55f, 0.93f, 1.00f);
 
-    // === Era tints (very subtle background hint) ===
     public static readonly Vector4 EraARR  = new(0.92f, 0.78f, 0.42f, 0.08f);
     public static readonly Vector4 EraHW   = new(0.58f, 0.72f, 0.92f, 0.08f);
     public static readonly Vector4 EraSB   = new(0.95f, 0.55f, 0.48f, 0.08f);
@@ -37,7 +26,6 @@ internal static class Styling
     public static readonly Vector4 EraEW   = new(0.92f, 0.62f, 0.78f, 0.08f);
     public static readonly Vector4 EraDT   = new(0.96f, 0.74f, 0.52f, 0.08f);
 
-    // === Card chrome ===
     public static readonly Vector4 CardBg        = new(0.075f, 0.090f, 0.105f, 0.85f);
     public static readonly Vector4 CardBgSoft    = new(0.090f, 0.105f, 0.120f, 0.55f);
     public static readonly Vector4 CardBgHover   = new(0.105f, 0.125f, 0.145f, 0.95f);
@@ -45,13 +33,11 @@ internal static class Styling
     public static readonly Vector4 BorderActive  = new(0.32f, 0.78f, 0.78f, 1.00f);
     public static readonly Vector4 BorderLocked  = new(0.18f, 0.18f, 0.22f, 1.00f);
 
-    // === Text ===
     public static readonly Vector4 TextStrong    = new(0.96f, 0.96f, 0.97f, 1.00f);
     public static readonly Vector4 TextSecondary = new(0.78f, 0.80f, 0.84f, 1.00f);
     public static readonly Vector4 TextDim       = new(0.55f, 0.58f, 0.62f, 1.00f);
     public static readonly Vector4 TextMuted     = new(0.40f, 0.42f, 0.46f, 1.00f);
 
-    // === Pulse / animation ===
     public const double PulseFast = 600.0;
     public const double PulseMedium = 800.0;
     public const double PulseSlow = 1100.0;
@@ -65,7 +51,6 @@ internal static class Styling
     public static Vector4 PulseColor(Vector4 a, Vector4 b, double periodMs = PulseMedium)
         => Vector4.Lerp(a, b, Pulse(periodMs));
 
-    // === Style stacks (push/pop pairs as IDisposable) ===
     public static IDisposable PushCardStyle()
     {
         var p = ImRaii.PushStyle(ImGuiStyleVar.ChildRounding, 7f * ImGuiHelpers.GlobalScale);

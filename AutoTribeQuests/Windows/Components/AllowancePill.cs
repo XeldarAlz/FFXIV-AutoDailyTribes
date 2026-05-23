@@ -7,7 +7,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// "N / 3" pill, colored by remaining capacity. Sits on the right side of a card.
 internal static class AllowancePill
 {
     public static void Draw(TribeInfo tribe)

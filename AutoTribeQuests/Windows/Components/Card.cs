@@ -4,8 +4,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// Generic card primitive. Use it as `using (Card.Begin(...)) { ... }` so the
-// child window and all style pushes are released together.
 internal static class Card
 {
     public static CardScope Begin(string id, Vector2 size, Vector4 background, Vector4 border, float borderSize = 1f)

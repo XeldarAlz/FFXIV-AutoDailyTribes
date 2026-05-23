@@ -2,10 +2,6 @@ using ECommons.DalamudServices;
 
 namespace AutoTribeQuests.Core.External;
 
-// Catalog of plugins this one depends on.
-//
-// Adding a new dependency = add an enum value + matching Catalog entry. The
-// AboutWindow's deps grid + the install pipeline pick it up automatically.
 public enum ExternalPlugin
 {
     Vnavmesh,
@@ -22,14 +18,12 @@ public sealed record ExternalPluginInfo(
 
 public static class ExternalPlugins
 {
+    // Repo URLs as of 2026-05. plugins.carvel.li's cert is broken; PunishXIV
+    // took over both Questionable and Artisan and serves them via the unified
+    // puni.sh meta repo. vnavmesh stays on the per-author endpoint.
     public static readonly IReadOnlyDictionary<ExternalPlugin, ExternalPluginInfo> Catalog
         = new Dictionary<ExternalPlugin, ExternalPluginInfo>
     {
-        // Repo URLs verified 2026-05-23. The historical plugins.carvel.li URL for
-        // Questionable has a broken cert (RemoteCertificateNameMismatch); the plugin
-        // moved to PunishXIV ownership and is now served via the puni.sh meta repo.
-        // Artisan was also reshuffled onto the same meta repo. vnavmesh lives on
-        // the per-author endpoint /api/repository/veyn (awgil's plugins).
         [ExternalPlugin.Vnavmesh] = new(
             InternalName: "vnavmesh",
             DisplayName: "vnavmesh",

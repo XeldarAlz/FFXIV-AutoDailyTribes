@@ -6,12 +6,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows;
 
-// MainWindow is intentionally a thin shell. To add a new piece of UI:
-//   1. Write Windows/Sections/MyThing.cs with a public static Draw(...) method.
-//   2. Add `MyThing.Draw(...);` between two existing calls below.
-// Components live one level deeper in Windows/Components/ for reuse across
-// sections. Both folders are append-only — never edit an existing section's
-// signature, write a new one instead.
 public sealed class MainWindow : Window, IDisposable
 {
     private readonly Plugin plugin;

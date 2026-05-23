@@ -7,13 +7,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace AutoTribeQuests.Windows.Sections;
 
-// Top-of-window action row.
-//   [Run selected (N)]  [Stop]  [Clear selection]   Daily: X / 12
-//
-// "Run selected" only fires tribes the player has ticked AND that are
-// currently runnable (unlocked, rank-gate cleared, slots remaining,
-// not config-disabled). Selection state lives in Configuration so it
-// persists across reloads.
 internal static class Header
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)

@@ -9,16 +9,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows.Components;
 
-// Single card representing one tribe. Composed of the smaller primitives:
-//
-//   [☐/☑] [KindIcon] [Name + Era]                     [AllowancePill]
-//   [Rank N ━━━━━━━━━━━━━━━━━━━━]
-//   [               Do dailies                       ]
-//
-// Top-left checkbox controls Configuration.SelectedTribes membership and is
-// rendered as a hollow / filled circle (FontAwesome). The card border switches
-// to the teal accent while selected so the selection state reads at a glance
-// across the grid. Locked tribes can't be selected.
 internal static class TribeCard
 {
     public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)

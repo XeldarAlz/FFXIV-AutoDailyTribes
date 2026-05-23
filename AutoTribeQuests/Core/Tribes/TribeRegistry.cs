@@ -1,22 +1,7 @@
 namespace AutoTribeQuests.Core.Tribes;
 
-// All 20 Allied Tribes (ARR through DT 7.35).
-//
-// Adding a new tribe = add one entry below. Adjusting per-tribe dialog quirks =
-// edit IssuerSelectStringIndex / AltIssuerENpcBaseIds.
-//
-// Kind reflects which class category the dailies require. Verified against
-// icy-veins / consolegameswiki / thegamer (DT) sources, not memory.
-//
-// Every IssuerENpcBaseId marked VERIFY: still needs to be confirmed against the
-// live game data. The path of least resistance:
-//   1. Travel to the issuer NPC in-game.
-//   2. Target it and run /xldata → Object Table → read the BaseId.
-//   3. Replace the VERIFY: value here and rebuild.
-//
-// IssuerResolver logs a warning at runtime if a BaseId doesn't resolve to a real
-// EventNPC in the territory's planevent.lgb, so wrong values fail loudly rather
-// than producing silent travel-to-nowhere bugs.
+// VERIFY: each IssuerENpcBaseId is a placeholder until confirmed in-game.
+// Stand next to the issuer NPC, target it, run /atq target, paste the BaseId.
 public static class TribeRegistry
 {
     public static readonly TribeInfo[] Tribes =

@@ -5,9 +5,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace AutoTribeQuests.Windows.Sections;
 
-// Compact warning that renders only when a required dependency is missing.
-// "Manage" jumps to the dedicated Dependencies window which has install
-// buttons + repo-URL copy affordance.
 internal static class DependencyBanner
 {
     public static void Draw(Plugin plugin)
@@ -34,8 +31,6 @@ internal static class DependencyBanner
             using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentRose))
                 ImGui.TextUnformatted($"Missing required: {names}");
 
-            // Right-align the Manage button: GetContentRegionMax().X is the
-            // child window's inner right edge; subtract the button's width.
             const string label = "Manage";
             var btnW = ImGui.CalcTextSize(label).X + ImGui.GetStyle().FramePadding.X * 2 + 4f;
             ImGui.SameLine(ImGui.GetContentRegionMax().X - btnW);

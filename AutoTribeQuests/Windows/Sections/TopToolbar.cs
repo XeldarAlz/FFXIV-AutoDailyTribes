@@ -7,9 +7,6 @@ using Dalamud.Interface.Utility.Raii;
 
 namespace AutoTribeQuests.Windows.Sections;
 
-// Top strip: status + plug / gear / info icons on the right.
-// The plug icon turns rose when a required dep is missing so the player gets
-// a peripheral-vision cue without having to read the banner below.
 internal static class TopToolbar
 {
     public static void Draw(Plugin plugin, AutoTribeController controller)
@@ -41,12 +38,6 @@ internal static class TopToolbar
         if (plugClicked) plugin.ToggleDependenciesUi();
         if (infoClicked) plugin.ToggleAboutUi();
         if (gearClicked) plugin.ToggleConfigUi();
-
-        if (anyMissing)
-        {
-            // Hover tooltip on the plug icon position is awkward to wire from outside
-            // the IconFont scope; banner below makes the same point with more detail.
-        }
 
         ImGui.Separator();
     }

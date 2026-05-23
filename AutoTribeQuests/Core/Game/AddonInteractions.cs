@@ -5,9 +5,6 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace AutoTribeQuests.Core.Game;
 
-// All mutating interactions with the live game. Each method does exactly one
-// thing — clicking a button, picking an option, advancing a dialog — and is
-// safe to call when its addon isn't ready (silently no-ops).
 internal static unsafe class AddonInteractions
 {
     public static bool InteractWith(ulong instanceId)

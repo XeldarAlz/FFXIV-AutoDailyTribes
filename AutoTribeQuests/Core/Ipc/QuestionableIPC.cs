@@ -3,8 +3,7 @@ using ECommons.DalamudServices;
 
 namespace AutoTribeQuests.Core.Ipc;
 
-// Typed wrapper over Questionable's CallGate endpoints.
-// Verified against WigglyMuffin/Questionable @ Questionable/External/QuestionableIpc.cs.
+// IPC strings verified against WigglyMuffin/Questionable @ Questionable/External/QuestionableIpc.cs.
 internal sealed class QuestionableIPC
 {
     private readonly ICallGateSubscriber<bool> _isRunning;

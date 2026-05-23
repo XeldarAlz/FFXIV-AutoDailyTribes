@@ -8,10 +8,6 @@ using System.Numerics;
 
 namespace AutoTribeQuests.Windows;
 
-// Dedicated window for managing the external plugins this one depends on.
-// One-click install via DalamudReflector (same pipeline AutoDuty uses), with a
-// fallback hover-to-copy on the plugin name when one-click install can't reach
-// the source repo (e.g. transient network or repo URL drift).
 public sealed class DependenciesWindow : Window, IDisposable
 {
     public DependenciesWindow() : base("Allied Tribes — Dependencies###AutoTribeQuestsDeps")

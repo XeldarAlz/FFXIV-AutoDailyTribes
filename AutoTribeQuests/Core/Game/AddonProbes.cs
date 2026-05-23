@@ -3,8 +3,6 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace AutoTribeQuests.Core.Game;
 
-// Read-only probes against the AtkUnitManager. No mutations. Cheap enough to
-// poll every frame inside a coroutine wait condition.
 internal static unsafe class AddonProbes
 {
     public static AtkUnitBase* Get(string name)
@@ -22,8 +20,6 @@ internal static unsafe class AddonProbes
     public static bool SelectYesnoActive() => Ready("SelectYesno");
     public static bool JournalAcceptActive() => Ready("JournalAccept");
 
-    // SelectIconString stores its option count in AtkValues[0]. Verify in-game
-    // once we test against a real issuer; the layout may differ slightly.
     public static int SelectIconStringOptionCount()
     {
         var a = Get("SelectIconString");
