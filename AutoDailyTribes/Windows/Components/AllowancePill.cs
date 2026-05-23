@@ -9,15 +9,28 @@ namespace AutoDailyTribes.Windows.Components;
 
 internal static class AllowancePill
 {
+    public static string GetLabel(TribeInfo tribe)
+    {
+        var taken = tribe.AcceptedTodayCount;
+        var slotsDone = taken >= AdtConstants.MaxAcceptsPerTribe && !tribe.HasInProgressQuests;
+        if (slotsDone && tribe.CanRankUp) return "Rank up!";
+        if (slotsDone) return "Done";
+        return $"{taken} / {AdtConstants.MaxAcceptsPerTribe}";
+    }
+
     public static void Draw(TribeInfo tribe)
     {
-        var taken = tribe.AlreadyAcceptedToday.Length;
-        var label = $"{taken} / {AdtConstants.MaxAcceptsPerTribe}";
+        var taken = tribe.AcceptedTodayCount;
+        var slotsDone = taken >= AdtConstants.MaxAcceptsPerTribe && !tribe.HasInProgressQuests;
+        var rankUp = slotsDone && tribe.CanRankUp;
+        var label = GetLabel(tribe);
 
-        var color = taken switch
+        var color = (rankUp, slotsDone, taken) switch
         {
-            >= AdtConstants.MaxAcceptsPerTribe => Styling.AccentMint,
-            > 0 => Styling.AccentAmber,
+            (true, _, _) => Styling.AccentAmber,
+            (_, true, _) => Styling.AccentMint,
+            (_, _, >= AdtConstants.MaxAcceptsPerTribe) => Styling.AccentMint,
+            (_, _, > 0) => Styling.AccentAmber,
             _ => Styling.TextDim,
         };
 

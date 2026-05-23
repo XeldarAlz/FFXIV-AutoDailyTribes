@@ -12,10 +12,18 @@ internal static class TribeCard
 {
     public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
     {
+        // Includes "slots maxed but quests still in journal" — AutoTribe then skips travel and just delegates.
+        var hasWork = tribe.AcceptSlotsRemaining > 0 || tribe.HasInProgressQuests;
+        var doneToday = tribe.Unlocked && tribe.MeetsRankRequirement && !hasWork;
+
+        // Drop completed tribes from the saved selection so they don't render as "selected" after reset wraps around.
+        if (doneToday && cfg.SelectedTribes.Remove(tribe.BeastTribeId))
+            cfg.SaveDebounced();
+
         var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
         var selectable = tribe.Unlocked
             && tribe.MeetsRankRequirement
-            && tribe.AcceptSlotsRemaining > 0
+            && hasWork
             && !controller.Running;
 
         var startScreen = ImGui.GetCursorScreenPos();
@@ -43,7 +51,8 @@ internal static class TribeCard
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
                     if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
-                    else cfg.SelectedTribes.Add(tribe.BeastTribeId);
+                    else if (!cfg.SelectedTribes.Contains(tribe.BeastTribeId))
+                        cfg.SelectedTribes.Add(tribe.BeastTribeId);
                     cfg.SaveDebounced();
                 }
             }
@@ -63,7 +72,7 @@ internal static class TribeCard
         }
         ImGui.SetWindowFontScale(1.0f);
 
-        var pillLabel = $"{tribe.AlreadyAcceptedToday.Length}/{AdtConstants.MaxAcceptsPerTribe}";
+        var pillLabel = AllowancePill.GetLabel(tribe);
         var pillWidth = ImGui.CalcTextSize(pillLabel).X + 16 * ImGuiHelpers.GlobalScale;
         ImGui.SameLine(ImGui.GetContentRegionAvail().X + ImGui.GetCursorPosX() - pillWidth);
         AllowancePill.Draw(tribe);
@@ -76,8 +85,12 @@ internal static class TribeCard
             ImGui.TextUnformatted("Tribe not yet unlocked — complete the intro quest in-game first");
         else if (!tribe.MeetsRankRequirement)
             ImGui.TextUnformatted($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        else if (tribe.AcceptSlotsRemaining <= 0)
+        else if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests && tribe.CanRankUp)
+            ImGui.TextUnformatted("Daily quests done — rep bar is full. Visit the issuer manually to pick up the rank-up quest.");
+        else if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests)
             ImGui.TextUnformatted("All daily slots already used for this tribe today");
+        else if (tribe.AcceptSlotsRemaining <= 0)
+            ImGui.TextUnformatted($"Slots maxed — {tribe.InProgressQuestIds.Length} quest(s) still in journal. Click to run Questionable on them.");
         else if (selected)
             ImGui.TextUnformatted("Click to remove from batch run");
         else
@@ -87,6 +100,7 @@ internal static class TribeCard
     private static Vector4 ResolveBg(TribeInfo tribe, bool selected, bool hovered)
     {
         if (!tribe.Unlocked) return Styling.CardBg * 0.6f;
+        if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests) return Styling.CardBg * 0.6f;
         if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.15f);
         if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.10f);
         if (hovered) return Styling.CardBgHover;
@@ -98,7 +112,7 @@ internal static class TribeCard
         if (!tribe.Unlocked) return Styling.BorderLocked;
         if (running) return Styling.PulseColor(Styling.BorderActive, Styling.AccentTealSoft, Styling.PulseMedium);
         if (selected) return Styling.AccentTeal;
-        if (tribe.AcceptSlotsRemaining <= 0) return Styling.BorderDim;
+        if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests) return Styling.BorderDim;
         return Styling.BorderActive * 0.65f;
     }
 }
