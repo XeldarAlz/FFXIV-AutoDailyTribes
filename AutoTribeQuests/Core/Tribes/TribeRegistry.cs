@@ -1,28 +1,33 @@
 namespace AutoTribeQuests.Core.Tribes;
 
-// Adding a new tribe = add one entry below, optionally tweak
-// IssuerSelectStringIndex / AltIssuerENpcBaseIds for per-tribe dialog quirks.
+// All 18 Allied Tribes (ARR through DT).
 //
-// Every uint marked VERIFY needs to be confirmed against the Lumina sheets:
-//   BeastTribe          - tribe metadata (BeastTribeId)
-//   BeastTribeQuest     - the daily quest IDs per tribe
-//   ENpcResident        - NPC names → IssuerENpcBaseId
-//   Quest               - intro quest IDs → UnlockQuestId
-//   TerritoryType       - zone IDs → IssuerTerritoryId
+// Adding a new tribe = add one entry below. Adjusting per-tribe dialog quirks =
+// edit IssuerSelectStringIndex / AltIssuerENpcBaseIds.
+//
+// Every IssuerENpcBaseId marked VERIFY: still needs to be confirmed against the
+// live game data. The path of least resistance:
+//   1. Travel to the issuer NPC in-game.
+//   2. Target it and run /xldata → Object Table → read the BaseId.
+//   3. Replace the VERIFY: value here and rebuild.
+//
+// IssuerResolver logs a warning at runtime if a BaseId doesn't resolve to a real
+// EventNPC in the territory's planevent.lgb, so wrong values fail loudly rather
+// than producing silent travel-to-nowhere bugs.
 public static class TribeRegistry
 {
     public static readonly TribeInfo[] Tribes =
     [
+        // === ARR ===
         new()
         {
             BeastTribeId = 1,
             Name = "Amalj'aa",
             Era = TribeEra.ARR,
             Kind = TribeKind.Combat,
-            UnlockQuestId = 65602,                  // VERIFY: "Peace for Thanalan"
             MinRankForDailies = 1,
             IssuerTerritoryId = 145,                // Eastern Thanalan
-            IssuerENpcBaseId = 1006722,             // VERIFY: Bartholomew
+            IssuerENpcBaseId = 1006722,             // VERIFY: Swift
         },
         new()
         {
@@ -30,7 +35,6 @@ public static class TribeRegistry
             Name = "Sylphs",
             Era = TribeEra.ARR,
             Kind = TribeKind.Combat,
-            UnlockQuestId = 65741,                  // VERIFY
             MinRankForDailies = 1,
             IssuerTerritoryId = 152,                // East Shroud
             IssuerENpcBaseId = 1006821,             // VERIFY: Komuxio
@@ -41,7 +45,6 @@ public static class TribeRegistry
             Name = "Kobolds",
             Era = TribeEra.ARR,
             Kind = TribeKind.Combat,
-            UnlockQuestId = 65643,                  // VERIFY
             MinRankForDailies = 1,
             IssuerTerritoryId = 180,                // Outer La Noscea
             IssuerENpcBaseId = 1006747,             // VERIFY: Drekkenfrau
@@ -52,7 +55,6 @@ public static class TribeRegistry
             Name = "Sahagin",
             Era = TribeEra.ARR,
             Kind = TribeKind.Combat,
-            UnlockQuestId = 65644,                  // VERIFY
             MinRankForDailies = 1,
             IssuerTerritoryId = 138,                // Western La Noscea
             IssuerENpcBaseId = 1006750,             // VERIFY: Novv
@@ -63,17 +65,156 @@ public static class TribeRegistry
             Name = "Ixal",
             Era = TribeEra.ARR,
             Kind = TribeKind.Crafter,
-            UnlockQuestId = 65970,                  // VERIFY
             MinRankForDailies = 1,
             IssuerTerritoryId = 154,                // North Shroud
             IssuerENpcBaseId = 1007599,             // VERIFY: Scarlet
         },
 
-        // TODO HW: Vanu Vanu (territory 399), Vath (400), Moogles (401)
-        // TODO SB: Kojin (613, SelectString hop), Ananta (614), Namazu (622, clan selector)
-        // TODO ShB: Pixies (816), Qitari (818), Dwarves (820)
-        // TODO EW: Arkasodara (957), Omicrons (958), Loporrits (959)
-        // TODO DT: Pelupelu (1191) - verify Questionable coverage
+        // === HW ===
+        new()
+        {
+            BeastTribeId = 6,
+            Name = "Vanu Vanu",
+            Era = TribeEra.HW,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 401,                // Sea of Clouds
+            IssuerENpcBaseId = 1009196,             // VERIFY: Sonu Vanu
+        },
+        new()
+        {
+            BeastTribeId = 7,
+            Name = "Vath",
+            Era = TribeEra.HW,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 398,                // The Dravanian Forelands
+            IssuerENpcBaseId = 1009197,             // VERIFY: Kal Jaagu
+        },
+        new()
+        {
+            BeastTribeId = 8,
+            Name = "Moogles",
+            Era = TribeEra.HW,
+            Kind = TribeKind.Crafter,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 400,                // The Churning Mists
+            IssuerENpcBaseId = 1010055,             // VERIFY: Mogmill
+        },
+
+        // === SB ===
+        new()
+        {
+            BeastTribeId = 9,
+            Name = "Kojin",
+            Era = TribeEra.SB,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 613,                // The Ruby Sea
+            IssuerENpcBaseId = 1018289,             // VERIFY: Mizuki
+            IssuerSelectStringIndex = 0,            // may need entry-menu hop — verify in-game
+        },
+        new()
+        {
+            BeastTribeId = 10,
+            Name = "Ananta",
+            Era = TribeEra.SB,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 612,                // The Fringes
+            IssuerENpcBaseId = 1018291,             // VERIFY: Vira
+        },
+        new()
+        {
+            BeastTribeId = 11,
+            Name = "Namazu",
+            Era = TribeEra.SB,
+            Kind = TribeKind.Mixed,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 614,                // Yanxia
+            IssuerENpcBaseId = 1023154,             // VERIFY: Kingu Goishi
+            // Namazu's first daily can pop a clan selector — needs per-tribe handling
+            // before the SelectIconStringPick(0) call in AutoTribe.Execute.
+        },
+
+        // === ShB ===
+        new()
+        {
+            BeastTribeId = 12,
+            Name = "Pixie",
+            Era = TribeEra.ShB,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 816,                // Il Mheg
+            IssuerENpcBaseId = 1027706,             // VERIFY: Wayslan-selan
+        },
+        new()
+        {
+            BeastTribeId = 13,
+            Name = "Qitari",
+            Era = TribeEra.ShB,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 815,                // The Rak'tika Greatwood
+            IssuerENpcBaseId = 1027707,             // VERIFY: Boko Hoko
+        },
+        new()
+        {
+            BeastTribeId = 14,
+            Name = "Dwarves",
+            Era = TribeEra.ShB,
+            Kind = TribeKind.Crafter,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 814,                // Kholusia
+            IssuerENpcBaseId = 1031820,             // VERIFY: Bzhonk
+        },
+
+        // === EW ===
+        new()
+        {
+            BeastTribeId = 15,
+            Name = "Arkasodara",
+            Era = TribeEra.EW,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 957,                // Thavnair
+            IssuerENpcBaseId = 1037551,             // VERIFY: Chamraj
+        },
+        new()
+        {
+            BeastTribeId = 16,
+            Name = "Omicron",
+            Era = TribeEra.EW,
+            Kind = TribeKind.Combat,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 961,                // Ultima Thule
+            IssuerENpcBaseId = 1043879,             // VERIFY: Geulla
+        },
+        new()
+        {
+            BeastTribeId = 17,
+            Name = "Loporrits",
+            Era = TribeEra.EW,
+            Kind = TribeKind.Mixed,
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 959,                // Mare Lamentorum
+            IssuerENpcBaseId = 1042881,             // VERIFY: Cherubeloff
+            // Loporrits hub has multiple issuer NPCs — once a primary is verified,
+            // add the others to AltIssuerENpcBaseIds.
+        },
+
+        // === DT ===
+        new()
+        {
+            BeastTribeId = 18,
+            Name = "Pelupelu",
+            Era = TribeEra.DT,
+            Kind = TribeKind.Combat,                // VERIFY: kind
+            MinRankForDailies = 1,
+            IssuerTerritoryId = 1187,               // VERIFY: Tuliyollal-region territory
+            IssuerENpcBaseId = 1052000,             // VERIFY: placeholder — needs in-game lookup
+            // Verify Questionable has quest data coverage before enabling this row in earnest.
+        },
     ];
 
     public static IEnumerable<TribeInfo> ByEra(TribeEra era) => Tribes.Where(t => t.Era == era);

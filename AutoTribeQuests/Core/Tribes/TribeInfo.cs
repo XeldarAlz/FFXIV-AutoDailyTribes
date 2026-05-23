@@ -12,7 +12,6 @@ public sealed class TribeInfo
     public required string Name { get; init; }
     public required TribeEra Era { get; init; }
     public required TribeKind Kind { get; init; }
-    public required uint UnlockQuestId { get; init; }
     public required int MinRankForDailies { get; init; }
     public required uint IssuerTerritoryId { get; init; }
     public required uint IssuerENpcBaseId { get; init; }

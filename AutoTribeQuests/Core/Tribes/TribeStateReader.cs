@@ -15,8 +15,6 @@ internal static unsafe class TribeStateReader
 {
     public static void Refresh(TribeInfo tribe)
     {
-        tribe.Unlocked = QuestManager.IsQuestComplete(tribe.UnlockQuestId);
-
         var ps = PlayerState.Instance();
         var qm = QuestManager.Instance();
         if (ps == null || qm == null) return;
@@ -25,6 +23,10 @@ internal static unsafe class TribeStateReader
         tribe.Rank = ps->GetBeastTribeRank(tribeId);
         tribe.RepCur = ps->GetBeastTribeCurrentReputation(tribeId);
         tribe.RepMax = ps->GetBeastTribeNeededReputation(tribeId);
+
+        // Rank ≥ 1 ⇔ intro quest done; the game refuses to award reputation otherwise.
+        // Avoids hardcoding intro quest IDs per tribe (would be one more VERIFY: per row).
+        tribe.Unlocked = tribe.Rank >= 1;
 
         tribe.AlreadyAcceptedToday = ScanAcceptedDailies(tribe.BeastTribeId, qm);
         tribe.DailyAllowanceLeft = (int)qm->GetBeastTribeAllowance();

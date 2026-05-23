@@ -63,7 +63,7 @@ internal static class TribeCard
             controller.Run(tribe);
 
         if (!tribe.Unlocked)
-            Tooltip.For($"Locked behind quest {tribe.UnlockQuestId}");
+            Tooltip.For("Tribe not yet unlocked — complete the intro quest in-game first");
         else if (!tribe.MeetsRankRequirement)
             Tooltip.For($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
         else if (tribe.AcceptSlotsRemaining <= 0)

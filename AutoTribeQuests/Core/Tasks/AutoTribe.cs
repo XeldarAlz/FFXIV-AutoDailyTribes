@@ -28,7 +28,7 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         TribeStateReader.Refresh(tribe);
         IssuerResolver.Resolve(tribe);
 
-        ErrorIf(!tribe.Unlocked, $"{tribe.Name}: intro quest not complete");
+        ErrorIf(!tribe.Unlocked, $"{tribe.Name}: not unlocked — complete the intro quest in-game first");
         ErrorIf(!tribe.MeetsRankRequirement, $"{tribe.Name}: need rank {tribe.MinRankForDailies} (have {tribe.Rank})");
         ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: failed to resolve issuer NPC instance");
         ErrorIf(!_questionable.IsAvailable, "Questionable plugin not installed/enabled");
