@@ -75,16 +75,24 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         await Dismount();
 
         Status = $"Talking to {tribe.Name} issuer";
+        Svc.Chat.Print($"[ADT debug] Interacting with issuer ({tribe.IssuerInstanceId:X})");
         ErrorIf(!AddonInteractions.InteractWith(tribe.IssuerInstanceId), "Failed to interact with issuer NPC");
         await WaitUntilSkipping(
             () => AddonProbes.SelectIconStringActive() || AddonProbes.SelectStringActive(),
             "WaitForIssuerMenu",
             UiSkipOptions.Talk);
 
+        var firstMenu = AddonProbes.SelectIconStringActive() ? "SelectIconString"
+                      : AddonProbes.SelectStringActive() ? "SelectString"
+                      : "?";
+        Svc.Chat.Print($"[ADT debug] First menu opened: {firstMenu}");
+
         if (AddonProbes.SelectStringActive())
         {
+            Svc.Chat.Print($"[ADT debug] Picking SelectString[{tribe.IssuerSelectStringIndex}] as entry hop");
             AddonSelectString.Select(tribe.IssuerSelectStringIndex);
             await WaitUntil(AddonProbes.SelectIconStringActive, "WaitForDailyList");
+            Svc.Chat.Print("[ADT debug] SelectIconString daily list now active");
         }
     }
 
@@ -93,18 +101,23 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
         for (int i = 0; i < remaining; i++)
         {
             if (tribe.DailyAllowanceLeft <= 0) break;
-            if (!AddonProbes.SelectIconStringActive())
+            var sisActive = AddonProbes.SelectIconStringActive();
+            var optCount = AddonProbes.SelectIconStringOptionCount();
+            Svc.Chat.Print($"[ADT debug] Loop {i + 1}/{remaining}: SelectIconString active={sisActive}, AtkValues[0].Int={optCount}");
+
+            if (!sisActive)
             {
                 Log("Issuer menu closed early — assuming allowance hit or no more offered");
                 break;
             }
-            if (AddonProbes.SelectIconStringOptionCount() <= 1)
+            if (optCount <= 1)
             {
                 Log("No more quests offered");
                 break;
             }
 
             Status = $"Accepting quest {i + 1}/{remaining}";
+            Svc.Chat.Print($"[ADT debug] Picking SelectIconString[0]");
             AddonInteractions.SelectIconStringPick(0);
 
             await WaitUntilSkipping(
