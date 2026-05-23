@@ -17,6 +17,10 @@ public sealed class Configuration : IPluginConfiguration
 
     public HashSet<uint> DisabledTribes { get; set; } = [];
 
+    // Per-tribe selection for the "Run selected" batch action. Persists across
+    // reloads so the player doesn't have to re-tick boxes every login.
+    public HashSet<uint> SelectedTribes { get; set; } = [];
+
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 
     // Slider/drag callbacks fire every frame; debounce so we don't hammer disk.
