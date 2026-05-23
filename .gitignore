@@ -1,0 +1,25 @@
+## Dalamud / .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.swp
+
+## NuGet
+*.nupkg
+*.snupkg
+
+## Rider / VS local
+*.DotSettings.user
+*.userprefs
+
+## Generated lock files we don't want
+# Keep packages.lock.json — uncomment if you don't
+# packages.lock.json
+
+## Local Dalamud test artifacts
+local/
+testbuild/
+*.pdb
