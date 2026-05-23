@@ -73,7 +73,7 @@ jobs:
       - name: Stage latest.zip
         shell: pwsh
         run: |
-          $src = 'AutoDailyTribes/bin/x64/Release/AutoDailyTribes/latest.zip'
+          $src = 'AutoDailyTribes/bin/Release/AutoDailyTribes/latest.zip'
           if (-not (Test-Path $src)) { throw "SDK-built plugin zip not found at $src" }
           Copy-Item $src 'latest.zip' -Force
 

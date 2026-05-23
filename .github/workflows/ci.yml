@@ -93,5 +93,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AutoDailyTribes-plugin
-          path: AutoDailyTribes/bin/x64/Release/AutoDailyTribes/latest.zip
+          path: AutoDailyTribes/bin/Release/AutoDailyTribes/latest.zip
           if-no-files-found: warn
