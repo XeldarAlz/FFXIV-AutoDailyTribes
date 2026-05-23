@@ -31,6 +31,8 @@ internal static class TribeCard
         {
             DrawHeader(tribe);
             ImGui.Spacing();
+            KindIcon.Draw(tribe.Kind);
+            ImGui.SameLine();
             RankBadge.Draw(tribe);
         }
 
