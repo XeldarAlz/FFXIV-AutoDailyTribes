@@ -1,5 +1,7 @@
+using ECommons.DalamudServices;
+using ECommons.GameFunctions;
+using ECommons.UIHelpers.AddonMasterImplementations;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
@@ -7,12 +9,19 @@ namespace AutoDailyTribes.Core.Game;
 
 internal static unsafe class AddonInteractions
 {
+    // Mirror Questionable.GameFunctions.InteractWith: null the target first, set it, then call
+    // InteractWithObject in the same pass. The null-then-set is what actually makes the game
+    // recognise the new target — without it InteractWithObject quietly returns 7 (rejected).
     public static bool InteractWith(ulong instanceId)
     {
-        var obj = GameObjectManager.Instance()->Objects.GetObjectByGameObjectId(instanceId);
+        var obj = Svc.Objects.SearchById(instanceId);
         if (obj == null) return false;
-        TargetSystem.Instance()->InteractWithObject(obj, false);
-        return true;
+
+        Svc.Targets.Target = null;
+        Svc.Targets.Target = obj;
+
+        var result = TargetSystem.Instance()->InteractWithObject(obj.Struct(), false);
+        return result != 7 && result > 0;
     }
 
     public static void ProgressTalk()
@@ -24,9 +33,8 @@ internal static unsafe class AddonInteractions
         a->ReceiveEvent(AtkEventType.MouseClick, 0, &evt, &data);
     }
 
-    // Callback shapes verified against WigglyMuffin/Questionable's InteractionUiController:
-    // SelectIconString / SelectString / SelectYesno / JournalResult all use
-    // FireCallbackInt(N) — a single AtkValue containing the index (or 0/1 for yes/no).
+    // Questionable's SelectIconStringPostSetup calls FireCallbackInt(index) — a single int value.
+    // That's what Questionable.Controller.GameUi.InteractionUiController.SelectIconStringPostSetup does.
     public static void SelectIconStringPick(int index)
     {
         var a = AddonProbes.Get("SelectIconString");
@@ -41,10 +49,12 @@ internal static unsafe class AddonInteractions
         a->FireCallbackInt(-1);
     }
 
+    // FireCallbackInt(0) on JournalAccept means "decline/close" — the quest never lands.
+    // Accept is a button click on node 44; ECommons' AddonMaster wraps that correctly.
     public static void JournalAcceptConfirm()
     {
         var a = AddonProbes.Get("JournalAccept");
         if (a == null || !a->IsReady) return;
-        a->FireCallbackInt(0);
+        new AddonMaster.JournalAccept((nint)a).Accept();
     }
 }
