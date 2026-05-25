@@ -6,7 +6,7 @@
     "Description": "Auto runs all daily tribe quests for you.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes",
-    "IconUrl": "",
+    "IconUrl": "https://raw.githubusercontent.com/XeldarAlz/FFXIV-AutoDailyTribes/master/AutoDailyTribes/Images/Icon.png",
     "Tags": [
         "Beast Tribes",
         "Auto Daily Tribes",
