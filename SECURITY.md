@@ -16,7 +16,7 @@ What counts:
 
 - Code execution or crashes triggerable by crafted game state.
 - The plugin teleporting, accepting quests, or persisting something it shouldn't (beyond the documented daily-tribe automation, which is the feature).
-- Data exfiltration — this plugin makes no network calls by design; any network traffic would be a bug.
+- Data exfiltration: this plugin makes no network calls by design; any network traffic would be a bug.
 
 What doesn't:
 

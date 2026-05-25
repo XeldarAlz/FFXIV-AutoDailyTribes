@@ -7,9 +7,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to file a bug. Please fill out as much as you can — it makes a huge difference.
+        Thanks for taking the time to file a bug. Please fill out as much as you can; it makes a huge difference.
 
-        If you're not sure whether it's a bug or expected behavior, prefer [Help & troubleshooting discussions](https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/discussions/new?category=help-troubleshooting) — triage is faster there.
+        If you're not sure whether it's a bug or expected behavior, prefer [Help & troubleshooting discussions](https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/discussions/new?category=help-troubleshooting); triage is faster there.
 
         For security issues, please use [private vulnerability reporting](https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/security/advisories/new) instead.
 
@@ -43,21 +43,6 @@ body:
       options:
         - v1.0.0.0
         - Older / not sure
-    validations:
-      required: true
-
-  - type: dropdown
-    id: game-version
-    attributes:
-      label: Game version
-      description: Patch you were on when it happened. Helps me match the report to a binary.
-      options:
-        - "7.55"
-        - "7.5"
-        - "7.45"
-        - "7.4"
-        - Older
-        - Not sure
     validations:
       required: true
 
@@ -108,7 +93,7 @@ body:
       description: |
         **If you can provide any of these, it turns guesswork into a fix.**
 
-        - **Dalamud log** — open `/xllog`, click the *Open log folder* button at the bottom-right, attach `dalamud.log`. Filter by `[AutoDailyTribes]` if you want to trim it down.
+        - **Dalamud log**: open `/xllog`, click the *Open log folder* button at the bottom-right, attach `dalamud.log`. Filter by `[AutoDailyTribes]` if you want to trim it down.
         - **Screenshots / short clip** if the issue is visual (selection state, wrong tooltip, frozen card, etc.)
         - **Other plugins active** that touch quests, teleport, or input (Questionable, AutoRetainer, vnavmesh, etc.)
 
@@ -117,11 +102,11 @@ body:
     attributes:
       label: Inline log excerpt (optional)
       description: |
-        Short snippets (chat-log tail, Dalamud error text) belong here. For full log files, use **Attachments** above — don't paste them inline.
+        Short snippets (chat-log tail, Dalamud error text) belong here. For full log files, use **Attachments** above; don't paste them inline.
       render: text
 
   - type: textarea
     id: extra
     attributes:
       label: Anything else?
-      description: Character class/job, current rank with the affected tribe, hunches — anything that helps the bug land.
+      description: Character class/job, current rank with the affected tribe, hunches, anything that helps the bug land.

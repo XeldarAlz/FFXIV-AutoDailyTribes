@@ -16,10 +16,10 @@ Load the built plugin via `/xlsettings` → **Experimental** → **Dev Plugin Lo
 
 ## Project layout
 
-- `AutoDailyTribes/Core/` — tribe data, quest dispatch, scheduling.
-- `AutoDailyTribes/Windows/` — ImGui main window, settings, dependencies.
-- `AutoDailyTribes/` — plugin entry points, config, command wiring.
-- `ECommons/` — submodule, shared Dalamud helpers. Don't patch this directly; upstream it.
+- `AutoDailyTribes/Core/`: tribe data, quest dispatch, scheduling.
+- `AutoDailyTribes/Windows/`: ImGui main window, settings, dependencies.
+- `AutoDailyTribes/`: plugin entry points, config, command wiring.
+- `ECommons/`: submodule, shared Dalamud helpers. Don't patch this directly; upstream it.
 
 Keep logic small and direct. This plugin has one job.
 
@@ -33,11 +33,11 @@ Keep logic small and direct. This plugin has one job.
 
 ## Good first issues
 
-Check the tracker for anything labeled `good first issue`. Tribe-specific quest bugs are usually the lowest-friction way to help — pick a tribe that's misbehaving, attach a log of what the plugin did vs. what should have happened, and a fix is usually a small change.
+Check the tracker for anything labeled `good first issue`. Tribe-specific quest bugs are usually the lowest-friction way to help: pick a tribe that's misbehaving, attach a log of what the plugin did vs. what should have happened, and a fix is usually a small change.
 
 ## Security
 
-Please don't file public issues for security problems — see [SECURITY.md](SECURITY.md).
+Please don't file public issues for security problems; see [SECURITY.md](SECURITY.md).
 
 ## Code of conduct
 
