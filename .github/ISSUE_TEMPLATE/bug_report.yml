@@ -41,7 +41,8 @@ body:
       label: Plugin version
       description: Shown in `/xlplugins` next to "Auto Daily Tribes".
       options:
-        - v1.0.0.0
+        - 1.0.0.1
+        - 1.0.0.0
         - Older / not sure
     validations:
       required: true
