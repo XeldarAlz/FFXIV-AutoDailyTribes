@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <em>Daily allied tribe quests, hands-off. Built on Dalamud.</em>
+  <em>Daily allied tribe quests, done for you. Built on Dalamud.</em>
 </p>
 
 ---
