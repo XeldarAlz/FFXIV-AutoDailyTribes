@@ -3,7 +3,9 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using ECommons.DalamudServices;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows;
@@ -15,16 +17,27 @@ public sealed class AboutWindow : Window, IDisposable
     private const string DiscussionsUrl = "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/discussions";
     private const string SecurityUrl = "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/security/advisories/new";
     private const string Author = "XeldarAlz";
-    private const string License = "AGPL-3.0-or-later";
 
-    public AboutWindow() : base("Auto Daily Tribes — About###AutoDailyTribesAbout")
+    private static readonly Vector4 GreetingColor = new(0.96f, 0.84f, 0.62f, 1.00f);
+    private static readonly Vector4 GreetingShimmer = new(1.00f, 0.94f, 0.78f, 1.00f);
+    private static readonly string[] GreetingParagraphs =
+    {
+        "Hello there! I'm a solo developer building FFXIV automation plugins in my free time.",
+        "If this one made your day a little easier, the best way to support the project is to share it with other players.",
+        "I'd love to hear from you too: bug reports, feature requests, and general feedback are all welcome on GitHub Discussions.",
+        "Thanks for trying it out, and have fun out there!",
+    };
+
+    private static readonly Dictionary<string, float> linkHoverPulse = new();
+
+    public AboutWindow() : base("Auto Daily Tribes: About###AutoDailyTribesAbout")
     {
         Flags = ImGuiWindowFlags.NoCollapse;
-        Size = new Vector2(560, 400);
+        Size = new Vector2(560, 460);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(380, 300),
+            MinimumSize = new Vector2(380, 360),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
     }
@@ -35,6 +48,7 @@ public sealed class AboutWindow : Window, IDisposable
     {
         using var style = Styling.PushWindowStyle();
 
+        DrawIcon();
         DrawHeader();
         ImGui.Separator();
         ImGui.Spacing();
@@ -42,19 +56,48 @@ public sealed class AboutWindow : Window, IDisposable
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
-        DrawDescription();
+        DrawShimmerGreeting();
+    }
+
+    private static void DrawIcon()
+    {
+        var iconSize = 96f * ImGuiHelpers.GlobalScale;
+        var avail = ImGui.GetContentRegionAvail().X;
+        if (avail > iconSize)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (avail - iconSize) * 0.5f);
+
+        var iconPath = Path.Combine(
+            Svc.PluginInterface.AssemblyLocation.DirectoryName ?? "",
+            "Images", "Icon.png");
+        if (!File.Exists(iconPath))
+        {
+            ImGui.Dummy(new Vector2(iconSize, iconSize));
+            return;
+        }
+
+        var tex = Svc.Texture.GetFromFile(iconPath).GetWrapOrEmpty();
+        if (tex == null)
+        {
+            ImGui.Dummy(new Vector2(iconSize, iconSize));
+            return;
+        }
+
+        var alpha = 0.85f + 0.15f * Styling.Pulse(2000.0);
+        ImGui.Image(tex.Handle, new Vector2(iconSize, iconSize), Vector2.Zero, Vector2.One, new Vector4(1f, 1f, 1f, alpha));
+        ImGui.Spacing();
     }
 
     private static void DrawHeader()
     {
-        ImGui.SetWindowFontScale(1.20f);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
-            ImGui.TextUnformatted("Auto Daily Tribes");
-        ImGui.SetWindowFontScale(1.0f);
-
         var version = typeof(AboutWindow).Assembly.GetName().Version?.ToString() ?? "?";
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var label = $"v {version}";
+        var textWidth = ImGui.CalcTextSize(label).X;
+        if (availWidth > textWidth)
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - textWidth) * 0.5f);
+
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted($"build {version} · {License}");
+            ImGui.TextUnformatted(label);
     }
 
     private static void DrawDetailsTable()
@@ -75,19 +118,46 @@ public sealed class AboutWindow : Window, IDisposable
         ImGui.EndTable();
     }
 
-    private static void DrawDescription()
+    private static void DrawShimmerGreeting()
     {
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
+        ImGui.PushTextWrapPos(0f);
+        var availWidth = ImGui.GetContentRegionAvail().X;
+        var bandWidth = 140f * ImGuiHelpers.GlobalScale;
+        var dl = ImGui.GetWindowDrawList();
+
+        const int loopMs = 5000;
+        const int staggerMs = 800;
+        var tick = Environment.TickCount;
+
+        for (int i = 0; i < GreetingParagraphs.Length; i++)
         {
-            ImGui.PushTextWrapPos(0f);
-            ImGui.TextUnformatted(
-                "Auto Daily Tribes lists every beast tribe from A Realm Reborn through Dawntrail. " +
-                "Tick the tribes you want to run, click \"Run selected\" in the header, and the " +
-                "plugin teleports to each issuer in turn, accepts the day's quests, hands them " +
-                "off to Questionable, and turns them in. The 12-quest daily allowance stops " +
-                "the queue automatically once it's burnt.");
-            ImGui.PopTextWrapPos();
+            var para = GreetingParagraphs[i];
+            var startPos = ImGui.GetCursorScreenPos();
+
+            using (ImRaii.PushColor(ImGuiCol.Text, GreetingColor))
+                ImGui.TextUnformatted(para);
+            var endPos = ImGui.GetCursorScreenPos();
+
+            int mod = (tick - i * staggerMs) % loopMs;
+            if (mod < 0) mod += loopMs;
+            float phase = mod / (float)loopMs;
+            float bandCenter = startPos.X - bandWidth + phase * (availWidth + bandWidth * 2f);
+
+            dl.PushClipRect(
+                new Vector2(bandCenter - bandWidth * 0.5f, startPos.Y),
+                new Vector2(bandCenter + bandWidth * 0.5f, endPos.Y),
+                true);
+            ImGui.SetCursorScreenPos(startPos);
+            using (ImRaii.PushColor(ImGuiCol.Text, GreetingShimmer))
+                ImGui.TextUnformatted(para);
+            ImGui.SetCursorScreenPos(endPos);
+            dl.PopClipRect();
+
+            if (i < GreetingParagraphs.Length - 1)
+                ImGui.Dummy(new Vector2(0, ImGui.GetTextLineHeight() * 0.5f));
         }
+
+        ImGui.PopTextWrapPos();
     }
 
     private static void DrawTextRow(string label, string value)
@@ -109,13 +179,23 @@ public sealed class AboutWindow : Window, IDisposable
             ImGui.TextUnformatted(label);
 
         ImGui.TableSetColumnIndex(1);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTeal))
+
+        linkHoverPulse.TryGetValue(url, out var pulse);
+        var color = Vector4.Lerp(Styling.AccentTeal, Styling.TextStrong, pulse * 0.55f);
+
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
         {
             ImGui.PushTextWrapPos(ImGui.GetContentRegionMax().X);
             ImGui.TextUnformatted(url);
             ImGui.PopTextWrapPos();
         }
-        if (!ImGui.IsItemHovered()) return;
+
+        var hovered = ImGui.IsItemHovered();
+        linkHoverPulse[url] = hovered
+            ? MathF.Min(pulse + 0.15f, 1f)
+            : MathF.Max(pulse - 0.10f, 0f);
+
+        if (!hovered) return;
 
         using (ImRaii.Tooltip())
             ImGui.TextUnformatted("Click to open · right-click to copy");
