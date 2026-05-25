@@ -1,0 +1,127 @@
+name: Bug report
+description: Something's broken or behaving unexpectedly.
+title: "[Bug] "
+labels: ["bug"]
+assignees: ["XeldarAlz"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill out as much as you can — it makes a huge difference.
+
+        If you're not sure whether it's a bug or expected behavior, prefer [Help & troubleshooting discussions](https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/discussions/new?category=help-troubleshooting) — triage is faster there.
+
+        For security issues, please use [private vulnerability reporting](https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/security/advisories/new) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see? What did you expect to see instead?
+      placeholder: "The plugin teleported to the Loporrits issuer but never accepted the day's quests..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps to trigger the bug. If it's intermittent, say so.
+      placeholder: |
+        1. Open `/adt`
+        2. Tick "Loporrits"
+        3. Press Run selected
+        4. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Shown in `/xlplugins` next to "Auto Daily Tribes".
+      options:
+        - v1.0.0.0
+        - Older / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: game-version
+    attributes:
+      label: Game version
+      description: Patch you were on when it happened. Helps me match the report to a binary.
+      options:
+        - "7.55"
+        - "7.5"
+        - "7.45"
+        - "7.4"
+        - Older
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tribe-era
+    attributes:
+      label: Expansion era of the affected tribe(s)
+      description: Quest dialog and turn-in flows shift between expansions, so era is a frequent root cause.
+      options:
+        - ARR (A Realm Reborn)
+        - HW (Heavensward)
+        - SB (Stormblood)
+        - ShB (Shadowbringers)
+        - EW (Endwalker)
+        - DT (Dawntrail)
+        - Multiple eras
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: tribes-affected
+    attributes:
+      label: Specific tribe(s) affected
+      description: Which tribe(s) were involved? List one or more.
+      placeholder: "Loporrits, Pelupelu, ..."
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where in the run did it fail?
+      description: The plugin's per-tribe flow runs teleport → accept → play → turn-in.
+      options:
+        - Teleport (didn't move / wrong destination)
+        - Accept (didn't take the day's quests)
+        - Play (got stuck mid-quest)
+        - Turn-in (didn't hand quests back)
+        - Selection / UI (issue before pressing Run)
+        - Allowance / scheduling (12-quest cap behavior)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Attachments
+      description: |
+        **If you can provide any of these, it turns guesswork into a fix.**
+
+        - **Dalamud log** — open `/xllog`, click the *Open log folder* button at the bottom-right, attach `dalamud.log`. Filter by `[AutoDailyTribes]` if you want to trim it down.
+        - **Screenshots / short clip** if the issue is visual (selection state, wrong tooltip, frozen card, etc.)
+        - **Other plugins active** that touch quests, teleport, or input (Questionable, AutoRetainer, vnavmesh, etc.)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Inline log excerpt (optional)
+      description: |
+        Short snippets (chat-log tail, Dalamud error text) belong here. For full log files, use **Attachments** above — don't paste them inline.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Character class/job, current rank with the affected tribe, hunches — anything that helps the bug land.
