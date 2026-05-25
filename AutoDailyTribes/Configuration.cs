@@ -16,6 +16,9 @@ public sealed class Configuration : IPluginConfiguration
     public JobChoice GathererJobType { get; set; } = JobChoice.HighestXP;
     public uint SelectedGathererJob { get; set; } = 16;
 
+    public JobChoice CombatJobType { get; set; } = JobChoice.Current;
+    public uint SelectedCombatJob { get; set; } = 19;
+
     public List<uint> SelectedTribes { get; set; } = [];
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);

@@ -14,8 +14,16 @@ internal static unsafe class JobSwitcher
     private const byte DolFirst = 16;
     private const byte DolLast  = 18;
 
+    private static readonly byte[] CombatJobIds =
+    [
+        1, 2, 3, 4, 5, 6, 7,
+        19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+        31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+    ];
+
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
+    public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= 42;
 
     public static byte CurrentClassJob()
     {
@@ -45,6 +53,9 @@ internal static unsafe class JobSwitcher
                     ?? PickJobFromSetting(cfg.GathererJobType, cfg.SelectedGathererJob, DolFirst, DolLast);
 
             case TribeKind.Combat:
+                if (IsCombat(current)) return null;
+                return PickCombatJobFromSetting(cfg.CombatJobType, cfg.SelectedCombatJob);
+
             default:
                 return null;
         }
@@ -104,6 +115,46 @@ internal static unsafe class JobSwitcher
         byte best = 0;
         int bestLevel = highest ? -1 : int.MaxValue;
         for (byte job = first; job <= last; job++)
+        {
+            int lvl = ps->GetClassJobLevel(job);
+            if (lvl <= 0) continue;
+            var better = highest ? lvl > bestLevel : lvl < bestLevel;
+            if (better)
+            {
+                best = job;
+                bestLevel = lvl;
+            }
+        }
+        return best == 0 ? null : best;
+    }
+
+    private static byte? PickCombatJobFromSetting(JobChoice mode, uint specificJob)
+    {
+        var ps = PlayerState.Instance();
+        if (ps == null) return null;
+
+        switch (mode)
+        {
+            case JobChoice.Specific:
+                return (byte)specificJob;
+            case JobChoice.Current:
+            case JobChoice.HighestXP:
+                return PickCombatByLevel(highest: true);
+            case JobChoice.LowestXP:
+                return PickCombatByLevel(highest: false);
+            default:
+                return null;
+        }
+    }
+
+    private static byte? PickCombatByLevel(bool highest)
+    {
+        var ps = PlayerState.Instance();
+        if (ps == null) return null;
+
+        byte best = 0;
+        int bestLevel = highest ? -1 : int.MaxValue;
+        foreach (var job in CombatJobIds)
         {
             int lvl = ps->GetClassJobLevel(job);
             if (lvl <= 0) continue;

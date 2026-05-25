@@ -26,6 +26,32 @@ public sealed class ConfigWindow : Window, IDisposable
         (18, "Fisher (FSH)"),
     ];
 
+    private static readonly (uint id, string label)[] CombatJobs =
+    [
+        (19, "Paladin (PLD)"),
+        (20, "Monk (MNK)"),
+        (21, "Warrior (WAR)"),
+        (22, "Dragoon (DRG)"),
+        (23, "Bard (BRD)"),
+        (24, "White Mage (WHM)"),
+        (25, "Black Mage (BLM)"),
+        (27, "Summoner (SMN)"),
+        (28, "Scholar (SCH)"),
+        (30, "Ninja (NIN)"),
+        (31, "Machinist (MCH)"),
+        (32, "Dark Knight (DRK)"),
+        (33, "Astrologian (AST)"),
+        (34, "Samurai (SAM)"),
+        (35, "Red Mage (RDM)"),
+        (36, "Blue Mage (BLU)"),
+        (37, "Gunbreaker (GNB)"),
+        (38, "Dancer (DNC)"),
+        (39, "Reaper (RPR)"),
+        (40, "Sage (SGE)"),
+        (41, "Viper (VPR)"),
+        (42, "Pictomancer (PCT)"),
+    ];
+
     private readonly Plugin plugin;
 
     public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
@@ -75,6 +101,19 @@ public sealed class ConfigWindow : Window, IDisposable
             GathererJobs,
             type => cfg.GathererJobType = type,
             id   => cfg.SelectedGathererJob = id);
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        DrawJobSection(
+            cfg,
+            "Combat tribes",
+            "Amalj'aa · Sylphs · Kobolds · Sahagin · Vanu Vanu · Vath · Kojin · Ananta · Pixie · Arkasodara · Pelupelu",
+            "DoW/DoM",
+            cfg.CombatJobType,
+            cfg.SelectedCombatJob,
+            CombatJobs,
+            type => cfg.CombatJobType = type,
+            id   => cfg.SelectedCombatJob = id);
     }
 
     private static void DrawBehaviorSection(Configuration cfg)
