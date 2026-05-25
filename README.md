@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="AutoDailyTribes/Images/Icon.png" width="220" alt="Auto Daily Tribes icon" />
+  <img src="AutoDailyTribes/Images/Icon.png" width="180" alt="Auto Daily Tribes icon" />
 </p>
 
 <h1 align="center">Auto Daily Tribes</h1>
 
 <p align="center">
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square&color=blue"></a>
+  <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoDailyTribes/total?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoDailyTribes/release.yml?style=flat-square"></a>
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue?style=flat-square"></a>
@@ -37,17 +37,13 @@ Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawn
 
 ## Install
 
-In-game, run `/xlsettings` → **Experimental**.
-
-Under **Custom Plugin Repositories**, paste:
+In-game: `/xlsettings` → **Experimental** → paste into **Custom Plugin Repositories**:
 
 ```
 https://raw.githubusercontent.com/XeldarAlz/DalamudPlugins/main/repo.json
 ```
 
-Tick **Enabled**, click the **+**, then **Save and Close**.
-
-Open `/xlplugins` → **All Plugins**, search for **Auto Daily Tribes**, and install.
+Tick **Enabled**, click **+**, then **Save and Close**. Open `/xlplugins` → **All Plugins**, search for **Auto Daily Tribes**, and install.
 
 ## Commands
 
