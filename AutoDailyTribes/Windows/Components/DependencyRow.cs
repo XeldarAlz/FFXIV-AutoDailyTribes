@@ -26,11 +26,6 @@ internal static class DependencyRow
 
         ImGui.TableSetColumnIndex(2);
         DrawAction(plugin, installed, installing);
-
-        ImGui.TableNextRow();
-        ImGui.TableSetColumnIndex(1);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextWrapped(info.Purpose);
     }
 
     private static void DrawStatusIcon(bool installed, bool required)
