@@ -14,12 +14,12 @@ internal static unsafe class TargetDumper
             ?.GetRowOrDefault(territoryId)
             ?.PlaceName.Value.Name.ToString() ?? "?";
 
-        Svc.Chat.Print($"[ADT] Territory: {territoryId} ({territoryName})");
+        Svc.Log.Info($"[ADT] Territory: {territoryId} ({territoryName})");
 
         var target = TargetSystem.Instance()->Target;
         if (target == null)
         {
-            Svc.Chat.Print("[ADT] No target. Click an NPC first, then re-run /adt target.");
+            Svc.Log.Info("[ADT] No target. Click an NPC first, then re-run /adt target.");
             return;
         }
 
@@ -28,7 +28,6 @@ internal static unsafe class TargetDumper
         var residentName = Svc.Data.GetExcelSheet<ENpcResident>()
             ?.GetRowOrDefault(baseId)?.Singular.ToString() ?? name;
 
-        Svc.Chat.Print($"[ADT] Target: BaseId={baseId}  Name=\"{residentName}\"");
         Svc.Log.Info($"[TargetDumper] territory={territoryId} BaseId={baseId} name='{residentName}'");
     }
 }

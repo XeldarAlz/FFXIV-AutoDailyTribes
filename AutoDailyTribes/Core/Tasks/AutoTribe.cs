@@ -18,18 +18,18 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     protected override async Task Execute()
     {
-        Svc.Chat.Print($"[ADT] Starting {tribe.Name}…");
+        Svc.Log.Info($"[ADT] Starting {tribe.Name}");
         try
         {
             await ExecuteInner();
-            Svc.Chat.Print($"[ADT] {tribe.Name}: done.");
+            Svc.Log.Info($"[ADT] {tribe.Name}: done.");
         }
         catch (Exception ex)
         {
             var msg = ex.Message;
             var lastBracket = msg.LastIndexOf("] ");
             if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
-            Svc.Chat.PrintError($"[ADT] {tribe.Name} stopped: {msg}");
+            Svc.Log.Error($"[ADT] {tribe.Name} stopped: {msg}");
             throw;
         }
     }
@@ -208,7 +208,6 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     private void Diag(string msg)
     {
-        Svc.Chat.Print($"[ADT debug] {msg}");
         Svc.Log.Info($"[{tribe.Name}] {msg}");
     }
 
