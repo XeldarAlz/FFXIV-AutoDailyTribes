@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /AutoDailyTribes
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: croizat.clib
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
