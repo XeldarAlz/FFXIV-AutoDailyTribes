@@ -14,13 +14,6 @@ internal static unsafe class JobSwitcher
     private const byte DolFirst = 16;
     private const byte DolLast  = 18;
 
-    private static readonly byte[] CombatJobIds =
-    [
-        1, 2, 3, 4, 5, 6, 7,
-        19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-        31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
-    ];
-
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
     public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= 42;
@@ -31,37 +24,102 @@ internal static unsafe class JobSwitcher
         return ps == null ? (byte)0 : ps->CurrentClassJobId;
     }
 
-    public static byte? ResolveTargetJob(TribeInfo tribe, Configuration cfg)
+    // True when the job we're already on can do this tribe's dailies — no switch needed.
+    public static bool CurrentJobSatisfies(TribeKind kind)
     {
-        var ps = PlayerState.Instance();
-        if (ps == null) return null;
-        var current = ps->CurrentClassJobId;
+        var current = CurrentClassJob();
+        return kind switch
+        {
+            TribeKind.Crafter => IsCrafter(current),
+            TribeKind.Gatherer => IsGatherer(current),
+            TribeKind.Mixed => IsCrafter(current) || IsGatherer(current),
+            TribeKind.Combat => IsCombat(current),
+            _ => true,
+        };
+    }
 
+    public static byte GearsetClassJob(int gearsetId)
+    {
+        var gm = RaptureGearsetModule.Instance();
+        if (gm == null) return 0;
+        var entry = gm->GetGearset(gearsetId);
+        return entry == null ? (byte)0 : entry->ClassJob;
+    }
+
+    // Pick a gearset to equip for this tribe, chosen ONLY from gearsets the player actually owns in
+    // the right category. This is why HighestXP no longer skips the tribe: we never target a job
+    // without a gearset. Returns the gearset index, or -1 if the player has no suitable gearset.
+    public static int PickGearset(TribeInfo tribe, Configuration cfg)
+    {
         switch (tribe.Kind)
         {
             case TribeKind.Crafter:
-                if (IsCrafter(current)) return null;
-                return PickJobFromSetting(cfg.CrafterJobType, cfg.SelectedCrafterJob, DohFirst, DohLast);
-
+                return PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
             case TribeKind.Gatherer:
-                if (IsGatherer(current)) return null;
-                return PickJobFromSetting(cfg.GathererJobType, cfg.SelectedGathererJob, DolFirst, DolLast);
-
+                return PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsGatherer);
             case TribeKind.Mixed:
-                if (IsCrafter(current) || IsGatherer(current)) return null;
-                return PickJobFromSetting(cfg.CrafterJobType, cfg.SelectedCrafterJob, DohFirst, DohLast)
-                    ?? PickJobFromSetting(cfg.GathererJobType, cfg.SelectedGathererJob, DolFirst, DolLast);
-
+                var crafter = PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
+                return crafter >= 0 ? crafter : PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsGatherer);
             case TribeKind.Combat:
-                if (IsCombat(current)) return null;
-                return PickCombatJobFromSetting(cfg.CombatJobType, cfg.SelectedCombatJob);
-
+                return PickFromCategory(cfg.CombatJobType, cfg.SelectedCombatJob, IsCombat);
             default:
-                return null;
+                return -1;
         }
     }
 
-    public static int FindGearsetForJob(byte classJobId)
+    public static bool EquipGearset(int gearsetId)
+    {
+        var gm = RaptureGearsetModule.Instance();
+        if (gm == null) return false;
+        // 0 = success (request dispatched) per FFXIVClientStructs; -1 = rejected.
+        return gm->EquipGearset(gearsetId, 0) == 0;
+    }
+
+    private static int PickFromCategory(JobChoice mode, uint specificJob, Func<byte, bool> inCategory)
+    {
+        // Specific: take the player's gearset for exactly that job if they own one; otherwise fall
+        // through to a level-based pick within the category rather than failing the whole tribe.
+        if (mode == JobChoice.Specific)
+        {
+            var exact = FindGearsetForJob((byte)specificJob);
+            if (exact >= 0) return exact;
+        }
+
+        // Current maps to "highest level I own in this category" — when we're picking at all, the
+        // current job is by definition not in the category (CurrentJobSatisfies gated that out).
+        var highest = mode != JobChoice.LowestXP;
+        return PickGearsetByLevel(inCategory, highest);
+    }
+
+    private static int PickGearsetByLevel(Func<byte, bool> inCategory, bool highest)
+    {
+        var gm = RaptureGearsetModule.Instance();
+        var ps = PlayerState.Instance();
+        if (gm == null || ps == null) return -1;
+
+        var best = -1;
+        var bestLevel = highest ? -1 : int.MaxValue;
+        for (var i = 0; i < MaxGearsets; i++)
+        {
+            if (!gm->IsValidGearset(i)) continue;
+            var entry = gm->GetGearset(i);
+            if (entry == null) continue;
+
+            var job = entry->ClassJob;
+            if (!inCategory(job)) continue;
+
+            int lvl = ps->GetClassJobLevel(job);
+            var better = highest ? lvl > bestLevel : lvl < bestLevel;
+            if (better)
+            {
+                best = i;
+                bestLevel = lvl;
+            }
+        }
+        return best;
+    }
+
+    private static int FindGearsetForJob(byte classJobId)
     {
         var gm = RaptureGearsetModule.Instance();
         if (gm == null) return -1;
@@ -73,98 +131,5 @@ internal static unsafe class JobSwitcher
                 return i;
         }
         return -1;
-    }
-
-    public static bool EquipGearset(int gearsetId)
-    {
-        var gm = RaptureGearsetModule.Instance();
-        if (gm == null) return false;
-        // 0 = success per FFXIVClientStructs; non-zero = error code.
-        return gm->EquipGearset(gearsetId, 0) == 0;
-    }
-
-    private static byte? PickJobFromSetting(JobChoice mode, uint specificJob, byte first, byte last)
-    {
-        var ps = PlayerState.Instance();
-        if (ps == null) return null;
-
-        switch (mode)
-        {
-            case JobChoice.Specific:
-                return (byte)specificJob;
-
-            case JobChoice.Current:
-                return PickByLevel(first, last, highest: true);
-
-            case JobChoice.HighestXP:
-                return PickByLevel(first, last, highest: true);
-
-            case JobChoice.LowestXP:
-                return PickByLevel(first, last, highest: false);
-
-            default:
-                return null;
-        }
-    }
-
-    private static byte? PickByLevel(byte first, byte last, bool highest)
-    {
-        var ps = PlayerState.Instance();
-        if (ps == null) return null;
-
-        byte best = 0;
-        int bestLevel = highest ? -1 : int.MaxValue;
-        for (byte job = first; job <= last; job++)
-        {
-            int lvl = ps->GetClassJobLevel(job);
-            if (lvl <= 0) continue;
-            var better = highest ? lvl > bestLevel : lvl < bestLevel;
-            if (better)
-            {
-                best = job;
-                bestLevel = lvl;
-            }
-        }
-        return best == 0 ? null : best;
-    }
-
-    private static byte? PickCombatJobFromSetting(JobChoice mode, uint specificJob)
-    {
-        var ps = PlayerState.Instance();
-        if (ps == null) return null;
-
-        switch (mode)
-        {
-            case JobChoice.Specific:
-                return (byte)specificJob;
-            case JobChoice.Current:
-            case JobChoice.HighestXP:
-                return PickCombatByLevel(highest: true);
-            case JobChoice.LowestXP:
-                return PickCombatByLevel(highest: false);
-            default:
-                return null;
-        }
-    }
-
-    private static byte? PickCombatByLevel(bool highest)
-    {
-        var ps = PlayerState.Instance();
-        if (ps == null) return null;
-
-        byte best = 0;
-        int bestLevel = highest ? -1 : int.MaxValue;
-        foreach (var job in CombatJobIds)
-        {
-            int lvl = ps->GetClassJobLevel(job);
-            if (lvl <= 0) continue;
-            var better = highest ? lvl > bestLevel : lvl < bestLevel;
-            if (better)
-            {
-                best = job;
-                bestLevel = lvl;
-            }
-        }
-        return best == 0 ? null : best;
     }
 }

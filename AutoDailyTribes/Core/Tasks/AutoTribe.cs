@@ -83,31 +83,34 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     private async Task<bool> EnsureCorrectJob()
     {
-        var target = JobSwitcher.ResolveTargetJob(tribe, Plugin.Cfg);
-        if (target is null) return true;
-        if (JobSwitcher.CurrentClassJob() == target.Value) return true;
+        if (JobSwitcher.CurrentJobSatisfies(tribe.Kind)) return true;
 
-        var gearsetId = JobSwitcher.FindGearsetForJob(target.Value);
+        var gearsetId = JobSwitcher.PickGearset(tribe, Plugin.Cfg);
         if (gearsetId < 0)
         {
-            Warning($"{tribe.Name}: no gearset found for required job {target.Value} — skipping");
+            Warning($"{tribe.Name}: no {tribe.Kind} gearset found — create one for this tribe's job type — skipping");
             return false;
         }
 
+        var targetJob = JobSwitcher.GearsetClassJob(gearsetId);
         Status = $"Switching to gearset {gearsetId}";
-        Diag($"Equipping gearset {gearsetId} (target ClassJob {target.Value})");
+        Diag($"Equipping gearset {gearsetId} (target ClassJob {targetJob})");
         if (!JobSwitcher.EquipGearset(gearsetId))
         {
-            Warning($"{tribe.Name}: EquipGearset rejected (in combat / mounted / etc.) — skipping");
+            Warning($"{tribe.Name}: EquipGearset rejected (in combat / occupied / between areas) — skipping");
             return false;
         }
 
-        for (var f = 0; f < 120; f++)
+        // EquipGearset returning 0 only means the request was dispatched — the swap is async.
+        // Confirm it actually landed; if it never does, skip rather than run the tribe on the wrong job.
+        for (var f = 0; f < AdtConstants.GearsetSwitchFrames; f++)
         {
             await NextFrame();
-            if (JobSwitcher.CurrentClassJob() == target.Value) break;
+            if (JobSwitcher.CurrentClassJob() == targetJob) return true;
         }
-        return true;
+
+        Warning($"{tribe.Name}: job did not switch to {targetJob} within time limit — skipping");
+        return false;
     }
 
     private async Task TravelToIssuer()
@@ -213,9 +216,45 @@ public sealed class AutoTribe(TribeInfo tribe) : AutoCommon
 
     private async Task DelegateToQuestionable(uint[] accepted)
     {
-        Status = $"Delegating {accepted.Length} quest(s) to Questionable";
-        ErrorIf(!_questionable.StartQuest(accepted[0]),
-            $"Questionable.StartQuest rejected quest {accepted[0]:X} ({QuestName(accepted[0])})");
-        await WaitUntilThenFalse(_questionable.IsRunning, "QuestionableRun");
+        for (var i = 0; i < accepted.Length; i++)
+        {
+            var quest = accepted[i];
+            if (_questionable.IsQuestComplete(quest)) continue;
+
+            Status = $"Questionable: quest {i + 1}/{accepted.Length}";
+            Diag($"StartSingleQuest {quest:X} ({QuestName(quest)})");
+            ErrorIf(!_questionable.StartSingleQuest(quest),
+                $"Questionable.StartSingleQuest rejected quest {quest:X} ({QuestName(quest)})");
+
+            await RunQuestionableQuest(quest);
+        }
+    }
+
+    // StartSingleQuest sets Questionable's automation type synchronously, so IsRunning should flip
+    // true within a few frames. We wait for it to engage (bounded), then wait for it to finish
+    // (bounded), so neither a no-op start nor a hung quest can lock the tribe forever.
+    private async Task RunQuestionableQuest(uint quest)
+    {
+        var startFrame = 0;
+        while (startFrame < AdtConstants.QuestStartFrames && !_questionable.IsRunning())
+        {
+            if (_questionable.IsQuestComplete(quest)) return;
+            await NextFrame();
+            startFrame++;
+        }
+
+        if (!_questionable.IsRunning())
+        {
+            Warning($"{tribe.Name}: Questionable never engaged on {quest:X} ({QuestName(quest)}) — skipping");
+            return;
+        }
+
+        var runFrame = 0;
+        while (_questionable.IsRunning())
+        {
+            ErrorIf(runFrame++ >= AdtConstants.QuestRunFrames,
+                $"Questionable run on {quest:X} ({QuestName(quest)}) exceeded time limit");
+            await NextFrame();
+        }
     }
 }
