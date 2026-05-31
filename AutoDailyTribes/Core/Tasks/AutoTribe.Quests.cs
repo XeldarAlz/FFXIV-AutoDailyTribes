@@ -24,23 +24,47 @@ public sealed partial class AutoTribe
         var targetJob = JobSwitcher.GearsetClassJob(gearsetId);
         Status = $"Switching to gearset {gearsetId}";
         Diag($"{tribe.Name}: equipping gearset {gearsetId} (target ClassJob {targetJob})");
-        if (!JobSwitcher.EquipGearset(gearsetId))
-        {
-            Warning($"{tribe.Name}: EquipGearset rejected (in combat / occupied / between areas) — skipping");
-            return false;
-        }
 
-        // EquipGearset returning 0 only means the request was dispatched — the swap is async. Confirm it
-        // actually landed; if it never does, skip rather than run the tribe on the wrong job.
-        for (var f = 0; f < AdtConstants.GearsetSwitchFrames; f++)
+        // A gearset swap is silently dropped while the game is mid-event / zoning / in combat — common in
+        // the instant after the previous tribe's NPC dialog. Wait for a clear window before dispatching.
+        if (!await WaitUntilTimed(JobSwitchAllowed, AdtConstants.JobSwitchReadyMs, $"{tribe.Name} job-switch window"))
+            Diag($"{tribe.Name}: job-switch window never fully cleared; attempting swap anyway");
+
+        // EquipGearset returning 0 only means the request was dispatched — the swap is async, and a single
+        // request can be accepted-but-ignored during a transient lock. Re-dispatch on an interval and
+        // confirm the job actually landed, bounded by wall clock so high frame rates can't shrink it.
+        var deadline = Environment.TickCount64 + AdtConstants.JobSwitchConfirmMs;
+        var lastDispatchMs = 0L;
+        while (Environment.TickCount64 < deadline)
         {
-            await NextFrame();
             if (JobSwitcher.CurrentClassJob() == targetJob) return true;
+
+            if (Environment.TickCount64 - lastDispatchMs >= AdtConstants.JobSwitchRedispatchMs && JobSwitchAllowed())
+            {
+                if (!JobSwitcher.EquipGearset(gearsetId))
+                    Diag($"{tribe.Name}: EquipGearset rejected this pass (in combat / occupied / between areas); will retry");
+                lastDispatchMs = Environment.TickCount64;
+            }
+            await NextFrame();
         }
 
         Warning($"{tribe.Name}: job did not switch to {targetJob} within time limit — skipping");
         return false;
     }
+
+    private static bool JobSwitchAllowed()
+        => !Svc.Condition[ConditionFlag.InCombat]
+        && !Svc.Condition[ConditionFlag.Casting]
+        && !Svc.Condition[ConditionFlag.Casting87]
+        && !Svc.Condition[ConditionFlag.BetweenAreas]
+        && !Svc.Condition[ConditionFlag.BetweenAreas51]
+        && !Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
+        && !Svc.Condition[ConditionFlag.OccupiedInEvent]
+        && !Svc.Condition[ConditionFlag.OccupiedInCutSceneEvent]
+        && !Svc.Condition[ConditionFlag.Occupied]
+        && !Svc.Condition[ConditionFlag.Occupied33]
+        && !Svc.Condition[ConditionFlag.Occupied38]
+        && !Svc.Condition[ConditionFlag.Occupied39];
 
     private async Task<ExitReason> DoAcceptPass()
     {
@@ -154,47 +178,77 @@ public sealed partial class AutoTribe
         for (var i = 0; i < n; i++) await NextFrame();
     }
 
+    // Hand the tribe's accepted dailies to Questionable as a batch and let it run them all to completion
+    // (objectives + turn-in) in one Automatic session. We pin the quests to Questionable's priority list so
+    // it stays on THEM rather than wandering onto the player's MSQ, then poll until none are still accepted
+    // (all turned in) and Stop. Completion is judged per-quest by IsQuestAccepted leaving the journal — NOT
+    // by IsRunning, which is the wrong signal (it merely reflects "automation engaged or tasks queued").
     private async Task DelegateToQuestionable(uint[] accepted)
     {
-        for (var i = 0; i < accepted.Length; i++)
+        if (accepted.Length == 0) return;
+
+        _questionable.ClearQuestPriority();
+        foreach (var quest in accepted)
+            _questionable.AddQuestPriority(quest);
+
+        Diag($"{tribe.Name}: handing {accepted.Length} quest(s) to Questionable: " +
+             string.Join(", ", Array.ConvertAll(accepted, q => $"{q:X} ({QuestName(q)})")));
+        if (!_questionable.StartQuest(accepted[0]))
+            Warning($"{tribe.Name}: Questionable.StartQuest was rejected");
+
+        var deadline = Environment.TickCount64 + AdtConstants.QuestCompleteTimeoutMs;
+        long? idleSinceMs = null;
+        var restarts = 0;
+
+        try
         {
-            var quest = accepted[i];
-            if (_questionable.IsQuestComplete(quest)) continue;
+            while (Environment.TickCount64 < deadline && !CancelToken.IsCancellationRequested)
+            {
+                var pending = Array.FindAll(accepted, _questionable.IsQuestAccepted);
+                if (pending.Length == 0)
+                {
+                    Diag($"{tribe.Name}: all {accepted.Length} quest(s) turned in");
+                    return;
+                }
+                Status = $"Questionable: {accepted.Length - pending.Length}/{accepted.Length} done";
 
-            Status = $"Questionable: quest {i + 1}/{accepted.Length}";
-            Diag($"{tribe.Name}: StartSingleQuest {quest:X} ({QuestName(quest)})");
-            ErrorIf(!_questionable.StartSingleQuest(quest),
-                $"Questionable.StartSingleQuest rejected quest {quest:X} ({QuestName(quest)})");
+                // IsRunning stays true the whole time Questionable is engaged (Automatic mode, or tasks
+                // queued) — including the gaps between our quests. It only goes false if Questionable
+                // actually stopped (reverted to Manual / ran out of quests). Treat a sustained-idle window
+                // as a stall and restart, bounded, so a hiccup recovers but a dead quest can't loop forever.
+                if (_questionable.IsRunning())
+                {
+                    idleSinceMs = null;
+                }
+                else
+                {
+                    var now = Environment.TickCount64;
+                    idleSinceMs ??= now;
+                    if (now - idleSinceMs.Value >= AdtConstants.QuestIdleRestartMs)
+                    {
+                        if (restarts >= AdtConstants.MaxQuestRestarts)
+                        {
+                            Warning($"{tribe.Name}: Questionable idle with {pending.Length} quest(s) left after {restarts} restarts — giving up");
+                            return;
+                        }
+                        restarts++;
+                        Diag($"{tribe.Name}: Questionable went idle ({pending.Length} left) — restarting [{restarts}/{AdtConstants.MaxQuestRestarts}]");
+                        _questionable.StartQuest(pending[0]);
+                        idleSinceMs = null;
+                    }
+                }
 
-            await RunQuestionableQuest(quest);
+                await NextFrame(100);
+            }
+
+            Warning($"{tribe.Name}: Questionable did not finish all quests within time limit — moving on");
         }
-    }
-
-    // StartSingleQuest sets Questionable's automation type synchronously, so IsRunning should flip true
-    // within a few frames. We wait for it to engage (bounded), then wait for it to finish (bounded), so
-    // neither a no-op start nor a hung quest can lock the tribe forever.
-    private async Task RunQuestionableQuest(uint quest)
-    {
-        var startFrame = 0;
-        while (startFrame < AdtConstants.QuestStartFrames && !_questionable.IsRunning())
+        finally
         {
-            if (_questionable.IsQuestComplete(quest)) return;
-            await NextFrame();
-            startFrame++;
-        }
-
-        if (!_questionable.IsRunning())
-        {
-            Warning($"{tribe.Name}: Questionable never engaged on {quest:X} ({QuestName(quest)}) — skipping");
-            return;
-        }
-
-        var runFrame = 0;
-        while (_questionable.IsRunning())
-        {
-            ErrorIf(runFrame++ >= AdtConstants.QuestRunFrames,
-                $"Questionable run on {quest:X} ({QuestName(quest)}) exceeded time limit");
-            await NextFrame();
+            // Always hand the wheel back: stop the Automatic session so Questionable can't roll onto the
+            // player's MSQ after our quests, and clear the priority entries we added.
+            _questionable.Stop("ADT: tribe complete");
+            _questionable.ClearQuestPriority();
         }
     }
 }
