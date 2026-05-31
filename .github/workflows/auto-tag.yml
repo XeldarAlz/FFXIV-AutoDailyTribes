@@ -8,6 +8,12 @@ name: Auto-tag on version bump
 # you get a release automatically once it merges. Commit without a version
 # bump and nothing happens. CI also asserts repo.json's AssemblyVersion /
 # TestingAssemblyVersion match this value.
+#
+# For release.yml to fire from the tag push, the tag must be pushed with a
+# PAT — GitHub suppresses workflow triggers for pushes made with the default
+# GITHUB_TOKEN. Set a repo secret RELEASE_PAT (a token with contents:write on
+# this repo). Without it the tag is still created, but the release needs a
+# manual `gh workflow run release.yml --ref <tag>`.
 
 on:
   push:
@@ -31,6 +37,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          # Persist a PAT so the tag push below cascade-triggers release.yml;
+          # GITHUB_TOKEN-authenticated pushes don't fire workflows. Falls back
+          # to GITHUB_TOKEN when RELEASE_PAT is unset (tag created, release
+          # then needs a manual dispatch — the previous behaviour).
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Read plugin version from Directory.Build.props
         id: version
