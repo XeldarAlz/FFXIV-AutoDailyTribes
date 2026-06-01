@@ -14,27 +14,29 @@ internal static class DependencyRow
     {
         var info = ExternalPlugins.Catalog[plugin];
         var installed = ExternalPlugins.IsInstalled(plugin);
+        var disabled = ExternalPlugins.IsInstalledButDisabled(plugin);
         var installing = PluginInstaller.IsInstalling(plugin);
 
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
-        DrawStatusIcon(installed, info.Required);
+        DrawStatusIcon(installed, disabled, info.Required);
 
         ImGui.TableSetColumnIndex(1);
         DrawName(info);
 
         ImGui.TableSetColumnIndex(2);
-        DrawAction(plugin, installed, installing);
+        DrawAction(plugin, installed, disabled, installing);
     }
 
-    private static void DrawStatusIcon(bool installed, bool required)
+    private static void DrawStatusIcon(bool installed, bool disabled, bool required)
     {
-        var (icon, color) = (installed, required) switch
+        var (icon, color) = (installed, disabled, required) switch
         {
-            (true,  _    ) => (FontAwesomeIcon.CheckCircle, Styling.AccentMint),
-            (false, true ) => (FontAwesomeIcon.TimesCircle, Styling.AccentRose),
-            (false, false) => (FontAwesomeIcon.Circle,      Styling.TextDim),
+            (true,  true,  _    ) => (FontAwesomeIcon.ExclamationCircle, Styling.AccentAmber),
+            (true,  false, _    ) => (FontAwesomeIcon.CheckCircle,       Styling.AccentMint),
+            (false, _,     true ) => (FontAwesomeIcon.TimesCircle,       Styling.AccentRose),
+            (false, _,     false) => (FontAwesomeIcon.Circle,            Styling.TextDim),
         };
         using (ImRaii.PushFont(UiBuilder.IconFont))
         using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -59,16 +61,24 @@ internal static class DependencyRow
         }
     }
 
-    private static void DrawAction(ExternalPlugin plugin, bool installed, bool installing)
+    private static void DrawAction(ExternalPlugin plugin, bool installed, bool disabled, bool installing)
     {
         var size = new Vector2(110 * ImGuiHelpers.GlobalScale, 0);
         if (installed)
         {
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
+            var (text, color) = disabled ? ("disabled", Styling.AccentAmber) : ("installed", Styling.AccentMint);
+            using (ImRaii.PushColor(ImGuiCol.Text, color))
             {
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("installed");
+                ImGui.TextUnformatted(text);
             }
+            if (disabled && ImGui.IsItemHovered())
+                using (ImRaii.Tooltip())
+                    ImGui.TextUnformatted(
+                        "Loaded, but TextAdvance's own \"Enable plugin\" toggle is off.\n" +
+                        "Questionable needs it on to advance quest dialogue and cutscenes —\n" +
+                        "with it off, dailies will stall mid-quest.\n" +
+                        "Turn it on in TextAdvance's settings (/xlplugins -> TextAdvance).");
             return;
         }
 

@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Ipc;
 using ECommons.DalamudServices;
 
 namespace AutoDailyTribes.Core.External;
@@ -6,6 +7,7 @@ public enum ExternalPlugin
 {
     Vnavmesh,
     Questionable,
+    TextAdvance,
     Artisan,
 }
 
@@ -36,6 +38,12 @@ public static class ExternalPlugins
             RepoUrl: "https://puni.sh/api/plugins",
             Purpose: "Plays out each daily quest after the plugin accepts it.",
             Required: true),
+        [ExternalPlugin.TextAdvance] = new(
+            InternalName: "TextAdvance",
+            DisplayName: "TextAdvance",
+            RepoUrl: "https://raw.githubusercontent.com/NightmareXIV/MyDalamudPlugins/main/pluginmaster.json",
+            Purpose: "Auto-advances quest dialogue and cutscenes so Questionable can complete each daily.",
+            Required: true),
         [ExternalPlugin.Artisan] = new(
             InternalName: "Artisan",
             DisplayName: "Artisan",
@@ -55,4 +63,11 @@ public static class ExternalPlugins
 
     public static bool AllRequiredInstalled()
         => All.Where(p => Catalog[p].Required).All(IsInstalled);
+
+    // Loaded in Dalamud but its own in-plugin toggle is off. Questionable relies on TextAdvance's
+    // global "Enable plugin" toggle to advance dialogue, so a disabled TextAdvance stalls dailies.
+    public static bool IsInstalledButDisabled(ExternalPlugin plugin)
+        => plugin == ExternalPlugin.TextAdvance
+           && IsInstalled(plugin)
+           && !TextAdvanceIPC.IsPluginEnabled();
 }

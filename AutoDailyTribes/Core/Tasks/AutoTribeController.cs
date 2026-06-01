@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Tribes;
 using clib.Services;
 using System.Threading;
@@ -13,14 +14,29 @@ internal sealed class AutoTribeController
 
     private static void Diag(string message) => ECommons.DalamudServices.Svc.Log.Info($"[ADT] {message}");
 
+    private static bool RequiredPluginsReady()
+    {
+        if (ExternalPlugins.AllRequiredInstalled()) return true;
+
+        var missing = string.Join(", ", ExternalPlugins.All
+            .Where(p => ExternalPlugins.Catalog[p].Required && !ExternalPlugins.IsInstalled(p))
+            .Select(p => ExternalPlugins.Catalog[p].DisplayName));
+        Diag($"Start aborted: required plugins missing ({missing}).");
+        ECommons.DalamudServices.Svc.Chat.PrintError($"[ADT] Cannot start — install all required plugins first: {missing}.");
+        return false;
+    }
+
     public void Run(TribeInfo tribe)
     {
+        if (!RequiredPluginsReady()) return;
         Interlocked.Increment(ref _runGeneration);
         Svc.Automation.Start(new AutoTribe(tribe));
     }
 
     public void RunAll(IEnumerable<TribeInfo> tribes)
     {
+        if (!RequiredPluginsReady()) return;
+
         var queue = new Queue<TribeInfo>(tribes);
         if (queue.Count == 0) return;
 

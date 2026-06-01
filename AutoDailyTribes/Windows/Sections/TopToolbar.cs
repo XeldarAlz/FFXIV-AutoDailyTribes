@@ -18,6 +18,10 @@ internal static class TopToolbar
         var gearLabel = FontAwesomeIcon.Cog.ToIconString();
 
         var anyMissing = !ExternalPlugins.AllRequiredInstalled();
+        var anyDisabled = ExternalPlugins.IsInstalledButDisabled(ExternalPlugin.TextAdvance);
+        var plugColor = anyMissing ? Styling.AccentRose
+            : anyDisabled ? Styling.AccentAmber
+            : Styling.TextSecondary;
 
         bool plugClicked, infoClicked, gearClicked;
         using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -27,7 +31,7 @@ internal static class TopToolbar
             var btnW = ImGui.CalcTextSize(gearLabel).X + framePadX * 2;
             ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - btnW * 3 - spacingX * 2);
 
-            using (ImRaii.PushColor(ImGuiCol.Text, anyMissing ? Styling.AccentRose : Styling.TextSecondary))
+            using (ImRaii.PushColor(ImGuiCol.Text, plugColor))
                 plugClicked = ImGui.Button(plugLabel + "##deps");
             ImGui.SameLine();
             infoClicked = ImGui.Button(infoLabel + "##about");
