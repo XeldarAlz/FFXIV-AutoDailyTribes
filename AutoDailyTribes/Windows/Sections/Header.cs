@@ -12,9 +12,7 @@ internal static class Header
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
-        var allowanceUsed = AdtConstants.DailyAllowanceCap - allowanceLeft;
-        var allowanceExhausted = allowanceLeft <= 0;
+        var allowanceExhausted = TribeStateReader.GlobalAllowanceLeft() <= 0;
 
         var byId = TribeRegistry.Tribes.ToDictionary(t => t.BeastTribeId);
         var selected = cfg.SelectedTribes
@@ -58,27 +56,6 @@ internal static class Header
                 }
         }
 
-        ImGui.SameLine();
-        var allowanceColor = allowanceExhausted ? Styling.AccentAmber : Styling.TextDim;
-        using (ImRaii.PushColor(ImGuiCol.Text, allowanceColor))
-            ImGui.TextUnformatted($"   Daily: {allowanceUsed} / {AdtConstants.DailyAllowanceCap}   ·   Reset in {FormatResetCountdown()}");
-        Tooltip.For(allowanceExhausted
-            ? $"All {AdtConstants.DailyAllowanceCap} daily allowances used. Reset is 15:00 UTC."
-            : "FFXIV daily reset is 15:00 UTC. Allowance and per-tribe slots refill then.");
-
         ImGui.Separator();
-    }
-
-    private static string FormatResetCountdown()
-    {
-        var now = DateTime.UtcNow;
-        var nextReset = new DateTime(now.Year, now.Month, now.Day, 15, 0, 0, DateTimeKind.Utc);
-        if (nextReset <= now) nextReset = nextReset.AddDays(1);
-        var r = nextReset - now;
-        return r.TotalHours >= 1
-            ? $"{(int)r.TotalHours}h {r.Minutes:D2}m"
-            : r.TotalMinutes >= 1
-                ? $"{r.Minutes}m {r.Seconds:D2}s"
-                : $"{r.Seconds}s";
     }
 }

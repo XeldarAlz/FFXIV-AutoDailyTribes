@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.Tasks;
+using AutoDailyTribes.Windows.Components;
 using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
@@ -34,6 +35,8 @@ public sealed class MainWindow : Window, IDisposable
 
         TopToolbar.Draw(plugin, ctrl);
         DependencyBanner.Draw(plugin);
+        StatusPanel.Draw(ctrl);
+        ImGui.Spacing();
         Header.Draw(ctrl, cfg);
         TribeList.Draw(ctrl, cfg);
         Footer.Draw();

@@ -11,8 +11,6 @@ internal static class TopToolbar
 {
     public static void Draw(Plugin plugin, AutoTribeController controller)
     {
-        StatusBanner.Draw(controller.Running, controller.Status);
-
         var plugLabel = FontAwesomeIcon.Plug.ToIconString();
         var infoLabel = FontAwesomeIcon.InfoCircle.ToIconString();
         var gearLabel = FontAwesomeIcon.Cog.ToIconString();

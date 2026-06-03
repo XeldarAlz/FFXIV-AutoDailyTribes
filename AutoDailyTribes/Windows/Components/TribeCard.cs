@@ -2,6 +2,7 @@ using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
@@ -33,9 +34,9 @@ internal static class TribeCard
         var border = ResolveBorder(tribe, selected, controller.Running);
         var bg = ResolveBg(tribe, selected, hovered);
 
-        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height), bg, border, selected ? 1.8f : 1.2f))
+        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height), bg, border, selected ? 2.8f : 1.2f))
         {
-            DrawHeader(tribe);
+            DrawHeader(tribe, selected);
             ImGui.Spacing();
             RankBadge.Draw(tribe);
         }
@@ -57,10 +58,19 @@ internal static class TribeCard
         }
     }
 
-    private static void DrawHeader(TribeInfo tribe)
+    private static void DrawHeader(TribeInfo tribe, bool selected)
     {
         TribeIcon.Draw(tribe);
         ImGui.SameLine();
+
+        if (selected)
+        {
+            ImGui.AlignTextToFramePadding();
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTealSoft))
+                ImGui.TextUnformatted(FontAwesomeIcon.CheckCircle.ToIconString());
+            ImGui.SameLine();
+        }
 
         ImGui.SetWindowFontScale(1.10f);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
@@ -99,8 +109,8 @@ internal static class TribeCard
     {
         if (!tribe.Unlocked) return Styling.CardBg * 0.6f;
         if (tribe.AllSlotsDone) return Styling.CardBg * 0.6f;
-        if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.15f);
-        if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.10f);
+        if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.40f);
+        if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.28f);
         if (hovered) return Styling.CardBgHover;
         return Vector4.Lerp(Styling.CardBg, Styling.EraTint(tribe.Era), 1f);
     }
@@ -109,7 +119,7 @@ internal static class TribeCard
     {
         if (!tribe.Unlocked) return Styling.BorderLocked;
         if (running) return Styling.PulseColor(Styling.BorderActive, Styling.AccentTealSoft, Styling.PulseMedium);
-        if (selected) return Styling.AccentTeal;
+        if (selected) return Styling.AccentTealSoft;
         if (tribe.AllSlotsDone) return Styling.BorderDim;
         return Styling.BorderActive * 0.65f;
     }
