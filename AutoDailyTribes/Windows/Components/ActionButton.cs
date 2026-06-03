@@ -11,9 +11,7 @@ internal static class ActionButton
     {
         using var disabled = ImRaii.Disabled(!enabled);
         using var color = enabled
-            ? ImRaii.PushColor(ImGuiCol.Button, Styling.AccentTeal * 0.55f)
-                .Push(ImGuiCol.ButtonHovered, Styling.AccentTeal * 0.75f)
-                .Push(ImGuiCol.ButtonActive, Styling.AccentTeal)
+            ? Styling.PushAccentButtonColors()
             : ImRaii.PushColor(ImGuiCol.Button, Styling.CardBgSoft)
                 .Push(ImGuiCol.ButtonHovered, Styling.CardBgSoft)
                 .Push(ImGuiCol.ButtonActive, Styling.CardBgSoft);

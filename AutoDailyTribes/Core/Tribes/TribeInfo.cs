@@ -15,7 +15,7 @@ public sealed class TribeInfo
 
     public string? IconFile { get; init; }
 
-    public int IssuerSelectStringIndex { get; init; } = 0;
+    public int IssuerSelectStringIndex { get; init; }
 
     public ulong IssuerInstanceId;
     public Vector3 IssuerLocation;
@@ -25,7 +25,7 @@ public sealed class TribeInfo
     public int RepCur, RepMax;
     public int DailyAllowanceLeft;
 
-    // Full 0x10000|id form (Questionable expects this masked to 16-bit).
+    // Quest sheet row = 0x10000 | id
     public uint[] InProgressQuestIds = [];
 
     public int AcceptedTodayCount;
@@ -33,6 +33,7 @@ public sealed class TribeInfo
     public bool MeetsRankRequirement => Rank >= MinRankForDailies;
     public int AcceptSlotsRemaining => Math.Max(0, AdtConstants.MaxAcceptsPerTribe - AcceptedTodayCount);
     public bool HasInProgressQuests => InProgressQuestIds.Length > 0;
+    public bool AllSlotsDone => AcceptSlotsRemaining <= 0 && !HasInProgressQuests;
 
     public bool CanRankUp => Unlocked && Rank < AdtConstants.MaxTribeRank && RepMax > 0 && RepCur >= RepMax;
 }

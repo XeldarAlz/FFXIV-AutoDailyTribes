@@ -25,14 +25,9 @@ public sealed partial class AutoTribe
         Status = $"Switching to gearset {gearsetId}";
         Diag($"{tribe.Name}: equipping gearset {gearsetId} (target ClassJob {targetJob})");
 
-        // A gearset swap is silently dropped while the game is mid-event / zoning / in combat — common in
-        // the instant after the previous tribe's NPC dialog. Wait for a clear window before dispatching.
         if (!await WaitUntilTimed(JobSwitchAllowed, AdtConstants.JobSwitchReadyMs, $"{tribe.Name} job-switch window"))
             Diag($"{tribe.Name}: job-switch window never fully cleared; attempting swap anyway");
 
-        // EquipGearset returning 0 only means the request was dispatched — the swap is async, and a single
-        // request can be accepted-but-ignored during a transient lock. Re-dispatch on an interval and
-        // confirm the job actually landed, bounded by wall clock so high frame rates can't shrink it.
         var deadline = Environment.TickCount64 + AdtConstants.JobSwitchConfirmMs;
         var lastDispatchMs = 0L;
         while (Environment.TickCount64 < deadline)
@@ -78,12 +73,11 @@ public sealed partial class AutoTribe
         if (tribe.AcceptedTodayCount <= before)
         {
             acceptFailPasses++;
-            if (acceptFailPasses >= 2)
+            if (acceptFailPasses >= MaxAcceptFailPasses)
             {
                 Warning($"{tribe.Name}: could not accept dailies at the issuer (two passes made no progress); skipping");
                 return ExitReason.Quit;
             }
-            // Re-path to the issuer in case we drifted out of interaction range before the next pass.
             arrivedAtIssuer = false;
         }
         else
@@ -99,7 +93,11 @@ public sealed partial class AutoTribe
         var targetCount = Math.Min(startCount + slotsToFill, AdtConstants.MaxAcceptsPerTribe);
         Diag($"{tribe.Name}: AcceptDailies {startCount} -> {targetCount} (+{slotsToFill})");
 
-        const int maxFrames = 3600;
+        const int maxFrames = 3600;                // ~60s @ ~60fps
+        const int stateRefreshIntervalFrames = 20;
+        const int reInteractGapFrames = 180;       // 3s @ ~60fps
+        const int addonSettleFrames = 10;
+        const int talkAdvanceFrames = 3;
         var frame = 0;
         var lastInteractFrame = -100;
 
@@ -108,7 +106,7 @@ public sealed partial class AutoTribe
             await NextFrame();
             frame++;
 
-            if (frame % 20 == 0)
+            if (frame % stateRefreshIntervalFrames == 0)
             {
                 TribeStateReader.Refresh(tribe);
                 Status = $"Accepted {tribe.AcceptedTodayCount}/{targetCount}";
@@ -123,42 +121,39 @@ public sealed partial class AutoTribe
             if (AddonProbes.SelectYesnoActive())
             {
                 AddonSelectYesno.Yes();
-                await PauseFrames(10);
+                await PauseFrames(addonSettleFrames);
                 continue;
             }
             if (AddonProbes.JournalAcceptActive())
             {
                 AddonInteractions.JournalAcceptConfirm();
-                await PauseFrames(10);
+                await PauseFrames(addonSettleFrames);
                 continue;
             }
             if (AddonProbes.TalkActive())
             {
                 AddonInteractions.ProgressTalk();
-                await PauseFrames(3);
+                await PauseFrames(talkAdvanceFrames);
                 continue;
             }
             if (AddonProbes.SelectIconStringActive())
             {
                 AddonInteractions.SelectIconStringPick(0);
-                await PauseFrames(10);
+                await PauseFrames(addonSettleFrames);
                 continue;
             }
             if (AddonProbes.SelectStringActive())
             {
                 AddonSelectString.Select(tribe.IssuerSelectStringIndex);
-                await PauseFrames(10);
+                await PauseFrames(addonSettleFrames);
                 continue;
             }
 
-            // Nothing on screen — re-interact, but only if we're not already in a conversation.
-            // OccupiedInQuestEvent / OccupiedInEvent are what FFXIV sets while an NPC dialog is active;
-            // spamming InteractWith during that closes the dialog we just opened. Same gate Questionable uses.
             var inConversation = Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
                               || Svc.Condition[ConditionFlag.OccupiedInEvent];
 
             if (!inConversation
-                && frame - lastInteractFrame >= 180  // 3s @ ~60fps — slack for the dialog to surface
+                && frame - lastInteractFrame >= reInteractGapFrames
                 && !Svc.Condition[ConditionFlag.Jumping]
                 && !Svc.Condition[ConditionFlag.Jumping61]
                 && !Svc.Condition[ConditionFlag.Casting])
@@ -178,22 +173,17 @@ public sealed partial class AutoTribe
         for (var i = 0; i < n; i++) await NextFrame();
     }
 
-    // Hand the tribe's accepted dailies to Questionable as a batch and let it run them all to completion
-    // (objectives + turn-in) in one Automatic session. We pin the quests to Questionable's priority list so
-    // it stays on THEM rather than wandering onto the player's MSQ, then poll until none are still accepted
-    // (all turned in) and Stop. Completion is judged per-quest by IsQuestAccepted leaving the journal — NOT
-    // by IsRunning, which is the wrong signal (it merely reflects "automation engaged or tasks queued").
     private async Task DelegateToQuestionable(uint[] accepted)
     {
         if (accepted.Length == 0) return;
 
-        _questionable.ClearQuestPriority();
+        questionable.ClearQuestPriority();
         foreach (var quest in accepted)
-            _questionable.AddQuestPriority(quest);
+            questionable.AddQuestPriority(quest);
 
         Diag($"{tribe.Name}: handing {accepted.Length} quest(s) to Questionable: " +
              string.Join(", ", Array.ConvertAll(accepted, q => $"{q:X} ({QuestName(q)})")));
-        if (!_questionable.StartQuest(accepted[0]))
+        if (!questionable.StartQuest(accepted[0]))
             Warning($"{tribe.Name}: Questionable.StartQuest was rejected");
 
         var deadline = Environment.TickCount64 + AdtConstants.QuestCompleteTimeoutMs;
@@ -204,7 +194,7 @@ public sealed partial class AutoTribe
         {
             while (Environment.TickCount64 < deadline && !CancelToken.IsCancellationRequested)
             {
-                var pending = Array.FindAll(accepted, _questionable.IsQuestAccepted);
+                var pending = Array.FindAll(accepted, questionable.IsQuestAccepted);
                 if (pending.Length == 0)
                 {
                     Diag($"{tribe.Name}: all {accepted.Length} quest(s) turned in");
@@ -212,11 +202,7 @@ public sealed partial class AutoTribe
                 }
                 Status = $"Questionable: {accepted.Length - pending.Length}/{accepted.Length} done";
 
-                // IsRunning stays true the whole time Questionable is engaged (Automatic mode, or tasks
-                // queued) — including the gaps between our quests. It only goes false if Questionable
-                // actually stopped (reverted to Manual / ran out of quests). Treat a sustained-idle window
-                // as a stall and restart, bounded, so a hiccup recovers but a dead quest can't loop forever.
-                if (_questionable.IsRunning())
+                if (questionable.IsRunning())
                 {
                     idleSinceMs = null;
                 }
@@ -233,7 +219,7 @@ public sealed partial class AutoTribe
                         }
                         restarts++;
                         Diag($"{tribe.Name}: Questionable went idle ({pending.Length} left) — restarting [{restarts}/{AdtConstants.MaxQuestRestarts}]");
-                        _questionable.StartQuest(pending[0]);
+                        questionable.StartQuest(pending[0]);
                         idleSinceMs = null;
                     }
                 }
@@ -245,10 +231,8 @@ public sealed partial class AutoTribe
         }
         finally
         {
-            // Always hand the wheel back: stop the Automatic session so Questionable can't roll onto the
-            // player's MSQ after our quests, and clear the priority entries we added.
-            _questionable.Stop("ADT: tribe complete");
-            _questionable.ClearQuestPriority();
+            questionable.Stop("ADT: tribe complete");
+            questionable.ClearQuestPriority();
         }
     }
 }

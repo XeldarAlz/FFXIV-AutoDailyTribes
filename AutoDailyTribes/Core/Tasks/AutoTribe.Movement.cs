@@ -65,7 +65,7 @@ public sealed partial class AutoTribe
         bool StopCondition()
         {
             Status = label;
-            if (Environment.TickCount64 >= deadline) return true; // backstop; arrival re-checked after the op
+            if (Environment.TickCount64 >= deadline) return true;
             var p = Svc.Objects.LocalPlayer;
             if (p is not null && Vector3.Distance(p.Position, dest) <= IssuerArrivalMeters) { arrived = true; return true; }
             return false;
@@ -100,8 +100,6 @@ public sealed partial class AutoTribe
         await RunCancellable(op, MoveToIssuerWatchdogMs + MoveOpUnwindSlackMs, "move-to-issuer", AbortIfFrozen);
         if (CancelToken.IsCancellationRequested) return IssuerMoveResult.StuckRetry;
 
-        // Re-check arrival from the live position: StopCondition may have tripped on the deadline, or a
-        // flying mount routinely stops a few metres above the point (the Y gap).
         var player = Svc.Objects.LocalPlayer;
         if (player is not null && Vector3.Distance(player.Position, dest) <= IssuerArrivalMeters)
         {
@@ -115,9 +113,6 @@ public sealed partial class AutoTribe
         return IssuerMoveResult.StuckRetry;
     }
 
-    // Tribes carry no combat automation, so we can't kill what aggroed us; dismount and wait briefly for
-    // the mob to disengage, then let travel re-path (moving usually outpaces/drops the aggro). Bounded so
-    // an unkillable add can't park the run. Teleport is blocked in combat, which is why this runs first.
     private async Task ClearBlockingCombat()
     {
         if (!Svc.Condition[ConditionFlag.InCombat]) return;
@@ -145,8 +140,6 @@ public sealed partial class AutoTribe
         Status = $"Teleporting closer to {tribe.Name}";
         Diag($"{tribe.Name}: teleport recovery toward issuer at {tribe.IssuerLocation}");
 
-        // Same-zone teleport to the aetheryte nearest the issuer. Idle-stall guard catches a teleport that
-        // never starts casting in ~8s instead of waiting out the full watchdog.
         var tp = new MoveOp(o => o.Teleport(tribe.IssuerTerritoryId, tribe.IssuerLocation, allowSameZoneTeleport: true));
         if (!await RunCancellable(tp, TeleportWatchdogMs, $"teleport-recovery-{tribe.BeastTribeId}", IdleStallAbort(IdleStallTimeoutMs)))
             return false;
@@ -163,8 +156,6 @@ public sealed partial class AutoTribe
         return true;
     }
 
-    // After a teleport the destination zone's navmesh is still building; a pathfind issued now races
-    // vnavmesh and faults with "navmesh creation is in progress". Hold here until ready.
     private async Task WaitForNavmeshReady()
     {
         if (NavmeshIPC.Instance.IsReady()) return;

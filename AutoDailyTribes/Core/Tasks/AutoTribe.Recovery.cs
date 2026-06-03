@@ -7,7 +7,6 @@ namespace AutoDailyTribes.Core.Tasks;
 
 public sealed partial class AutoTribe
 {
-    // ExecuteCommand revive opcodes, per clib.Enums (CommandFlag.Revive + AgentReviveOp).
     private const uint ReviveCommandId   = (uint)clib.Enums.CommandFlag.Revive;        // 200
     private const int  ReviveParamReturn = (int)clib.Enums.AgentReviveOp.Return;        // 8 — return to home point
     private const int  ReviveParamAccept = (int)clib.Enums.AgentReviveOp.AcceptRevive;  // 5 — accept a raise
@@ -17,10 +16,6 @@ public sealed partial class AutoTribe
 
     private static bool IsPlayerKO() => Svc.Condition[ConditionFlag.Unconscious];
 
-    // Tribe automation can die en route (open-world aggro, fall damage). Solo: release and return to the
-    // home aetheryte. In a party: wait briefly for a raise (and accept the prompt). Once back up, we clear
-    // arrivedAtIssuer so the state machine re-teleports to the issuer territory and re-travels — there's no
-    // "resume where I died" because the daily flow just needs us back at the issuer.
     private async Task Revive()
     {
         var soloWait = Svc.Party.Length == 0;
@@ -56,16 +51,12 @@ public sealed partial class AutoTribe
 
         await WaitForReviveOrTransition(reissueReturn: returningHome);
 
-        // Revive can fail (window not ready, command dropped). Never act while still on the ground — bail
-        // and let the outer loop re-enter Unconscious and retry the release.
         if (IsPlayerKO())
         {
             Diag($"{tribe.Name}: still KO after revive window; outer loop will retry.");
             return;
         }
 
-        // We likely released to an aetheryte in another zone; force the state machine to re-route rather
-        // than assume we're still in position at the issuer.
         arrivedAtIssuer = false;
     }
 
@@ -91,8 +82,6 @@ public sealed partial class AutoTribe
 
     private static bool TryAcceptRaisePrompt()
     {
-        // No API-stable raise-prompt addon check across patches; the accept command is a no-op unless the
-        // prompt is showing, so it's safe to fire blind.
         return TryExecuteReviveCommand(ReviveParamAccept);
     }
 
@@ -108,11 +97,9 @@ public sealed partial class AutoTribe
                              || Svc.Condition[ConditionFlag.BetweenAreas51];
             if (!stillKO && !transitioning)
             {
-                await NextFrame(60); // settle so weakness statuses register
+                await NextFrame(60);
                 return;
             }
-            // The revive window isn't accepting input the instant Unconscious flips, so a single Return
-            // fire can land on nothing. Keep re-issuing until the home teleport actually starts.
             if (reissueReturn && stillKO && !transitioning && Environment.TickCount64 >= nextReissueAt)
             {
                 TriggerReturnHome();

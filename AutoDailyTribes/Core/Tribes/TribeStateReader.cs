@@ -7,6 +7,12 @@ namespace AutoDailyTribes.Core.Tribes;
 
 internal static unsafe class TribeStateReader
 {
+    // Quest sheet row = 0x10000 | id
+    private const uint QuestSheetIdFlag = 0x10000u;
+    private const int JournalQuestSlots = 30;
+
+    private static uint ToFullQuestId(uint compactId) => QuestSheetIdFlag | compactId;
+
     public static void Refresh(TribeInfo tribe)
     {
         var ps = PlayerState.Instance();
@@ -37,12 +43,11 @@ internal static unsafe class TribeStateReader
         if (questSheet == null) return [];
 
         var matched = new List<uint>(capacity: AdtConstants.MaxAcceptsPerTribe);
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < JournalQuestSlots; i++)
         {
             var q = qm->NormalQuests[i];
             if (q.QuestId == 0) continue;
-            // QuestWork.QuestId is compact 16-bit; Quest sheet uses 0x10000 | id.
-            uint fullId = 0x10000u | q.QuestId;
+            uint fullId = ToFullQuestId(q.QuestId);
             if (questSheet.GetRowOrDefault(fullId) is { } row
                 && row.BeastTribe.RowId == beastTribeId)
             {
@@ -52,7 +57,6 @@ internal static unsafe class TribeStateReader
         return [.. matched];
     }
 
-    // DailyQuests entries persist past turn-in until daily reset, unlike the journal scan.
     private static int CountAcceptedToday(uint beastTribeId, QuestManager* qm, Lumina.Excel.ExcelSheet<Quest>? questSheet)
     {
         if (questSheet == null) return 0;
@@ -63,7 +67,7 @@ internal static unsafe class TribeStateReader
         {
             var slot = slots[i];
             if (slot.QuestId == 0) continue;
-            uint fullId = 0x10000u | slot.QuestId;
+            uint fullId = ToFullQuestId(slot.QuestId);
             if (questSheet.GetRowOrDefault(fullId) is { } row
                 && row.BeastTribe.RowId == beastTribeId)
             {

@@ -3,7 +3,6 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using System.Diagnostics;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
@@ -56,7 +55,7 @@ internal static class DependencyRow
         {
             using (ImRaii.Tooltip())
                 ImGui.TextUnformatted($"Repo: {info.RepoUrl}\nLeft-click to open repo URL · right-click to copy");
-            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) OpenUrl(info.RepoUrl);
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) UrlActions.Open(info.RepoUrl, log: false);
             else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(info.RepoUrl);
         }
     }
@@ -83,25 +82,11 @@ internal static class DependencyRow
         }
 
         using (ImRaii.Disabled(installing))
-        using (ImRaii.PushColor(ImGuiCol.Button, Styling.AccentTeal * 0.55f))
-        using (ImRaii.PushColor(ImGuiCol.ButtonHovered, Styling.AccentTeal * 0.75f))
-        using (ImRaii.PushColor(ImGuiCol.ButtonActive, Styling.AccentTeal))
+        using (Styling.PushAccentButtonColors())
         {
             var label = installing ? "Installing..." : "Install";
             if (ImGui.Button($"{label}##install_{plugin}", size))
                 _ = PluginInstaller.Install(plugin);
-        }
-    }
-
-    private static void OpenUrl(string url)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
-        }
-        catch
-        {
-            ImGui.SetClipboardText(url);
         }
     }
 }

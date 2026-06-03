@@ -38,9 +38,7 @@ internal static class Styling
     public static readonly Vector4 TextDim       = new(0.55f, 0.58f, 0.62f, 1.00f);
     public static readonly Vector4 TextMuted     = new(0.40f, 0.42f, 0.46f, 1.00f);
 
-    public const double PulseFast = 600.0;
     public const double PulseMedium = 800.0;
-    public const double PulseSlow = 1100.0;
 
     public static float Pulse(double periodMs = PulseMedium)
     {
@@ -68,6 +66,11 @@ internal static class Styling
         p.Push(ImGuiStyleVar.ItemSpacing, new Vector2(8, 7) * ImGuiHelpers.GlobalScale);
         return p;
     }
+
+    public static ImRaii.ColorDisposable PushAccentButtonColors()
+        => ImRaii.PushColor(ImGuiCol.Button, AccentTeal * 0.55f)
+            .Push(ImGuiCol.ButtonHovered, AccentTeal * 0.75f)
+            .Push(ImGuiCol.ButtonActive, AccentTeal);
 
     public static void SectionLabel(string label)
     {

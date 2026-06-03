@@ -20,9 +20,6 @@ public sealed record ExternalPluginInfo(
 
 public static class ExternalPlugins
 {
-    // Repo URLs as of 2026-05. plugins.carvel.li's cert is broken; PunishXIV
-    // took over both Questionable and Artisan and serves them via the unified
-    // puni.sh meta repo. vnavmesh stays on the per-author endpoint.
     public static readonly IReadOnlyDictionary<ExternalPlugin, ExternalPluginInfo> Catalog
         = new Dictionary<ExternalPlugin, ExternalPluginInfo>
     {
@@ -64,8 +61,6 @@ public static class ExternalPlugins
     public static bool AllRequiredInstalled()
         => All.Where(p => Catalog[p].Required).All(IsInstalled);
 
-    // Loaded in Dalamud but its own in-plugin toggle is off. Questionable relies on TextAdvance's
-    // global "Enable plugin" toggle to advance dialogue, so a disabled TextAdvance stalls dailies.
     public static bool IsInstalledButDisabled(ExternalPlugin plugin)
         => plugin == ExternalPlugin.TextAdvance
            && IsInstalled(plugin)

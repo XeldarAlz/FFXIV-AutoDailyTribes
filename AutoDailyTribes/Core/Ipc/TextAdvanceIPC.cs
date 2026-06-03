@@ -22,9 +22,6 @@ internal static class TextAdvanceIPC
         }
     }
 
-    // TextAdvance's own "Enable plugin" toggle. Questionable leans on this global toggle to advance
-    // dialogue/cutscenes, so off = quests stall. Returns true when the gate is absent/errors so we
-    // never raise a false warning when the IPC simply isn't reachable.
     public static bool IsPluginEnabled()
     {
         EnsureInit();

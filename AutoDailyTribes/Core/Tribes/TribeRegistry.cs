@@ -102,7 +102,6 @@ public static class TribeRegistry
             MinRankForDailies = 1,
             IssuerTerritoryId = 613,                // The Ruby Sea
             IssuerENpcBaseId = 1024217,             // Zukin
-            IssuerSelectStringIndex = 0,
             IconFile = "Kojin_Relations.png",
         },
         new()

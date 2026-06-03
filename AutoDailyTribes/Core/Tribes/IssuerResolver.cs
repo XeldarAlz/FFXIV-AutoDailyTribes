@@ -36,8 +36,7 @@ internal static class IssuerResolver
                 var baseId = ((LayerCommon.ENPCInstanceObject)instance.Object).ParentData.ParentData.BaseId;
                 if (baseId != tribe.IssuerENpcBaseId && !tribe.AltIssuerENpcBaseIds.Contains(baseId)) continue;
 
-                // InstanceId in the lgb is a 32-bit local id; the live game object id
-                // packs it with a leading 1-bit world marker. Mirrors vsatisfy/CraftTurnin.
+                // bit 32 = world marker for live object id
                 tribe.IssuerInstanceId = (1ul << 32) | instance.InstanceId;
                 tribe.IssuerLocation = new(
                     instance.Transform.Translation.X,

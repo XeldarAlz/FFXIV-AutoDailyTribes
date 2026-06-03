@@ -6,25 +6,15 @@ using System.Threading.Tasks;
 
 namespace AutoDailyTribes.Core.Tasks;
 
-// Each iteration computes the desired phase, then dispatches a bounded handler. Every movement op runs
-// through a cancellable MoveOp with a wall-clock watchdog and stuck detection, so no single step can
-// park the run; a transient fault is tolerated and retried, and an unrecoverable one ends THIS tribe
-// cleanly (the controller moves on to the next). Implementation is split across partial files:
-//   AutoTribe.Movement.cs — travel, stuck recovery, teleports, dismount.
-//   AutoTribe.Quests.cs    — job switching, accepting dailies, Questionable delegation.
-//   AutoTribe.Recovery.cs  — death/KO handling.
 public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
 {
-    private readonly QuestionableIPC _questionable = new();
-
-    public TribeInfo Tribe => tribe;
+    private readonly QuestionableIPC questionable = new();
 
     private const int   HeartbeatMs = 30_000;
     private const int   StallWarningMs = 180_000;
     private const int   MaxConsecutiveStateErrors = 20;
+    private const int   MaxAcceptFailPasses = 2;
     private const int   MoveToIssuerWatchdogMs = 60_000;
-    // Slack on top of the in-move deadline so clib's own graceful exit wins over the hard cancel while it
-    // is following a path; the hard cancel only catches a wedge in a non-polling phase.
     private const int   MoveOpUnwindSlackMs = 10_000;
     private const int   TeleportWatchdogMs = 60_000;
     private const int   DismountWatchdogMs = 30_000;
@@ -107,7 +97,7 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
                         break;
 
                     case TribeState.SwitchingJob:
-                        if (!await EnsureCorrectJob()) return; // EnsureCorrectJob warns; skip this tribe
+                        if (!await EnsureCorrectJob()) return;
                         jobResolved = true;
                         break;
 
@@ -136,16 +126,11 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
 
                 if (exit == ExitReason.Quit) return;
 
-                // Hard safety net: guarantee the loop yields the framework thread at least once per
-                // iteration, even if a handler returned synchronously.
                 await NextFrame();
                 consecutiveErrors = 0;
             }
             catch (Exception ex) when (!CancelToken.IsCancellationRequested)
             {
-                // One transient fault (e.g. a despawned-object NRE) must not end the tribe; back off and
-                // retry. Only a long unbroken run of failures surfaces and stops (the controller then
-                // moves on to the next tribe).
                 consecutiveErrors++;
                 Diag($"{tribe.Name}: state machine caught {ex.GetType().Name} (#{consecutiveErrors}/{MaxConsecutiveStateErrors}): {ex.Message}");
                 if (consecutiveErrors >= MaxConsecutiveStateErrors)
@@ -163,7 +148,7 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
         ErrorIf(!tribe.Unlocked, $"{tribe.Name}: not unlocked — complete the intro quest in-game first");
         ErrorIf(!tribe.MeetsRankRequirement, $"{tribe.Name}: need rank {tribe.MinRankForDailies} (have {tribe.Rank})");
         ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: BaseId placeholder — run /adt target next to the issuer to capture the real one");
-        ErrorIf(!_questionable.IsAvailable, "Questionable plugin not installed/enabled");
+        ErrorIf(!questionable.IsAvailable, "Questionable plugin not installed/enabled");
         ErrorIf(!NavmeshIPC.Instance.IsAvailable, "vnavmesh plugin not installed/enabled");
     }
 
@@ -182,8 +167,6 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
 
         if (!needAccept && !tribe.HasInProgressQuests) return TribeState.Done;
 
-        // Switch to a suitable job before anything else (needed both to accept and for Questionable to
-        // run the quest). Done once per tribe; a hard failure skips the tribe inside the handler.
         if (!jobResolved && !JobSwitcher.CurrentJobSatisfies(tribe.Kind)) return TribeState.SwitchingJob;
 
         if (needAccept)
@@ -192,8 +175,6 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
             return arrivedAtIssuer ? TribeState.AcceptDailies : TribeState.TravelToIssuer;
         }
 
-        // Nothing left to accept, but quests are in the journal — hand them to Questionable (which does
-        // its own travel/class-switching for the quest).
         return TribeState.Delegate;
     }
 

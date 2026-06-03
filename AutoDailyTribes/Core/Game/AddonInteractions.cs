@@ -9,9 +9,6 @@ namespace AutoDailyTribes.Core.Game;
 
 internal static unsafe class AddonInteractions
 {
-    // Mirror Questionable.GameFunctions.InteractWith: null the target first, set it, then call
-    // InteractWithObject in the same pass. The null-then-set is what actually makes the game
-    // recognise the new target — without it InteractWithObject quietly returns 7 (rejected).
     public static bool InteractWith(ulong instanceId)
     {
         var obj = Svc.Objects.SearchById(instanceId);
@@ -21,7 +18,7 @@ internal static unsafe class AddonInteractions
         Svc.Targets.Target = obj;
 
         var result = TargetSystem.Instance()->InteractWithObject(obj.Struct(), false);
-        return result != 7 && result > 0;
+        return result != 7 && result > 0;  // 7 = rejected
     }
 
     public static void ProgressTalk()
@@ -33,8 +30,6 @@ internal static unsafe class AddonInteractions
         a->ReceiveEvent(AtkEventType.MouseClick, 0, &evt, &data);
     }
 
-    // Questionable's SelectIconStringPostSetup calls FireCallbackInt(index) — a single int value.
-    // That's what Questionable.Controller.GameUi.InteractionUiController.SelectIconStringPostSetup does.
     public static void SelectIconStringPick(int index)
     {
         var a = AddonProbes.Get("SelectIconString");
@@ -49,8 +44,6 @@ internal static unsafe class AddonInteractions
         a->FireCallbackInt(-1);
     }
 
-    // FireCallbackInt(0) on JournalAccept means "decline/close" — the quest never lands.
-    // Accept is a button click on node 44; ECommons' AddonMaster wraps that correctly.
     public static void JournalAcceptConfirm()
     {
         var a = AddonProbes.Get("JournalAccept");

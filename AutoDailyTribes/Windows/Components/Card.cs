@@ -9,37 +9,37 @@ internal static class Card
     public static CardScope Begin(string id, Vector2 size, Vector4 background, Vector4 border, float borderSize = 1f)
     {
         var style = Styling.PushCardStyle();
-        var bg = ImRaii.PushColor(ImGuiCol.ChildBg, background);
-        var br = ImRaii.PushColor(ImGuiCol.Border, border);
-        var sz = ImRaii.PushStyle(ImGuiStyleVar.ChildBorderSize, borderSize);
+        var backgroundColor = ImRaii.PushColor(ImGuiCol.ChildBg, background);
+        var borderColor = ImRaii.PushColor(ImGuiCol.Border, border);
+        var sizeStyle = ImRaii.PushStyle(ImGuiStyleVar.ChildBorderSize, borderSize);
         var child = ImRaii.Child(id, size, true,
             ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-        return new CardScope(child, sz, br, bg, style);
+        return new CardScope(child, sizeStyle, borderColor, backgroundColor, style);
     }
 
     public ref struct CardScope
     {
         private ImRaii.ChildDisposable child;
-        private readonly IDisposable sz;
-        private readonly IDisposable br;
-        private readonly IDisposable bg;
+        private readonly IDisposable sizeStyle;
+        private readonly IDisposable borderColor;
+        private readonly IDisposable backgroundColor;
         private readonly IDisposable style;
 
-        internal CardScope(ImRaii.ChildDisposable child, IDisposable sz, IDisposable br, IDisposable bg, IDisposable style)
+        internal CardScope(ImRaii.ChildDisposable child, IDisposable sizeStyle, IDisposable borderColor, IDisposable backgroundColor, IDisposable style)
         {
             this.child = child;
-            this.sz = sz;
-            this.br = br;
-            this.bg = bg;
+            this.sizeStyle = sizeStyle;
+            this.borderColor = borderColor;
+            this.backgroundColor = backgroundColor;
             this.style = style;
         }
 
         public void Dispose()
         {
             child.Dispose();
-            sz?.Dispose();
-            br?.Dispose();
-            bg?.Dispose();
+            sizeStyle?.Dispose();
+            borderColor?.Dispose();
+            backgroundColor?.Dispose();
             style?.Dispose();
         }
     }

@@ -13,10 +13,11 @@ internal static unsafe class JobSwitcher
     private const byte DohLast  = 15;
     private const byte DolFirst = 16;
     private const byte DolLast  = 18;
+    private const byte MaxClassJobId = 42; // Pictomancer — highest ClassJob id
 
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
-    public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= 42;
+    public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= MaxClassJobId;
 
     public static byte CurrentClassJob()
     {
@@ -24,7 +25,6 @@ internal static unsafe class JobSwitcher
         return ps == null ? (byte)0 : ps->CurrentClassJobId;
     }
 
-    // True when the job we're already on can do this tribe's dailies — no switch needed.
     public static bool CurrentJobSatisfies(TribeKind kind)
     {
         var current = CurrentClassJob();
@@ -46,9 +46,6 @@ internal static unsafe class JobSwitcher
         return entry == null ? (byte)0 : entry->ClassJob;
     }
 
-    // Pick a gearset to equip for this tribe, chosen ONLY from gearsets the player actually owns in
-    // the right category. This is why HighestXP no longer skips the tribe: we never target a job
-    // without a gearset. Returns the gearset index, or -1 if the player has no suitable gearset.
     public static int PickGearset(TribeInfo tribe, Configuration cfg)
     {
         switch (tribe.Kind)
@@ -71,22 +68,17 @@ internal static unsafe class JobSwitcher
     {
         var gm = RaptureGearsetModule.Instance();
         if (gm == null) return false;
-        // 0 = success (request dispatched) per FFXIVClientStructs; -1 = rejected.
-        return gm->EquipGearset(gearsetId, 0) == 0;
+        return gm->EquipGearset(gearsetId, 0) == 0;  // 0 = success
     }
 
     private static int PickFromCategory(JobChoice mode, uint specificJob, Func<byte, bool> inCategory)
     {
-        // Specific: take the player's gearset for exactly that job if they own one; otherwise fall
-        // through to a level-based pick within the category rather than failing the whole tribe.
         if (mode == JobChoice.Specific)
         {
             var exact = FindGearsetForJob((byte)specificJob);
             if (exact >= 0) return exact;
         }
 
-        // Current maps to "highest level I own in this category" — when we're picking at all, the
-        // current job is by definition not in the category (CurrentJobSatisfies gated that out).
         var highest = mode != JobChoice.LowestXP;
         return PickGearsetByLevel(inCategory, highest);
     }

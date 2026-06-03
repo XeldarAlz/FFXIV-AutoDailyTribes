@@ -83,9 +83,9 @@ internal static class TribeCard
             ImGui.TextUnformatted("Tribe not yet unlocked — complete the intro quest in-game first");
         else if (!tribe.MeetsRankRequirement)
             ImGui.TextUnformatted($"Requires rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        else if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests && tribe.CanRankUp)
+        else if (tribe.AllSlotsDone && tribe.CanRankUp)
             ImGui.TextUnformatted("Daily quests done — rep bar is full. Visit the issuer manually to pick up the rank-up quest.");
-        else if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests)
+        else if (tribe.AllSlotsDone)
             ImGui.TextUnformatted("All daily slots already used for this tribe today");
         else if (tribe.AcceptSlotsRemaining <= 0)
             ImGui.TextUnformatted($"Slots maxed — {tribe.InProgressQuestIds.Length} quest(s) still in journal. Click to run Questionable on them.");
@@ -98,7 +98,7 @@ internal static class TribeCard
     private static Vector4 ResolveBg(TribeInfo tribe, bool selected, bool hovered)
     {
         if (!tribe.Unlocked) return Styling.CardBg * 0.6f;
-        if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests) return Styling.CardBg * 0.6f;
+        if (tribe.AllSlotsDone) return Styling.CardBg * 0.6f;
         if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.15f);
         if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.10f);
         if (hovered) return Styling.CardBgHover;
@@ -110,7 +110,7 @@ internal static class TribeCard
         if (!tribe.Unlocked) return Styling.BorderLocked;
         if (running) return Styling.PulseColor(Styling.BorderActive, Styling.AccentTealSoft, Styling.PulseMedium);
         if (selected) return Styling.AccentTeal;
-        if (tribe.AcceptSlotsRemaining <= 0 && !tribe.HasInProgressQuests) return Styling.BorderDim;
+        if (tribe.AllSlotsDone) return Styling.BorderDim;
         return Styling.BorderActive * 0.65f;
     }
 }

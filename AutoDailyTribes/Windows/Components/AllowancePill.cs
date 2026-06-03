@@ -12,7 +12,7 @@ internal static class AllowancePill
     public static string GetLabel(TribeInfo tribe)
     {
         var taken = tribe.AcceptedTodayCount;
-        var slotsDone = taken >= AdtConstants.MaxAcceptsPerTribe && !tribe.HasInProgressQuests;
+        var slotsDone = tribe.AllSlotsDone;
         if (slotsDone && tribe.CanRankUp) return "Rank up!";
         if (slotsDone) return "Done";
         return $"{taken} / {AdtConstants.MaxAcceptsPerTribe}";
@@ -21,7 +21,7 @@ internal static class AllowancePill
     public static void Draw(TribeInfo tribe)
     {
         var taken = tribe.AcceptedTodayCount;
-        var slotsDone = taken >= AdtConstants.MaxAcceptsPerTribe && !tribe.HasInProgressQuests;
+        var slotsDone = tribe.AllSlotsDone;
         var rankUp = slotsDone && tribe.CanRankUp;
         var label = GetLabel(tribe);
 

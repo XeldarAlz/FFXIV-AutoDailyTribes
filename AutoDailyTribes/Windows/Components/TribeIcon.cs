@@ -9,10 +9,7 @@ namespace AutoDailyTribes.Windows.Components;
 
 internal static class TribeIcon
 {
-    private static readonly string ImagesRoot = Path.Combine(
-        Svc.PluginInterface.AssemblyLocation.DirectoryName ?? "",
-        "Images",
-        "Tribes");
+    private static readonly string TribesRoot = Path.Combine(Assets.ImagesRoot, "Tribes");
 
     public static void Draw(TribeInfo tribe, float size = 0)
     {
@@ -20,7 +17,7 @@ internal static class TribeIcon
 
         if (tribe.IconFile is { Length: > 0 } file)
         {
-            var path = Path.Combine(ImagesRoot, file);
+            var path = Path.Combine(TribesRoot, file);
             if (File.Exists(path))
             {
                 var tex = Svc.Texture.GetFromFile(path).GetWrapOrEmpty();
