@@ -15,7 +15,6 @@ internal static class KindIcon
             TribeKind.Crafter  => FontAwesomeIcon.Hammer,
             TribeKind.Gatherer => FontAwesomeIcon.Leaf,
             TribeKind.Mixed    => FontAwesomeIcon.Cubes,
-            _ => FontAwesomeIcon.Question,
         };
         using (ImRaii.PushFont(UiBuilder.IconFont))
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.KindColor(kind)))

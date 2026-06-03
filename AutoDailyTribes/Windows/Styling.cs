@@ -84,7 +84,6 @@ internal static class Styling
         TribeKind.Crafter  => KindCrafter,
         TribeKind.Gatherer => KindGatherer,
         TribeKind.Mixed    => KindMixed,
-        _ => TextDim,
     };
 
     public static Vector4 EraTint(TribeEra era) => era switch
@@ -95,6 +94,5 @@ internal static class Styling
         TribeEra.ShB  => EraShB,
         TribeEra.EW   => EraEW,
         TribeEra.DT   => EraDT,
-        _ => CardBg,
     };
 }

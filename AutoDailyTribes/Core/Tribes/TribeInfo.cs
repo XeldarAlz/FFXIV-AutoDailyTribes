@@ -25,7 +25,6 @@ public sealed class TribeInfo
     public int RepCur, RepMax;
     public int DailyAllowanceLeft;
 
-    // Quest sheet row = 0x10000 | id
     public uint[] InProgressQuestIds = [];
 
     public int AcceptedTodayCount;
@@ -58,6 +57,5 @@ public static class TribeEraExtensions
         TribeEra.ShB => "Shadowbringers 5.0",
         TribeEra.EW  => "Endwalker 6.0",
         TribeEra.DT  => "Dawntrail 7.0",
-        _ => era.ToString(),
     };
 }

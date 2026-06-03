@@ -34,7 +34,6 @@ internal static unsafe class JobSwitcher
             TribeKind.Gatherer => IsGatherer(current),
             TribeKind.Mixed => IsCrafter(current) || IsGatherer(current),
             TribeKind.Combat => IsCombat(current),
-            _ => true,
         };
     }
 

@@ -1,5 +1,4 @@
 root = true
-# top-most EditorConfig file
 
 [*]
 charset = utf-8
@@ -8,7 +7,6 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-# 4 space indentation
 indent_style = space
 indent_size = 4
 
@@ -21,8 +19,6 @@ indent_size = 2
 [*.cs]
 # File-scoped namespaces — matches existing codebase
 csharp_style_namespace_declarations = file_scoped:warning
-
-# disable redundant style warnings
 
 # Microsoft .NET properties
 csharp_indent_braces = false
