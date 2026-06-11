@@ -27,6 +27,8 @@ public sealed partial class AutoTribe
                 _                  => "a suitable gearset",
             };
             Warning($"{tribe.Name}: no usable gearset — create {hint} in-game, then run again — skipping");
+            runOutcome = RunOutcome.Skipped;
+            runDetail = "no usable gearset";
             return false;
         }
 
@@ -53,6 +55,8 @@ public sealed partial class AutoTribe
         }
 
         Warning($"{tribe.Name}: job did not switch to {targetJob} within time limit — skipping");
+        runOutcome = RunOutcome.Skipped;
+        runDetail = "job didn't switch";
         return false;
     }
 
@@ -85,6 +89,8 @@ public sealed partial class AutoTribe
             if (acceptFailPasses >= MaxAcceptFailPasses)
             {
                 Warning($"{tribe.Name}: could not accept dailies at the issuer (two passes made no progress); skipping");
+                runOutcome = RunOutcome.Skipped;
+                runDetail = "couldn't accept at issuer";
                 return ExitReason.Quit;
             }
             arrivedAtIssuer = false;
@@ -182,6 +188,23 @@ public sealed partial class AutoTribe
         for (var i = 0; i < n; i++) await NextFrame();
     }
 
+    private static string PartialDetail(int done, int stuck, int fishing)
+    {
+        var parts = new List<string> { $"{done} done" };
+        if (stuck > 0) parts.Add($"{stuck} stuck");
+        if (fishing > 0) parts.Add($"{fishing} fisher-only");
+        return string.Join(", ", parts);
+    }
+
+    private static string? CurrentDelegateName(string? compactId, List<uint> active)
+    {
+        if (compactId is null) return null;
+        foreach (var q in active)
+            if (QuestionableIPC.Compact(q) == compactId)
+                return QuestName(q);
+        return null;
+    }
+
     private async Task DelegateToQuestionable(uint[] accepted)
     {
         if (accepted.Length == 0) return;
@@ -198,6 +221,8 @@ public sealed partial class AutoTribe
         if (deliverable.Length == 0)
         {
             Diag($"{tribe.Name}: only fishing dailies in journal — nothing to delegate");
+            runOutcome = RunOutcome.Partial;
+            runDetail = $"{fishing.Length} fisher-only — do manually";
             return;
         }
 
@@ -233,16 +258,29 @@ public sealed partial class AutoTribe
                 var pending = active.FindAll(questionable.IsQuestAccepted);
                 if (pending.Count == 0)
                 {
-                    if (skipped.Count == 0) Diag($"{tribe.Name}: all {deliverable.Length} delegated quest(s) turned in");
-                    else Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                    var doneAll = deliverable.Length - skipped.Count;
+                    if (skipped.Count == 0 && fishing.Length == 0)
+                    {
+                        runOutcome = RunOutcome.Completed;
+                        runDetail = $"{doneAll} quest(s) done";
+                        Diag($"{tribe.Name}: all {deliverable.Length} delegated quest(s) turned in");
+                    }
+                    else
+                    {
+                        runOutcome = RunOutcome.Partial;
+                        runDetail = PartialDetail(doneAll, skipped.Count, fishing.Length);
+                        Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                    }
                     return;
                 }
 
-                var done = deliverable.Length - pending.Count - skipped.Count;
-                Status = $"Questionable: {done}/{deliverable.Length} done";
-
                 var now = Environment.TickCount64;
                 var currentId = questionable.CurrentQuestId();
+                var done = deliverable.Length - pending.Count - skipped.Count;
+                var curName = CurrentDelegateName(currentId, active);
+                Status = curName is null
+                    ? $"Questionable: {done}/{deliverable.Length} done"
+                    : $"{curName} ({done}/{deliverable.Length})";
                 if (pending.Count < lastPending || currentId != lastCurrentId)
                 {
                     lastPending = pending.Count;
@@ -267,6 +305,8 @@ public sealed partial class AutoTribe
                     var remaining = active.FindAll(questionable.IsQuestAccepted);
                     if (remaining.Count == 0)
                     {
+                        runOutcome = RunOutcome.Partial;
+                        runDetail = PartialDetail(deliverable.Length - skipped.Count, skipped.Count, fishing.Length);
                         Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
                         return;
                     }
@@ -303,6 +343,9 @@ public sealed partial class AutoTribe
                 await NextFrame(100);
             }
 
+            var leftover = active.FindAll(questionable.IsQuestAccepted).Count;
+            runOutcome = RunOutcome.Partial;
+            runDetail = $"timed out, {leftover} left";
             Warning($"{tribe.Name}: Questionable did not finish all quests within time limit — moving on");
         }
         finally

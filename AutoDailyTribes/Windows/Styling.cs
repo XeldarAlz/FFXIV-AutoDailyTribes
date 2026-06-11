@@ -1,5 +1,6 @@
 using AutoDailyTribes.Core.Tribes;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
@@ -116,6 +117,57 @@ internal static class Styling
     {
         using (ImRaii.PushColor(ImGuiCol.Text, TextDim))
             ImGui.TextUnformatted(label.ToUpperInvariant());
+    }
+
+    private static readonly Vector2 ChipPad = new(6, 1);
+
+    public static float ChipWidth(string label)
+        => ImGui.CalcTextSize(label).X + ChipPad.X * 2f * ImGuiHelpers.GlobalScale;
+
+    // Small categorical pill: faint colour-tinted fill with the colour as text. Used for kind/era
+    // tags so a category never reads as a state colour (states use borders/bars instead).
+    public static void Chip(string label, Vector4 color)
+    {
+        var pad = ChipPad * ImGuiHelpers.GlobalScale;
+        var size = ImGui.CalcTextSize(label) + pad * 2f;
+        var origin = ImGui.GetCursorScreenPos();
+        ImGui.GetWindowDrawList().AddRectFilled(origin, origin + size, ImGui.GetColorU32(WithAlpha(color, 0.16f)), 4f * ImGuiHelpers.GlobalScale);
+
+        ImGui.Dummy(size);
+        var after = ImGui.GetCursorPos();
+        ImGui.SetCursorScreenPos(origin + pad);
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
+            ImGui.TextUnformatted(label);
+        ImGui.SetCursorPos(after);
+    }
+
+    // Chip with a leading FontAwesome glyph so the category reads even when the colour doesn't.
+    public static void IconChip(FontAwesomeIcon icon, string label, Vector4 color)
+    {
+        var s = ImGuiHelpers.GlobalScale;
+        var pad = ChipPad * s;
+        var glyph = icon.ToIconString();
+        Vector2 glyphSize;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+            glyphSize = ImGui.CalcTextSize(glyph);
+        var textSize = ImGui.CalcTextSize(label);
+        var gap = 5f * s;
+        var size = new Vector2(glyphSize.X + gap + textSize.X, ImGui.GetTextLineHeight()) + pad * 2f;
+
+        var origin = ImGui.GetCursorScreenPos();
+        ImGui.GetWindowDrawList().AddRectFilled(origin, origin + size, ImGui.GetColorU32(WithAlpha(color, 0.16f)), 4f * s);
+
+        ImGui.Dummy(size);
+        var after = ImGui.GetCursorPos();
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
+        {
+            ImGui.SetCursorScreenPos(new Vector2(origin.X + pad.X, origin.Y + (size.Y - glyphSize.Y) * 0.5f));
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+                ImGui.TextUnformatted(glyph);
+            ImGui.SetCursorScreenPos(new Vector2(origin.X + pad.X + glyphSize.X + gap, origin.Y + (size.Y - textSize.Y) * 0.5f));
+            ImGui.TextUnformatted(label);
+        }
+        ImGui.SetCursorPos(after);
     }
 
     public static Vector4 KindColor(TribeKind kind) => kind switch

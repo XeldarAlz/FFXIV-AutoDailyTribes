@@ -61,14 +61,8 @@ public sealed class ConfigWindow : Window, IDisposable
     public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
     {
         this.plugin = plugin;
-        Flags = ImGuiWindowFlags.NoCollapse;
         Size = new Vector2(460, 480);
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(420, 320),
-            MaximumSize = new Vector2(680, 900),
-        };
     }
 
     public void Dispose() { }

@@ -2,8 +2,8 @@ namespace AutoDailyTribes.Windows;
 
 internal static class Layout
 {
-    public const float TribeCardHeight = 100f;
-    public const float TribeCardMinWidth = 240f;
+    public const float TribeCardHeight = 114f;
+    public const float TribeCardMinWidth = 244f;
 
     public const float ActionButtonHeight = 28f;
     public const float RankBarHeight = 14f;
@@ -15,4 +15,7 @@ internal static class Layout
     public const float HeroRingRadius = 76f;
     public const float PrimaryButtonHeight = 40f;
     public const float UpNextRowHeight = 42f;
+
+    public const float StepRowHeight = 26f;
+    public const float LogRowHeight = 30f;
 }

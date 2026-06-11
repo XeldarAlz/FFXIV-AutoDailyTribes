@@ -14,14 +14,8 @@ public sealed class MainWindow : Window, IDisposable
     public MainWindow(Plugin plugin) : base("Auto Daily Tribes###AutoDailyTribesMain")
     {
         this.plugin = plugin;
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(520, 380),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
-        };
         Size = new Vector2(720, 560);
         SizeCondition = ImGuiCond.FirstUseEver;
-        Flags = ImGuiWindowFlags.NoCollapse;
     }
 
     public void Dispose() { }
@@ -38,7 +32,5 @@ public sealed class MainWindow : Window, IDisposable
 
         if (ctrl.Running) RunningPanel.Draw(ctrl);
         else              SetupPanel.Draw(ctrl, cfg);
-
-        Footer.Draw();
     }
 }

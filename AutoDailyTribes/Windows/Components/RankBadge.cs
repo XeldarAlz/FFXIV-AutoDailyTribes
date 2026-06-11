@@ -51,6 +51,26 @@ internal static class RankBadge
         return name.Length > 0 ? $"Rank {tribe.Rank} · {name}" : $"Rank {tribe.Rank}";
     }
 
+    public static (float fraction, bool maxed) Rep(TribeInfo tribe)
+    {
+        var maxed = tribe.Unlocked && tribe.Rank >= AdtConstants.MaxTribeRank;
+        var fraction = maxed
+            ? 1f
+            : tribe.RepMax > 0 ? Math.Clamp((float)tribe.RepCur / tribe.RepMax, 0f, 1f) : 0f;
+        return (fraction, maxed);
+    }
+
+    public static void RepBar(TribeInfo tribe)
+    {
+        var maxed = tribe.Unlocked && tribe.Rank >= AdtConstants.MaxTribeRank;
+        var fraction = maxed
+            ? 1f
+            : tribe.RepMax > 0
+                ? Math.Clamp((float)tribe.RepCur / tribe.RepMax, 0f, 1f)
+                : 0f;
+        DrawRepBar(fraction, tribe.Unlocked, maxed);
+    }
+
     private static void DrawRepBar(float fraction, bool active, bool maxed)
     {
         var drawList = ImGui.GetWindowDrawList();

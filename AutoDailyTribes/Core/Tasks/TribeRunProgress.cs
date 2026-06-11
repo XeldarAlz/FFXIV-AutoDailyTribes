@@ -4,6 +4,10 @@ namespace AutoDailyTribes.Core.Tasks;
 
 public enum TribePhase { Idle, Preparing, SwitchingJob, Traveling, Accepting, Delegating, Recovering, Done }
 
+public enum RunOutcome { Completed, Partial, Skipped, Stopped }
+
+public sealed record RunLogEntry(string Name, string? IconFile, RunOutcome Outcome, string Detail);
+
 // Live snapshot of a batch run, written by the controller (queue progress) and the running
 // AutoTribe (phase), read by the UI each frame. All three run on the framework thread, so no
 // locking — mirrors AutoFateController's plain snapshot.
@@ -13,17 +17,28 @@ public sealed class TribeRunProgress
     public int Completed { get; private set; }
     public TribePhase Phase { get; set; } = TribePhase.Idle;
 
+    private readonly List<RunLogEntry> log = [];
+    public IReadOnlyList<RunLogEntry> Log => log;
+
+    private long startedAtMs;
+    public long ElapsedMs => startedAtMs == 0 ? 0 : Environment.TickCount64 - startedAtMs;
+
     public int Total => RunList.Count;
     public int CurrentNumber => Math.Min(Completed + 1, Math.Max(Total, 1));
     public TribeInfo? Current => Completed < Total ? RunList[Completed] : null;
     public IEnumerable<TribeInfo> UpNext => RunList.Skip(Completed + 1);
     public float Fraction => Total == 0 ? 0f : (float)Completed / Total;
 
+    public void LogOutcome(TribeInfo tribe, RunOutcome outcome, string detail)
+        => log.Add(new RunLogEntry(tribe.Name, tribe.IconFile, outcome, detail));
+
     public void Begin(IReadOnlyList<TribeInfo> list)
     {
         RunList = list;
         Completed = 0;
         Phase = TribePhase.Preparing;
+        log.Clear();
+        startedAtMs = Environment.TickCount64;
     }
 
     public void CompleteTribe()

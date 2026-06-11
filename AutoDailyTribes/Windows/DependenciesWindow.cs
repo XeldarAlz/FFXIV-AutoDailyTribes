@@ -12,14 +12,8 @@ public sealed class DependenciesWindow : Window, IDisposable
 {
     public DependenciesWindow() : base("Auto Daily Tribes — Dependencies###AutoDailyTribesDeps")
     {
-        Flags = ImGuiWindowFlags.NoCollapse;
         Size = new Vector2(560, 420);
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(420, 280),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
-        };
     }
 
     public void Dispose() { }

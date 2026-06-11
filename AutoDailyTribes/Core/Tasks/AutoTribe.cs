@@ -35,6 +35,9 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private int  acceptFailPasses;
     private int  consecutiveStuckRetries;
 
+    private RunOutcome runOutcome = RunOutcome.Completed;
+    private string     runDetail  = "done";
+
     private TribeState lastObservedState = TribeState.Idle;
     private long lastStateChangedAtMs;
     private long lastHeartbeatAtMs;
@@ -46,6 +49,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         {
             await RunSupervised();
             Svc.Log.Info($"[ADT] {tribe.Name}: done.");
+            progress?.LogOutcome(tribe, runOutcome, runDetail);
         }
         catch (Exception ex)
         {
@@ -53,6 +57,8 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             var lastBracket = msg.LastIndexOf("] ");
             if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
             Svc.Log.Error($"[ADT] {tribe.Name} stopped: {msg}");
+            if (!CancelToken.IsCancellationRequested)
+                progress?.LogOutcome(tribe, RunOutcome.Stopped, msg);
             throw;
         }
     }

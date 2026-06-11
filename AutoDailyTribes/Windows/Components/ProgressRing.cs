@@ -116,6 +116,30 @@ internal static class ProgressRing
         ImGui.SetWindowFontScale(1f);
     }
 
+    private static void PlayTriangle(Vector2 c, float size, uint col)
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var p1 = c + new Vector2(-0.52f, -0.72f) * size;
+        var p2 = c + new Vector2(-0.52f, 0.72f) * size;
+        var p3 = c + new Vector2(0.80f, 0.00f) * size;
+        dl.AddTriangleFilled(p1, p2, p3, col);
+    }
+
+    private static void LockGlyph(Vector2 c, float size, uint col)
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var bodyW = size * 1.5f;
+        var bodyH = size * 1.2f;
+        var bodyTop = c.Y - bodyH * 0.10f;
+        dl.AddRectFilled(
+            new Vector2(c.X - bodyW * 0.5f, bodyTop),
+            new Vector2(c.X + bodyW * 0.5f, bodyTop + bodyH),
+            col, size * 0.26f);
+
+        dl.PathArcTo(new Vector2(c.X, bodyTop), bodyW * 0.30f, MathF.PI, MathF.PI * 2f, 24);
+        dl.PathStroke(col, ImDrawFlags.None, size * 0.22f);
+    }
+
     public static bool PlayButton(Vector2 c, float radius, bool enabled)
     {
         var dl = ImGui.GetWindowDrawList();
@@ -123,7 +147,7 @@ internal static class ProgressRing
         var max = c + new Vector2(radius, radius);
         var hovered = enabled && ImGui.IsMouseHoveringRect(min, max);
 
-        var accent = Styling.AccentViolet;
+        var accent = Styling.AccentTeal;
         var thickness = 4.5f * ImGuiHelpers.GlobalScale;
 
         if (enabled)
@@ -134,11 +158,12 @@ internal static class ProgressRing
             : Styling.CardBgSoft));
         Track(c, radius, thickness, enabled ? Styling.WithAlpha(accent, hovered ? 1f : 0.78f) : Styling.WithAlpha(Styling.BorderDim, 0.85f));
 
-        var glyph = enabled ? FontAwesomeIcon.Play : FontAwesomeIcon.Lock;
-        var glyphCol = enabled ? (hovered ? Styling.TextStrong : Styling.AccentVioletSoft) : Styling.TextMuted;
-        // A play triangle is visually heavier on its left edge; nudge right so it reads centred.
-        var nudge = enabled ? new Vector2(radius * 0.07f, 0f) : Vector2.Zero;
-        CenterIcon(c + nudge, glyph, glyphCol, radius * (enabled ? 0.78f : 0.62f));
+        var glyphCol = enabled ? (hovered ? Styling.TextStrong : Styling.AccentTealSoft) : Styling.TextMuted;
+        // Vector shapes instead of a scaled-up font glyph — crisp at any ring size.
+        if (enabled)
+            PlayTriangle(c + new Vector2(radius * 0.08f, 0f), radius * 0.62f, ImGui.GetColorU32(glyphCol));
+        else
+            LockGlyph(c, radius * 0.46f, ImGui.GetColorU32(glyphCol));
 
         ImGui.SetCursorScreenPos(min);
         ImGui.Dummy(max - min);
