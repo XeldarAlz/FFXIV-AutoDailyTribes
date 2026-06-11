@@ -10,6 +10,11 @@ internal static class AdtConstants
     public const int QuestIdleRestartMs = 3_000;
     public const int MaxQuestRestarts = 5;
 
+    // Questionable reports IsRunning()==true even while wedged inside a step (e.g. a fishing
+    // quest it can't finish), so a single quest that shows no turn-in and no quest change for
+    // this long is treated as stuck and dropped from the batch.
+    public const int QuestStuckMs = 120_000; // 2 min
+
     public const int JobSwitchReadyMs = 5_000;
     public const int JobSwitchConfirmMs = 8_000;
     public const int JobSwitchRedispatchMs = 500;

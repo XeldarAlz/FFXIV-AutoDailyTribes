@@ -28,8 +28,8 @@ public sealed class DependenciesWindow : Window, IDisposable
     {
         using var style = Styling.PushWindowStyle();
 
-        DrawHeader();
-        ImGui.Separator();
+        WindowHeader.Draw("Required & optional plugins");
+        DrawStatusLine();
         ImGui.Spacing();
         DrawTable();
         ImGui.Spacing();
@@ -38,13 +38,8 @@ public sealed class DependenciesWindow : Window, IDisposable
         DrawFooter();
     }
 
-    private static void DrawHeader()
+    private static void DrawStatusLine()
     {
-        ImGui.SetWindowFontScale(1.18f);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
-            ImGui.TextUnformatted("Required & optional plugins");
-        ImGui.SetWindowFontScale(1.0f);
-
         var missing = ExternalPlugins.All.Count(p => ExternalPlugins.Catalog[p].Required && !ExternalPlugins.IsInstalled(p));
         using (ImRaii.PushColor(ImGuiCol.Text, missing == 0 ? Styling.AccentMint : Styling.AccentRose))
             ImGui.TextUnformatted(missing == 0

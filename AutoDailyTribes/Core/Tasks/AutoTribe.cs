@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AutoDailyTribes.Core.Tasks;
 
-public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
+public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progress = null) : AutoCommon
 {
     private readonly QuestionableIPC questionable = new();
 
@@ -65,6 +65,7 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
 
         lastStateChangedAtMs = Environment.TickCount64;
         var consecutiveErrors = 0;
+        Report(TribeState.Idle);
 
         while (!CancelToken.IsCancellationRequested)
         {
@@ -77,6 +78,7 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
                     Diag($"{tribe.Name}: {lastObservedState} -> {state}");
                     lastObservedState = state;
                     lastStateChangedAtMs = Environment.TickCount64;
+                    Report(state);
                 }
 
                 if (Environment.TickCount64 - lastHeartbeatAtMs >= HeartbeatMs)
@@ -89,7 +91,6 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
                 switch (state)
                 {
                     case TribeState.Done:
-                        Status = "Done";
                         return;
 
                     case TribeState.Unconscious:
@@ -176,6 +177,35 @@ public sealed partial class AutoTribe(TribeInfo tribe) : AutoCommon
         }
 
         return TribeState.Delegate;
+    }
+
+    // Surfaces the current state to the UI: Status drives the live activity line, progress.Phase
+    // drives the coloured phase label / hero-ring accent. Called on every state transition.
+    private void Report(TribeState state)
+    {
+        Status = state switch
+        {
+            TribeState.SwitchingJob   => $"Switching to a {tribe.Kind} job",
+            TribeState.WrongZone      => $"Teleporting to {tribe.Name}'s home zone",
+            TribeState.TravelToIssuer => "Running to the quest issuer",
+            TribeState.AcceptDailies  => "Accepting daily quests",
+            TribeState.Delegate       => "Handing quests to Questionable",
+            TribeState.Unconscious    => "Recovering — reviving",
+            TribeState.Done           => "Done",
+            _                         => "Preparing",
+        };
+
+        if (progress is null) return;
+        progress.Phase = state switch
+        {
+            TribeState.SwitchingJob                   => TribePhase.SwitchingJob,
+            TribeState.WrongZone or TribeState.TravelToIssuer => TribePhase.Traveling,
+            TribeState.AcceptDailies                  => TribePhase.Accepting,
+            TribeState.Delegate                       => TribePhase.Delegating,
+            TribeState.Unconscious                    => TribePhase.Recovering,
+            TribeState.Done                           => TribePhase.Done,
+            _                                         => TribePhase.Preparing,
+        };
     }
 
     private void LogHeartbeat(TribeState state)

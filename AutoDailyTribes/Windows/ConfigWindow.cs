@@ -1,4 +1,6 @@
+using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using System.Numerics;
@@ -19,11 +21,12 @@ public sealed class ConfigWindow : Window, IDisposable
         (15, "Culinarian (CUL)"),
     ];
 
+    // Fisher (18) is intentionally omitted: Questionable has no fishing support, so fisher
+    // dailies can't be automated. Gatherer tribes are run on Miner/Botanist only.
     private static readonly (uint id, string label)[] GathererJobs =
     [
         (16, "Miner (MIN)"),
         (17, "Botanist (BTN)"),
-        (18, "Fisher (FSH)"),
     ];
 
     private static readonly (uint id, string label)[] CombatJobs =
@@ -50,6 +53,7 @@ public sealed class ConfigWindow : Window, IDisposable
         (40, "Sage (SGE)"),
         (41, "Viper (VPR)"),
         (42, "Pictomancer (PCT)"),
+        (43, "Beastmaster (BST)"),
     ];
 
     private readonly Plugin plugin;
@@ -74,12 +78,13 @@ public sealed class ConfigWindow : Window, IDisposable
         var cfg = plugin.Configuration;
         using var style = Styling.PushWindowStyle();
 
-        DrawBehaviorSection(cfg);
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+        WindowHeader.Draw("Settings", "How Auto Daily Tribes picks a job for each tribe type, and when it pops up.");
+
+        using (SettingsGroup.Begin("Behavior"))
+            DrawBehaviorSection(cfg);
+
         DrawJobSection(
-            cfg,
+            cfg, FontAwesomeIcon.Hammer, Styling.KindCrafter,
             "Crafter tribes",
             "Ixal · Moogles · Dwarves · Loporrits · Yok Huy",
             "DoH",
@@ -87,12 +92,11 @@ public sealed class ConfigWindow : Window, IDisposable
             cfg.SelectedCrafterJob,
             CrafterJobs,
             type => cfg.CrafterJobType = type,
-            id   => cfg.SelectedCrafterJob = id);
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+            id   => cfg.SelectedCrafterJob = id,
+            footnote: null);
+
         DrawJobSection(
-            cfg,
+            cfg, FontAwesomeIcon.Leaf, Styling.KindGatherer,
             "Gatherer tribes",
             "Qitari · Omicron · Mamool Ja",
             "DoL",
@@ -100,12 +104,11 @@ public sealed class ConfigWindow : Window, IDisposable
             cfg.SelectedGathererJob,
             GathererJobs,
             type => cfg.GathererJobType = type,
-            id   => cfg.SelectedGathererJob = id);
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+            id   => cfg.SelectedGathererJob = id,
+            footnote: "Fisher is excluded — Questionable can't automate fishing, so gatherer tribes run on Miner/Botanist and any fishing daily is skipped.");
+
         DrawJobSection(
-            cfg,
+            cfg, FontAwesomeIcon.Shield, Styling.KindCombat,
             "Combat tribes",
             "Amalj'aa · Sylphs · Kobolds · Sahagin · Vanu Vanu · Vath · Kojin · Ananta · Pixie · Arkasodara · Pelupelu",
             "DoW/DoM",
@@ -113,13 +116,12 @@ public sealed class ConfigWindow : Window, IDisposable
             cfg.SelectedCombatJob,
             CombatJobs,
             type => cfg.CombatJobType = type,
-            id   => cfg.SelectedCombatJob = id);
+            id   => cfg.SelectedCombatJob = id,
+            footnote: null);
     }
 
     private static void DrawBehaviorSection(Configuration cfg)
     {
-        Styling.SectionLabel("Behavior");
-
         var b = cfg.AutoShowIfDailiesAvailable;
         if (ImGui.Checkbox("Open this window when dailies are available after login", ref b))
         {
@@ -130,6 +132,8 @@ public sealed class ConfigWindow : Window, IDisposable
 
     private static void DrawJobSection(
         Configuration cfg,
+        FontAwesomeIcon icon,
+        Vector4 accent,
         string title,
         string scope,
         string discipline,
@@ -137,25 +141,35 @@ public sealed class ConfigWindow : Window, IDisposable
         uint currentJobId,
         (uint id, string label)[] options,
         Action<JobChoice> setType,
-        Action<uint> setJob)
+        Action<uint> setJob,
+        string? footnote)
     {
-        Styling.SectionLabel(title);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextUnformatted(scope);
-        ImGui.Spacing();
-
-        DrawJobModeRadio(cfg, $"Use my currently equipped {discipline} job", JobChoice.Current, currentType, setType, discipline);
-        DrawJobModeRadio(cfg, $"Use highest-leveled {discipline} job",       JobChoice.HighestXP, currentType, setType, discipline);
-        DrawJobModeRadio(cfg, $"Use lowest-leveled {discipline} job",        JobChoice.LowestXP, currentType, setType, discipline);
-
-        var specific = currentType == JobChoice.Specific;
-        if (ImGui.RadioButton($"Specific {discipline} job:##{discipline}_specific", specific))
+        using (SettingsGroup.Begin(icon, title, accent))
         {
-            setType(JobChoice.Specific);
-            cfg.SaveDebounced();
+            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+                ImGui.TextUnformatted(scope);
+            ImGui.Spacing();
+
+            DrawJobModeRadio(cfg, $"Use my currently equipped {discipline} job", JobChoice.Current, currentType, setType, discipline);
+            DrawJobModeRadio(cfg, $"Use highest-leveled {discipline} job",       JobChoice.HighestXP, currentType, setType, discipline);
+            DrawJobModeRadio(cfg, $"Use lowest-leveled {discipline} job",        JobChoice.LowestXP, currentType, setType, discipline);
+
+            var specific = currentType == JobChoice.Specific;
+            if (ImGui.RadioButton($"Specific {discipline} job:##{discipline}_specific", specific))
+            {
+                setType(JobChoice.Specific);
+                cfg.SaveDebounced();
+            }
+            ImGui.SameLine();
+            DrawJobCombo(discipline, options, currentJobId, setJob, cfg, enabled: specific);
+
+            if (footnote is not null)
+            {
+                ImGui.Spacing();
+                using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+                    ImGui.TextWrapped(footnote);
+            }
         }
-        ImGui.SameLine();
-        DrawJobCombo(discipline, options, currentJobId, setJob, cfg, enabled: specific);
     }
 
     private static void DrawJobModeRadio(Configuration cfg, string label, JobChoice mode, JobChoice current, Action<JobChoice> setter, string discipline)

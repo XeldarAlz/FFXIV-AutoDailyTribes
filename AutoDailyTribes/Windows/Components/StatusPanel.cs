@@ -1,5 +1,4 @@
 using AutoDailyTribes.Core;
-using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -9,26 +8,21 @@ using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
 
+// Idle summary shown in the setup view: daily allowance + reset countdown + a one-line "what next"
+// hint. The live run state lives in RunningPanel, so this panel never needs the controller.
 internal static class StatusPanel
 {
     private const float StateScale = 1.25f;
 
-    public static void Draw(AutoTribeController controller)
+    public static void Draw()
     {
-        var running = controller.Running;
-
         var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
         var allowanceUsed = AdtConstants.DailyAllowanceCap - allowanceLeft;
         var exhausted = allowanceLeft <= 0;
         var fraction = Math.Clamp((float)allowanceUsed / AdtConstants.DailyAllowanceCap, 0f, 1f);
 
-        var accent = running
-            ? Styling.PulseColor(Styling.AccentTeal, Styling.AccentTealSoft, Styling.PulseMedium)
-            : exhausted ? Styling.AccentMint : Styling.BorderActive * 0.55f;
-        var bg = running
-            ? Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.16f)
-            : exhausted ? Vector4.Lerp(Styling.CardBg, Styling.AccentMint, 0.06f)
-            : Styling.CardBg;
+        var accent = exhausted ? Styling.AccentMint : Styling.BorderActive * 0.55f;
+        var bg = exhausted ? Vector4.Lerp(Styling.CardBg, Styling.AccentMint, 0.06f) : Styling.CardBg;
 
         var scale = ImGuiHelpers.GlobalScale;
         var lineH = ImGui.GetTextLineHeight();
@@ -40,7 +34,7 @@ internal static class StatusPanel
         var contentH = MathF.Max(leftH, rightH);
         var cardH = contentH + 9f * scale * 2f;
 
-        using (Card.Begin("##statuspanel", new Vector2(-1, cardH), bg, accent, running ? 2.4f : 1.4f))
+        using (Card.Begin("##statuspanel", new Vector2(-1, cardH), bg, accent, 1.4f))
         {
             var origin = new Vector2(ImGui.GetCursorPosX(), ImGui.GetCursorPosY());
             var innerW = ImGui.GetContentRegionAvail().X;
@@ -48,7 +42,7 @@ internal static class StatusPanel
             var gap = 16f * scale;
             var leftW = innerW - rightW - gap;
 
-            DrawState(controller, running, exhausted, accent,
+            DrawState(exhausted, accent,
                 new Vector2(origin.X, origin.Y + (contentH - leftH) * 0.5f), leftW, lineH, rowGap);
 
             DrawAllowance(allowanceUsed, fraction, exhausted,
@@ -58,19 +52,13 @@ internal static class StatusPanel
     }
 
     private static void DrawState(
-        AutoTribeController controller, bool running, bool exhausted, Vector4 accent,
+        bool exhausted, Vector4 accent,
         Vector2 origin, float width, float lineH, float rowGap)
     {
-        var icon = running ? FontAwesomeIcon.Spinner
-            : exhausted ? FontAwesomeIcon.CheckCircle
-            : FontAwesomeIcon.PlayCircle;
-
-        var stateLabel = running ? "Running"
-            : exhausted ? "All done today"
-            : "Ready";
-
-        var activity = running ? controller.Status
-            : exhausted ? "Daily allowances spent — back after reset"
+        var icon = exhausted ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.PlayCircle;
+        var stateLabel = exhausted ? "All done today" : "Ready";
+        var activity = exhausted
+            ? "Daily allowances spent — back after reset"
             : "Pick tribes below, then hit Run selected";
 
         ImGui.SetCursorPos(origin);

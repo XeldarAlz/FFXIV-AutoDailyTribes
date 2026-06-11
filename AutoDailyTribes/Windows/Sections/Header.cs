@@ -40,20 +40,14 @@ internal static class Header
                         ? $"{selected.Length} selected, {runnable.Length} runnable — locked/maxed tribes are skipped."
                         : $"Runs {runnable.Length} tribe(s) back-to-back. Allowance cap stops the queue early.");
 
-        ImGui.SameLine();
-        using (ImRaii.Disabled(!controller.Running))
-            if (ImGui.Button("Stop"))
-                controller.Stop();
-
         if (selected.Length > 0)
         {
             ImGui.SameLine();
-            using (ImRaii.Disabled(controller.Running))
-                if (ImGui.Button("Clear selection"))
-                {
-                    cfg.SelectedTribes.Clear();
-                    cfg.SaveDebounced();
-                }
+            if (ImGui.Button("Clear selection"))
+            {
+                cfg.SelectedTribes.Clear();
+                cfg.SaveDebounced();
+            }
         }
 
         ImGui.Separator();

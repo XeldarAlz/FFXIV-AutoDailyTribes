@@ -31,7 +31,7 @@ internal static class TribeCard
         var endScreen = startScreen + new Vector2(width, height);
         var hovered = ImGui.IsMouseHoveringRect(startScreen, endScreen);
 
-        var border = ResolveBorder(tribe, selected, controller.Running);
+        var border = ResolveBorder(tribe, selected);
         var bg = ResolveBg(tribe, selected, hovered);
 
         using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height), bg, border, selected ? 2.8f : 1.2f))
@@ -115,10 +115,9 @@ internal static class TribeCard
         return Vector4.Lerp(Styling.CardBg, Styling.EraTint(tribe.Era), 1f);
     }
 
-    private static Vector4 ResolveBorder(TribeInfo tribe, bool selected, bool running)
+    private static Vector4 ResolveBorder(TribeInfo tribe, bool selected)
     {
         if (!tribe.Unlocked) return Styling.BorderLocked;
-        if (running) return Styling.PulseColor(Styling.BorderActive, Styling.AccentTealSoft, Styling.PulseMedium);
         if (selected) return Styling.AccentTealSoft;
         if (tribe.AllSlotsDone) return Styling.BorderDim;
         return Styling.BorderActive * 0.65f;

@@ -11,4 +11,8 @@ internal static class Layout
     public const float StatusPanelHeight = 60f;
     public const float StatusPanelInfoWidth = 210f;
     public const float AllowanceBarHeight = 13f;
+
+    public const float HeroRingRadius = 76f;
+    public const float PrimaryButtonHeight = 40f;
+    public const float UpNextRowHeight = 42f;
 }

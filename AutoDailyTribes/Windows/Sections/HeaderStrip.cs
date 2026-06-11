@@ -1,15 +1,25 @@
 using AutoDailyTribes.Core.External;
-using AutoDailyTribes.Core.Tasks;
-using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 
 namespace AutoDailyTribes.Windows.Sections;
 
-internal static class TopToolbar
+internal static class HeaderStrip
 {
-    public static void Draw(Plugin plugin, AutoTribeController controller)
+    public static void Draw(Plugin plugin)
+    {
+        ImGui.AlignTextToFramePadding();
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
+            ImGui.TextUnformatted("AUTO DAILY TRIBES");
+
+        DrawIconsInline(plugin);
+        ImGui.Separator();
+    }
+
+    // Right-aligns the plug/info/gear buttons on the current line. The plug tints rose/amber when a
+    // required plugin is missing / TextAdvance is disabled, so the toolbar doubles as a health light.
+    public static void DrawIconsInline(Plugin plugin)
     {
         var plugLabel = FontAwesomeIcon.Plug.ToIconString();
         var infoLabel = FontAwesomeIcon.InfoCircle.ToIconString();
@@ -40,7 +50,5 @@ internal static class TopToolbar
         if (plugClicked) plugin.ToggleDependenciesUi();
         if (infoClicked) plugin.ToggleAboutUi();
         if (gearClicked) plugin.ToggleConfigUi();
-
-        ImGui.Separator();
     }
 }

@@ -44,6 +44,13 @@ internal static class RankBadge
         return idx >= 0 && idx < RankNames.Length ? RankNames[idx] : "";
     }
 
+    public static string RankLabel(TribeInfo tribe)
+    {
+        if (!tribe.Unlocked) return "Locked";
+        var name = RankName(tribe.Rank);
+        return name.Length > 0 ? $"Rank {tribe.Rank} · {name}" : $"Rank {tribe.Rank}";
+    }
+
     private static void DrawRepBar(float fraction, bool active, bool maxed)
     {
         var drawList = ImGui.GetWindowDrawList();

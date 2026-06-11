@@ -13,10 +13,16 @@ internal static unsafe class JobSwitcher
     private const byte DohLast  = 15;
     private const byte DolFirst = 16;
     private const byte DolLast  = 18;
-    private const byte MaxClassJobId = 42; // Pictomancer — highest ClassJob id
+    private const byte MinerId    = 16;
+    private const byte BotanistId = 17;
+    private const byte MaxClassJobId = 43; // Beastmaster — highest ClassJob id (incl. limited jobs)
 
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
+
+    // Questionable has no fishing support, so Fisher (18) is never an automatable gathering target.
+    public static bool IsAutoGatherer(byte job) => job == MinerId || job == BotanistId;
+
     public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= MaxClassJobId;
 
     public static byte CurrentClassJob()
@@ -31,9 +37,10 @@ internal static unsafe class JobSwitcher
         return kind switch
         {
             TribeKind.Crafter => IsCrafter(current),
-            TribeKind.Gatherer => IsGatherer(current),
-            TribeKind.Mixed => IsCrafter(current) || IsGatherer(current),
+            TribeKind.Gatherer => IsAutoGatherer(current),
+            TribeKind.Mixed => IsCrafter(current) || IsAutoGatherer(current),
             TribeKind.Combat => IsCombat(current),
+            _ => false,
         };
     }
 
@@ -52,10 +59,10 @@ internal static unsafe class JobSwitcher
             case TribeKind.Crafter:
                 return PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
             case TribeKind.Gatherer:
-                return PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsGatherer);
+                return PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer);
             case TribeKind.Mixed:
                 var crafter = PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
-                return crafter >= 0 ? crafter : PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsGatherer);
+                return crafter >= 0 ? crafter : PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer);
             case TribeKind.Combat:
                 return PickFromCategory(cfg.CombatJobType, cfg.SelectedCombatJob, IsCombat);
             default:
@@ -72,7 +79,9 @@ internal static unsafe class JobSwitcher
 
     private static int PickFromCategory(JobChoice mode, uint specificJob, Func<byte, bool> inCategory)
     {
-        if (mode == JobChoice.Specific)
+        // Honor a specific job only if it's automatable for this category — guards against
+        // e.g. Specific=Fisher, which Questionable can't complete, falling through to MIN/BTN.
+        if (mode == JobChoice.Specific && inCategory((byte)specificJob))
         {
             var exact = FindGearsetForJob((byte)specificJob);
             if (exact >= 0) return exact;

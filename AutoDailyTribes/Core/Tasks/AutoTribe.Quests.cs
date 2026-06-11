@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.Game;
+using AutoDailyTribes.Core.Ipc;
 using AutoDailyTribes.Core.Tribes;
 using clib.Extensions;
 using Dalamud.Game.ClientState.Conditions;
@@ -17,7 +18,15 @@ public sealed partial class AutoTribe
         var gearsetId = JobSwitcher.PickGearset(tribe, Plugin.Cfg);
         if (gearsetId < 0)
         {
-            Warning($"{tribe.Name}: no {tribe.Kind} gearset found — create one for this tribe's job type — skipping");
+            var hint = tribe.Kind switch
+            {
+                TribeKind.Crafter  => "a Disciple of the Hand (crafter) gearset",
+                TribeKind.Gatherer => "a Miner or Botanist gearset (Fisher dailies can't be automated)",
+                TribeKind.Mixed    => "a crafter, Miner, or Botanist gearset",
+                TribeKind.Combat   => "a combat job gearset",
+                _                  => "a suitable gearset",
+            };
+            Warning($"{tribe.Name}: no usable gearset — create {hint} in-game, then run again — skipping");
             return false;
         }
 
@@ -177,49 +186,116 @@ public sealed partial class AutoTribe
     {
         if (accepted.Length == 0) return;
 
-        questionable.ClearQuestPriority();
-        foreach (var quest in accepted)
-            questionable.AddQuestPriority(quest);
+        // Fisher dailies can't be automated (Questionable has no fishing support), so never
+        // delegate them — flag them for manual completion instead of stalling on them.
+        var fishing     = Array.FindAll(accepted, TribeStateReader.RequiresFisher);
+        var deliverable = Array.FindAll(accepted, q => !TribeStateReader.RequiresFisher(q));
 
-        Diag($"{tribe.Name}: handing {accepted.Length} quest(s) to Questionable: " +
-             string.Join(", ", Array.ConvertAll(accepted, q => $"{q:X} ({QuestName(q)})")));
-        if (!questionable.StartQuest(accepted[0]))
-            Warning($"{tribe.Name}: Questionable.StartQuest was rejected");
+        if (fishing.Length > 0)
+            Warning($"{tribe.Name}: {fishing.Length} fishing daily(ies) can't be automated — complete manually: " +
+                    string.Join(", ", Array.ConvertAll(fishing, QuestName)));
+
+        if (deliverable.Length == 0)
+        {
+            Diag($"{tribe.Name}: only fishing dailies in journal — nothing to delegate");
+            return;
+        }
+
+        var active  = new List<uint>(deliverable); // quests still worth delegating
+        var skipped = new List<uint>();            // quests Questionable couldn't finish
+
+        void PushPriority(uint first)
+        {
+            questionable.ClearQuestPriority();
+            foreach (var quest in active)
+                questionable.AddQuestPriority(quest);
+            if (!questionable.StartQuest(first))
+                Warning($"{tribe.Name}: Questionable.StartQuest was rejected");
+        }
+
+        Diag($"{tribe.Name}: handing {active.Count} quest(s) to Questionable: " +
+             string.Join(", ", active.ConvertAll(q => $"{q:X} ({QuestName(q)})")));
+        PushPriority(active[0]);
 
         var deadline = Environment.TickCount64 + AdtConstants.QuestCompleteTimeoutMs;
         long? idleSinceMs = null;
         var restarts = 0;
 
+        // Progress = a quest turned in, or Questionable switched to a different quest.
+        var lastPending = active.Count;
+        var lastCurrentId = questionable.CurrentQuestId();
+        var progressSinceMs = Environment.TickCount64;
+
         try
         {
             while (Environment.TickCount64 < deadline && !CancelToken.IsCancellationRequested)
             {
-                var pending = Array.FindAll(accepted, questionable.IsQuestAccepted);
-                if (pending.Length == 0)
+                var pending = active.FindAll(questionable.IsQuestAccepted);
+                if (pending.Count == 0)
                 {
-                    Diag($"{tribe.Name}: all {accepted.Length} quest(s) turned in");
+                    if (skipped.Count == 0) Diag($"{tribe.Name}: all {deliverable.Length} delegated quest(s) turned in");
+                    else Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
                     return;
                 }
-                Status = $"Questionable: {accepted.Length - pending.Length}/{accepted.Length} done";
 
+                var done = deliverable.Length - pending.Count - skipped.Count;
+                Status = $"Questionable: {done}/{deliverable.Length} done";
+
+                var now = Environment.TickCount64;
+                var currentId = questionable.CurrentQuestId();
+                if (pending.Count < lastPending || currentId != lastCurrentId)
+                {
+                    lastPending = pending.Count;
+                    lastCurrentId = currentId;
+                    progressSinceMs = now;
+                }
+
+                // No turn-in and no quest change for too long → blame the active quest, drop it,
+                // and keep going with the rest. Fires whether Questionable is busy-wedged (e.g. an
+                // unautomatable fishing step) or idle-looping on a quest it can't run — in the
+                // latter case an undroppable quest at the head of the list would otherwise starve
+                // the doable ones, since Questionable always picks the first accepted quest.
+                if (now - progressSinceMs >= AdtConstants.QuestStuckMs)
+                {
+                    var stuck = currentId is null ? 0u : pending.Find(q => QuestionableIPC.Compact(q) == currentId);
+                    if (stuck == 0u) stuck = pending[0];
+
+                    Warning($"{tribe.Name}: Questionable made no progress on {stuck:X} ({QuestName(stuck)}) for {AdtConstants.QuestStuckMs / 1000}s — skipping it");
+                    active.Remove(stuck);
+                    skipped.Add(stuck);
+
+                    var remaining = active.FindAll(questionable.IsQuestAccepted);
+                    if (remaining.Count == 0)
+                    {
+                        Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                        return;
+                    }
+
+                    Diag($"{tribe.Name}: re-prioritising {remaining.Count} remaining quest(s)");
+                    PushPriority(remaining[0]);
+                    lastPending = remaining.Count;
+                    lastCurrentId = null;
+                    progressSinceMs = now;
+                    idleSinceMs = null;
+                    restarts = 0;
+                    await NextFrame(100);
+                    continue;
+                }
+
+                // Secondary nudge: if Questionable goes idle, restart the batch a few times to get
+                // it moving again; the stall-drop above is the real terminator if restarts don't help.
                 if (questionable.IsRunning())
                 {
                     idleSinceMs = null;
                 }
                 else
                 {
-                    var now = Environment.TickCount64;
                     idleSinceMs ??= now;
-                    if (now - idleSinceMs.Value >= AdtConstants.QuestIdleRestartMs)
+                    if (now - idleSinceMs.Value >= AdtConstants.QuestIdleRestartMs && restarts < AdtConstants.MaxQuestRestarts)
                     {
-                        if (restarts >= AdtConstants.MaxQuestRestarts)
-                        {
-                            Warning($"{tribe.Name}: Questionable idle with {pending.Length} quest(s) left after {restarts} restarts — giving up");
-                            return;
-                        }
                         restarts++;
-                        Diag($"{tribe.Name}: Questionable went idle ({pending.Length} left) — restarting [{restarts}/{AdtConstants.MaxQuestRestarts}]");
-                        questionable.StartQuest(pending[0]);
+                        Diag($"{tribe.Name}: Questionable went idle ({pending.Count} left) — restarting [{restarts}/{AdtConstants.MaxQuestRestarts}]");
+                        PushPriority(pending[0]);
                         idleSinceMs = null;
                     }
                 }

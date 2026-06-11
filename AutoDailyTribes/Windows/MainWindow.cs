@@ -16,10 +16,10 @@ public sealed class MainWindow : Window, IDisposable
         this.plugin = plugin;
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(520, 360),
+            MinimumSize = new Vector2(520, 380),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
-        Size = new Vector2(720, 520);
+        Size = new Vector2(720, 560);
         SizeCondition = ImGuiCond.FirstUseEver;
         Flags = ImGuiWindowFlags.NoCollapse;
     }
@@ -33,12 +33,12 @@ public sealed class MainWindow : Window, IDisposable
 
         using var style = Styling.PushWindowStyle();
 
-        TopToolbar.Draw(plugin, ctrl);
+        HeaderStrip.Draw(plugin);
         DependencyBanner.Draw(plugin);
-        StatusPanel.Draw(ctrl);
-        ImGui.Spacing();
-        Header.Draw(ctrl, cfg);
-        TribeList.Draw(ctrl, cfg);
+
+        if (ctrl.Running) RunningPanel.Draw(ctrl);
+        else              SetupPanel.Draw(ctrl, cfg);
+
         Footer.Draw();
     }
 }
