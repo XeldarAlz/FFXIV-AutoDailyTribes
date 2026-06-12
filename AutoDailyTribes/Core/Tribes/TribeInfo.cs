@@ -29,6 +29,15 @@ public sealed class TribeInfo
 
     public int AcceptedTodayCount;
 
+    // A mid-day rank-up refreshes the tribe's three daily offers, but the game keeps the old
+    // entries in its daily-done slots until the 15:00 UTC reset — this holds that stale count.
+    public int RankCycleBaseline;
+    internal int LastSeenRank = -1;
+    internal ulong LastSeenCid;
+    internal DateTime LastRefreshUtc;
+
+    public bool DailiesRefreshedByRankUp => RankCycleBaseline > 0;
+
     public bool MeetsRankRequirement => Rank >= MinRankForDailies;
     public int AcceptSlotsRemaining => Math.Max(0, AdtConstants.MaxAcceptsPerTribe - AcceptedTodayCount);
     public bool HasInProgressQuests => InProgressQuestIds.Length > 0;

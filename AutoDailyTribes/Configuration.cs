@@ -21,6 +21,10 @@ public sealed class Configuration : IPluginConfiguration
 
     public List<uint> SelectedTribes { get; set; } = [];
 
+    // Per character+tribe rank-cycle memory (key "{contentId}:{beastTribeId}") so a plugin
+    // reload mid-day doesn't forget that a rank-up already refreshed the daily offers.
+    public Dictionary<string, TribeCycleState> RankCycles { get; set; } = [];
+
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 
     public void SaveDebounced()
@@ -28,6 +32,14 @@ public sealed class Configuration : IPluginConfiguration
         if (EzThrottler.Throttle(Core.AdtConstants.ThrottleKeys.Save, Core.AdtConstants.SaveThrottleMs))
             Save();
     }
+}
+
+[Serializable]
+public sealed class TribeCycleState
+{
+    public int LastSeenRank { get; set; } = -1;
+    public int Baseline { get; set; }
+    public DateTime SavedUtc { get; set; }
 }
 
 public enum JobChoice

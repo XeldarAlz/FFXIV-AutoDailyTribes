@@ -13,9 +13,9 @@ internal static class Layout
     public const float AllowanceBarHeight = 13f;
 
     public const float HeroRingRadius = 76f;
-    public const float PrimaryButtonHeight = 40f;
-    public const float UpNextRowHeight = 42f;
 
-    public const float StepRowHeight = 26f;
-    public const float LogRowHeight = 30f;
+    public const float RunHeroHeight = 154f;
+    public const float RunRingRadius = 52f;
+    public const float QueueChipHeight = 30f;
+    public const float LogRowHeight = 26f;
 }

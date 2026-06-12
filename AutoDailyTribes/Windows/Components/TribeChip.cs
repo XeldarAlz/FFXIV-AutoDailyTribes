@@ -6,8 +6,8 @@ using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
 
-// Compact, non-interactive pill for tribes that aren't actionable right now (done today / locked /
-// under rank). Dim by design so the eye stays on the "Ready to run" cards above.
+// Compact, non-interactive pill for unlocked tribes still under the rank needed for dailies.
+// Dim by design so the eye stays on the "Ready to run" cards above.
 internal static class TribeChip
 {
     private static readonly Vector2 Pad = new(9, 3);
@@ -38,21 +38,12 @@ internal static class TribeChip
         if (ImGui.IsMouseHoveringRect(origin, end))
         {
             using var tt = ImRaii.Tooltip();
-            ImGui.TextUnformatted(tribe.CanRankUp
-                ? "Daily rep is full — visit the issuer in-game to pick up the rank-up quest."
-                : !tribe.Unlocked ? "Complete the intro quest in-game to unlock this tribe."
-                : !tribe.MeetsRankRequirement ? $"Reach rank {tribe.MinRankForDailies} to run dailies."
-                : "All daily slots used for this tribe today.");
+            ImGui.TextUnformatted($"Reach rank {tribe.MinRankForDailies} to run dailies.");
         }
     }
 
     private static string Label(TribeInfo tribe) => Describe(tribe).label;
 
     private static (string label, Vector4 color) Describe(TribeInfo tribe)
-    {
-        if (tribe.CanRankUp) return ($"{tribe.Name} · rank up!", Styling.AccentAmber);
-        if (tribe.AllSlotsDone) return ($"{tribe.Name} · done", Styling.AccentMint);
-        if (!tribe.Unlocked) return ($"{tribe.Name} · locked", Styling.TextMuted);
-        return ($"{tribe.Name} · rank {tribe.MinRankForDailies}", Styling.TextDim);
-    }
+        => ($"{tribe.Name} · rank {tribe.MinRankForDailies}", Styling.TextDim);
 }

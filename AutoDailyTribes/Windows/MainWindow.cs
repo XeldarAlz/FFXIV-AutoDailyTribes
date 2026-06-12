@@ -27,7 +27,9 @@ public sealed class MainWindow : Window, IDisposable
 
         using var style = Styling.PushWindowStyle();
 
-        HeaderStrip.Draw(plugin);
+        // While a run is active the hero card is the headline — keep only the toolbar icons.
+        if (ctrl.Running) HeaderStrip.DrawIconsInline(plugin);
+        else HeaderStrip.Draw(plugin);
         DependencyBanner.Draw(plugin);
 
         if (ctrl.Running) RunningPanel.Draw(ctrl);

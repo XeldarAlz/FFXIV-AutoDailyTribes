@@ -2,7 +2,6 @@ using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
@@ -16,9 +15,6 @@ internal static class TribeList
 
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        DrawKindLegend();
-        Styling.VSpace(6);
-
         // Reverse() = newest expansion first (enum runs ARR..DT).
         foreach (var era in Enum.GetValues<TribeEra>().Reverse())
         {
@@ -26,54 +22,26 @@ internal static class TribeList
             if (tribes.Length == 0) continue;
 
             var ready = tribes.Where(IsRunnable).ToList();
+            var done = tribes.Where(t => t.Unlocked && t.MeetsRankRequirement && !IsRunnable(t)).ToList();
             var locked = tribes.Where(t => !t.Unlocked).ToList();
-            var rest = tribes.Where(t => !IsRunnable(t) && t.Unlocked).ToList();
+            var underRank = tribes.Where(t => t.Unlocked && !t.MeetsRankRequirement).ToList();
 
             SectionHeader(era.DisplayName(), ready.Count);
             Styling.VSpace(2);
 
-            // Ready and locked share one grid so locked cards keep the same column width and sit
-            // in their natural cell — dimmed, not blown up into a separate full-width row.
-            var cards = ready.Concat(locked).ToList();
+            // Ready, done and locked share one grid so non-ready cards keep the same column width
+            // and sit in their natural cell — dimmed, not blown up into a separate full-width row.
+            var cards = ready.Concat(done).Concat(locked).ToList();
             if (cards.Count > 0)
                 DrawGrid($"##grid_{era}", cards, controller, cfg);
 
-            if (rest.Count > 0)
+            if (underRank.Count > 0)
             {
                 if (cards.Count > 0) Styling.VSpace(3);
-                DrawChipFlow(rest);
+                DrawChipFlow(underRank);
             }
 
             Styling.VSpace(9);
-        }
-    }
-
-    // Colour key for the kind accents used on every card (stripe, icon plate, tag).
-    private static void DrawKindLegend()
-    {
-        var s = ImGuiHelpers.GlobalScale;
-        var first = true;
-        foreach (var kind in new[] { TribeKind.Combat, TribeKind.Crafter, TribeKind.Gatherer, TribeKind.Mixed })
-        {
-            if (!first) ImGui.SameLine(0, 14f * s);
-            first = false;
-
-            var color = Styling.KindColor(kind);
-            using (ImRaii.PushFont(UiBuilder.IconFont))
-            using (ImRaii.PushColor(ImGuiCol.Text, color))
-                ImGui.TextUnformatted(KindIcon.Icon(kind).ToIconString());
-            ImGui.SameLine(0, 4f * s);
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-                ImGui.TextUnformatted(kind.ToString());
-
-            if (ImGui.IsItemHovered())
-                Tooltip.For(kind switch
-                {
-                    TribeKind.Combat => "Dailies are fights — run on any combat job.",
-                    TribeKind.Crafter => "Dailies are craft hand-ins — run on a crafting class.",
-                    TribeKind.Gatherer => "Dailies are gathering turn-ins — bound to the class you accept them with.",
-                    _ => "Dailies mix quest types.",
-                });
         }
     }
 
@@ -110,8 +78,9 @@ internal static class TribeList
         foreach (var tribe in tribes)
         {
             ImGui.TableNextColumn();
-            if (tribe.Unlocked) TribeCard.Draw(tribe, controller, cfg);
-            else TribeCard.DrawLocked(tribe);
+            if (!tribe.Unlocked) TribeCard.DrawLocked(tribe);
+            else if (IsRunnable(tribe)) TribeCard.Draw(tribe, controller, cfg);
+            else TribeCard.DrawDone(tribe);
         }
     }
 

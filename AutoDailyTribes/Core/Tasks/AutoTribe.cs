@@ -167,10 +167,20 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
 
         TribeStateReader.Refresh(tribe);
 
-        if (delegated) return TribeState.Done;
-
         var remainingToAccept = Math.Min(tribe.AcceptSlotsRemaining, tribe.DailyAllowanceLeft);
         var needAccept = remainingToAccept > 0;
+
+        // A rank-up turned in during delegation refreshes the tribe's daily offers — re-open the
+        // run so the fresh quests are accepted in the same pass instead of finishing as Done.
+        if (delegated && needAccept)
+        {
+            Diag($"{tribe.Name}: accept slots reopened after delegation (rank-up refresh) — continuing");
+            delegated = false;
+            arrivedAtIssuer = false;
+            acceptFailPasses = 0;
+        }
+
+        if (delegated) return TribeState.Done;
 
         if (!needAccept && !tribe.HasInProgressQuests) return TribeState.Done;
 
