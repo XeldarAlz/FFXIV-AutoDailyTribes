@@ -55,7 +55,10 @@ internal static class SetupPanel
         var availX = ImGui.GetContentRegionAvail().X;
         var center = new Vector2(start.X + availX * 0.5f, start.Y + radius);
 
-        var clicked = ProgressRing.PlayButton(center, radius, canRun);
+        var allDone = depsOk && exhausted && runnable.Length == 0;
+        var clicked = false;
+        if (allDone) ProgressRing.DoneBadge(center, radius);
+        else clicked = ProgressRing.PlayButton(center, radius, canRun);
         var hovered = ImGui.IsMouseHoveringRect(center - new Vector2(radius), center + new Vector2(radius));
 
         ImGui.SetCursorScreenPos(start);

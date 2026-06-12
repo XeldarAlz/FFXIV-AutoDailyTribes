@@ -140,6 +140,38 @@ internal static class ProgressRing
         dl.PathStroke(col, ImDrawFlags.None, size * 0.22f);
     }
 
+    private static void CheckGlyph(Vector2 c, float size, uint col, float thickness)
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var p1 = c + new Vector2(-0.74f, 0.02f) * size;
+        var p2 = c + new Vector2(-0.20f, 0.56f) * size;
+        var p3 = c + new Vector2(0.80f, -0.54f) * size;
+        dl.AddLine(p1, p2, col, thickness);
+        dl.AddLine(p2, p3, col, thickness);
+        var cap = thickness * 0.5f;
+        dl.AddCircleFilled(p1, cap, col);
+        dl.AddCircleFilled(p2, cap, col);
+        dl.AddCircleFilled(p3, cap, col);
+    }
+
+    // The all-dailies-done hero state: a fully closed mint ring with a check — reads as 100%
+    // complete (a reward), where the lock variant of PlayButton reads as blocked.
+    public static void DoneBadge(Vector2 c, float radius)
+    {
+        var dl = ImGui.GetWindowDrawList();
+        var mint = Styling.AccentMint;
+        var thickness = 4.5f * ImGuiHelpers.GlobalScale;
+
+        Glow(c, radius, mint, 0.50f + 0.25f * Styling.Pulse(Styling.PulseBreath));
+        dl.AddCircleFilled(c, radius - thickness * 0.5f,
+            ImGui.GetColorU32(Vector4.Lerp(Styling.CardBg, mint, 0.10f)));
+        Track(c, radius, thickness, Styling.WithAlpha(mint, 0.92f));
+        CheckGlyph(c, radius * 0.52f, ImGui.GetColorU32(mint), thickness);
+
+        ImGui.SetCursorScreenPos(c - new Vector2(radius));
+        ImGui.Dummy(new Vector2(radius * 2f));
+    }
+
     public static bool PlayButton(Vector2 c, float radius, bool enabled)
     {
         var dl = ImGui.GetWindowDrawList();
