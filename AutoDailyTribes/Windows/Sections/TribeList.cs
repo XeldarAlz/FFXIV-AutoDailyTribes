@@ -13,32 +13,49 @@ internal static class TribeList
     public static bool IsRunnable(TribeInfo t)
         => t.Unlocked && t.MeetsRankRequirement && (t.AcceptSlotsRemaining > 0 || t.HasInProgressQuests);
 
+    private static readonly List<TribeInfo> cardBuffer = [];
+    private static readonly List<TribeInfo> underRankBuffer = [];
+
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        // Reverse() = newest expansion first (enum runs ARR..DT).
-        foreach (var era in Enum.GetValues<TribeEra>().Reverse())
+        var eras = TribeRegistry.ErasNewestFirst;
+        for (var eraIndex = 0; eraIndex < eras.Length; eraIndex++)
         {
-            var tribes = TribeRegistry.ByEra(era).ToArray();
-            if (tribes.Length == 0) continue;
+            var (era, tribes) = eras[eraIndex];
 
-            var ready = tribes.Where(IsRunnable).ToList();
-            var done = tribes.Where(t => t.Unlocked && t.MeetsRankRequirement && !IsRunnable(t)).ToList();
-            var locked = tribes.Where(t => !t.Unlocked).ToList();
-            var underRank = tribes.Where(t => t.Unlocked && !t.MeetsRankRequirement).ToList();
+            cardBuffer.Clear();
+            underRankBuffer.Clear();
+            var readyCount = 0;
 
-            SectionHeader(era.DisplayName(), ready.Count);
+            for (var i = 0; i < tribes.Length; i++)
+            {
+                if (IsRunnable(tribes[i])) { cardBuffer.Add(tribes[i]); readyCount++; }
+            }
+            for (var i = 0; i < tribes.Length; i++)
+            {
+                var tribe = tribes[i];
+                if (tribe.Unlocked && tribe.MeetsRankRequirement && !IsRunnable(tribe)) cardBuffer.Add(tribe);
+            }
+            for (var i = 0; i < tribes.Length; i++)
+            {
+                if (!tribes[i].Unlocked) cardBuffer.Add(tribes[i]);
+            }
+            for (var i = 0; i < tribes.Length; i++)
+            {
+                var tribe = tribes[i];
+                if (tribe.Unlocked && !tribe.MeetsRankRequirement) underRankBuffer.Add(tribe);
+            }
+
+            SectionHeader(era.DisplayName(), readyCount);
             Styling.VSpace(2);
 
-            // Ready, done and locked share one grid so non-ready cards keep the same column width
-            // and sit in their natural cell — dimmed, not blown up into a separate full-width row.
-            var cards = ready.Concat(done).Concat(locked).ToList();
-            if (cards.Count > 0)
-                DrawGrid($"##grid_{era}", cards, controller, cfg);
+            if (cardBuffer.Count > 0)
+                DrawGrid($"##grid_{era}", cardBuffer, controller, cfg);
 
-            if (underRank.Count > 0)
+            if (underRankBuffer.Count > 0)
             {
-                if (cards.Count > 0) Styling.VSpace(3);
-                DrawChipFlow(underRank);
+                if (cardBuffer.Count > 0) Styling.VSpace(3);
+                DrawChipFlow(underRankBuffer);
             }
 
             Styling.VSpace(9);

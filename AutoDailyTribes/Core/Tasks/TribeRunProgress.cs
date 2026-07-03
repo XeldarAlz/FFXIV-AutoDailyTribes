@@ -26,7 +26,6 @@ public sealed class TribeRunProgress
     public int Total => RunList.Count;
     public int CurrentNumber => Math.Min(Completed + 1, Math.Max(Total, 1));
     public TribeInfo? Current => Completed < Total ? RunList[Completed] : null;
-    public IEnumerable<TribeInfo> UpNext => RunList.Skip(Completed + 1);
     public float Fraction => Total == 0 ? 0f : (float)Completed / Total;
 
     public void LogOutcome(TribeInfo tribe, RunOutcome outcome, string detail)

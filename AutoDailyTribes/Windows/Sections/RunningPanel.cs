@@ -5,6 +5,7 @@ using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.Throttlers;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Sections;
@@ -21,11 +22,11 @@ internal static class RunningPanel
         Styling.VSpace(4);
         DrawHeroCard(controller, progress, accent, accentSoft, label);
 
-        var upNext = progress.UpNext.ToArray();
-        if (upNext.Length > 0)
+        var upNextCount = progress.Total - (progress.Completed + 1);
+        if (upNextCount > 0)
         {
             Styling.VSpace(10);
-            DrawQueue(upNext);
+            DrawQueue(progress, upNextCount);
         }
 
         if (progress.Log.Count > 0)
@@ -204,28 +205,36 @@ internal static class RunningPanel
             ImGui.TextUnformatted(text);
     }
 
+    private static readonly (string label, int rank)[] StepperSteps =
+    {
+        ("Switch job", 1),
+        ("Travel",     2),
+        ("Accept",     3),
+        ("Delegate",   4),
+    };
+
+    private static string StepSuffix(int rank, TribeInfo? cur) => rank switch
+    {
+        3 => cur is null ? "" : $"{Math.Min(cur.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe)}/{AdtConstants.MaxAcceptsPerTribe}",
+        4 => cur is { InProgressQuestIds.Length: > 0 } ? $"{cur.InProgressQuestIds.Length} left" : "",
+        _ => "",
+    };
+
     private static void DrawStepper(TribeRunProgress progress, float x, float y, float width)
     {
         var s = ImGuiHelpers.GlobalScale;
         var rank = PhaseRank(progress.Phase);
         var cur = progress.Current;
 
-        var steps = new (string label, int rank, string suffix)[]
-        {
-            ("Switch job", 1, ""),
-            ("Travel",     2, ""),
-            ("Accept",     3, cur is null ? "" : $"{Math.Min(cur.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe)}/{AdtConstants.MaxAcceptsPerTribe}"),
-            ("Delegate",   4, cur is { InProgressQuestIds.Length: > 0 } ? $"{cur.InProgressQuestIds.Length} left" : ""),
-        };
-
         var gap = 8f * s;
-        var segW = (width - gap * (steps.Length - 1)) / steps.Length;
+        var segW = (width - gap * (StepperSteps.Length - 1)) / StepperSteps.Length;
         var barH = 3f * s;
         var dl = ImGui.GetWindowDrawList();
 
-        for (var i = 0; i < steps.Length; i++)
+        for (var i = 0; i < StepperSteps.Length; i++)
         {
-            var (label, r, suffix) = steps[i];
+            var (label, r) = StepperSteps[i];
+            var suffix = StepSuffix(r, cur);
             var state = r < rank ? StepState.Done : r == rank ? StepState.Active : StepState.Pending;
             var segX = x + i * (segW + gap);
 
@@ -286,25 +295,26 @@ internal static class RunningPanel
                 controller.Stop();
     }
 
-    private static void DrawQueue(TribeInfo[] upNext)
+    private static void DrawQueue(TribeRunProgress progress, int upNextCount)
     {
         var s = ImGuiHelpers.GlobalScale;
-        Styling.SectionLabel(upNext.Length == 1 ? "Up next" : $"Up next · {upNext.Length}");
+        Styling.SectionLabel(upNextCount == 1 ? "Up next" : $"Up next · {upNextCount}");
         Styling.VSpace(2);
 
+        var refresh = EzThrottler.Throttle(AdtConstants.ThrottleKeys.UiRefresh, AdtConstants.UiRefreshMs);
         var maxX = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
-        var first = true;
-        foreach (var tribe in upNext)
+        var startIndex = progress.Completed + 1;
+        for (var index = startIndex; index < progress.Total; index++)
         {
-            TribeStateReader.Refresh(tribe);
-            if (!first)
+            var tribe = progress.RunList[index];
+            if (refresh) TribeStateReader.Refresh(tribe);
+            if (index > startIndex)
             {
                 ImGui.SameLine(0, 6f * s);
                 if (ImGui.GetCursorScreenPos().X + QueueChip.Width(tribe) > maxX)
                     ImGui.NewLine();
             }
             QueueChip.Draw(tribe);
-            first = false;
         }
     }
 

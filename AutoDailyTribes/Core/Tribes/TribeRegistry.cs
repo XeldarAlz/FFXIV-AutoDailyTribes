@@ -227,5 +227,18 @@ public static class TribeRegistry
         },
     ];
 
-    public static IEnumerable<TribeInfo> ByEra(TribeEra era) => Tribes.Where(t => t.Era == era);
+    public static readonly (TribeEra Era, TribeInfo[] Members)[] ErasNewestFirst = BuildErasNewestFirst();
+
+    private static (TribeEra, TribeInfo[])[] BuildErasNewestFirst()
+    {
+        var eras = Enum.GetValues<TribeEra>();
+        var groups = new List<(TribeEra, TribeInfo[])>(eras.Length);
+        for (var index = eras.Length - 1; index >= 0; index--)
+        {
+            var era = eras[index];
+            var members = Array.FindAll(Tribes, tribe => tribe.Era == era);
+            if (members.Length > 0) groups.Add((era, members));
+        }
+        return groups.ToArray();
+    }
 }
