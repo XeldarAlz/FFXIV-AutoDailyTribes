@@ -1,7 +1,9 @@
 using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.Debug;
 using AutoDailyTribes.Core.Tasks;
+using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows;
+using AutoDailyTribes.Windows.Sections;
 using clib;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
@@ -9,6 +11,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
+using ECommons.Events;
 
 namespace AutoDailyTribes;
 
@@ -61,10 +64,14 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
+
+        ProperOnLogin.RegisterInteractable(OnProperLogin, fireImmediately: true);
     }
 
     public void Dispose()
     {
+        ProperOnLogin.Unregister(OnProperLogin);
+
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
@@ -80,6 +87,20 @@ public sealed class Plugin : IDalamudPlugin
 
         CLibMain.Dispose();
         ECommonsMain.Dispose();
+    }
+
+    private void OnProperLogin()
+    {
+        if (!Configuration.AutoShowIfDailiesAvailable) return;
+        if (mainWindow.IsOpen) return;
+
+        for (var index = 0; index < TribeRegistry.Tribes.Length; index++)
+            TribeStateReader.Refresh(TribeRegistry.Tribes[index]);
+
+        if (TribeStateReader.GlobalAllowanceLeft() <= 0) return;
+        if (!Array.Exists(TribeRegistry.Tribes, TribeList.IsRunnable)) return;
+
+        mainWindow.IsOpen = true;
     }
 
     private void OnCommand(string command, string args)

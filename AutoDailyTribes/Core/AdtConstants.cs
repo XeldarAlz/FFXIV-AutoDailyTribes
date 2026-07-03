@@ -25,7 +25,10 @@ internal static class AdtConstants
     internal static class ThrottleKeys
     {
         public const string Save = "AutoDailyTribes.Save";
+        public const string UiRefresh = "AutoDailyTribes.UiRefresh";
     }
 
     public const int SaveThrottleMs = 500;
+
+    public const int UiRefreshMs = 200;
 }

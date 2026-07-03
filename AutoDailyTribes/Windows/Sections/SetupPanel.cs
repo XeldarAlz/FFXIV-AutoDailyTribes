@@ -6,6 +6,7 @@ using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using ECommons.Throttlers;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Sections;
@@ -14,8 +15,11 @@ internal static class SetupPanel
 {
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        foreach (var tribe in TribeRegistry.Tribes)
-            TribeStateReader.Refresh(tribe);
+        if (EzThrottler.Throttle(AdtConstants.ThrottleKeys.UiRefresh, AdtConstants.UiRefreshMs))
+        {
+            foreach (var tribe in TribeRegistry.Tribes)
+                TribeStateReader.Refresh(tribe);
+        }
 
         var ready = TribeRegistry.Tribes.Where(TribeList.IsRunnable).ToList();
         PruneSelection(cfg, ready);

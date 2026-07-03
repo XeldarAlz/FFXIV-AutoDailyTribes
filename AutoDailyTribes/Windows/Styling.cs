@@ -26,13 +26,6 @@ internal static class Styling
     public static readonly Vector4 KindGatherer = new(0.50f, 0.82f, 0.52f, 1.00f);
     public static readonly Vector4 KindMixed    = new(0.72f, 0.55f, 0.93f, 1.00f);
 
-    public static readonly Vector4 EraARR  = new(0.92f, 0.78f, 0.42f, 0.08f);
-    public static readonly Vector4 EraHW   = new(0.58f, 0.72f, 0.92f, 0.08f);
-    public static readonly Vector4 EraSB   = new(0.95f, 0.55f, 0.48f, 0.08f);
-    public static readonly Vector4 EraShB  = new(0.78f, 0.62f, 0.96f, 0.08f);
-    public static readonly Vector4 EraEW   = new(0.92f, 0.62f, 0.78f, 0.08f);
-    public static readonly Vector4 EraDT   = new(0.96f, 0.74f, 0.52f, 0.08f);
-
     public static readonly Vector4 CardBg        = new(0.075f, 0.090f, 0.105f, 0.85f);
     public static readonly Vector4 CardBgSoft    = new(0.090f, 0.105f, 0.120f, 0.55f);
     public static readonly Vector4 CardBgHover   = new(0.105f, 0.125f, 0.145f, 0.95f);
@@ -124,15 +117,5 @@ internal static class Styling
         TribeKind.Crafter  => KindCrafter,
         TribeKind.Gatherer => KindGatherer,
         TribeKind.Mixed    => KindMixed,
-    };
-
-    public static Vector4 EraTint(TribeEra era) => era switch
-    {
-        TribeEra.ARR  => EraARR,
-        TribeEra.HW   => EraHW,
-        TribeEra.SB   => EraSB,
-        TribeEra.ShB  => EraShB,
-        TribeEra.EW   => EraEW,
-        TribeEra.DT   => EraDT,
     };
 }
