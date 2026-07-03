@@ -13,6 +13,9 @@ namespace AutoDailyTribes.Windows.Sections;
 
 internal static class SetupPanel
 {
+    private static readonly List<TribeInfo> readyBuffer = [];
+    private static readonly List<TribeInfo> runnableBuffer = [];
+
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
         if (EzThrottler.Throttle(AdtConstants.ThrottleKeys.UiRefresh, AdtConstants.UiRefreshMs))
@@ -21,35 +24,58 @@ internal static class SetupPanel
                 TribeStateReader.Refresh(tribe);
         }
 
-        var ready = TribeRegistry.Tribes.Where(TribeList.IsRunnable).ToList();
-        PruneSelection(cfg, ready);
+        readyBuffer.Clear();
+        for (var i = 0; i < TribeRegistry.Tribes.Length; i++)
+        {
+            var tribe = TribeRegistry.Tribes[i];
+            if (TribeList.IsRunnable(tribe)) readyBuffer.Add(tribe);
+        }
+        PruneSelection(cfg, readyBuffer);
 
         var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
         var exhausted = allowanceLeft <= 0;
 
-        var selectedReady = ready.Where(t => cfg.SelectedTribes.Contains(t.BeastTribeId)).ToArray();
-        var runnable = selectedReady
-            .Where(t => (t.AcceptSlotsRemaining > 0 && !exhausted) || t.HasInProgressQuests)
-            .ToArray();
+        runnableBuffer.Clear();
+        var selectedReadyCount = 0;
+        for (var i = 0; i < readyBuffer.Count; i++)
+        {
+            var tribe = readyBuffer[i];
+            if (!cfg.SelectedTribes.Contains(tribe.BeastTribeId)) continue;
+            selectedReadyCount++;
+            if ((tribe.AcceptSlotsRemaining > 0 && !exhausted) || tribe.HasInProgressQuests)
+                runnableBuffer.Add(tribe);
+        }
 
         var depsOk = ExternalPlugins.AllRequiredInstalled();
-        var canRun = runnable.Length > 0 && depsOk;
+        var canRun = runnableBuffer.Count > 0 && depsOk;
 
-        DrawHero(controller, cfg, ready, selectedReady.Length, runnable, depsOk, exhausted, allowanceLeft, canRun);
+        DrawHero(controller, cfg, readyBuffer, selectedReadyCount, runnableBuffer, depsOk, exhausted, allowanceLeft, canRun);
         TribeList.Draw(controller, cfg);
     }
 
     // Drop tribes from the saved selection once they're no longer runnable (finished mid-session).
     private static void PruneSelection(Configuration cfg, List<TribeInfo> ready)
     {
-        var readyIds = ready.Select(t => t.BeastTribeId).ToHashSet();
-        if (cfg.SelectedTribes.RemoveAll(id => !readyIds.Contains(id)) > 0)
-            cfg.SaveDebounced();
+        var removed = false;
+        for (var i = cfg.SelectedTribes.Count - 1; i >= 0; i--)
+        {
+            if (IsReadyId(ready, cfg.SelectedTribes[i])) continue;
+            cfg.SelectedTribes.RemoveAt(i);
+            removed = true;
+        }
+        if (removed) cfg.SaveDebounced();
+    }
+
+    private static bool IsReadyId(List<TribeInfo> ready, uint beastTribeId)
+    {
+        for (var i = 0; i < ready.Count; i++)
+            if (ready[i].BeastTribeId == beastTribeId) return true;
+        return false;
     }
 
     private static void DrawHero(
         AutoTribeController controller, Configuration cfg, List<TribeInfo> ready,
-        int selectedCount, TribeInfo[] runnable, bool depsOk, bool exhausted, int allowanceLeft, bool canRun)
+        int selectedCount, List<TribeInfo> runnable, bool depsOk, bool exhausted, int allowanceLeft, bool canRun)
     {
         var s = ImGuiHelpers.GlobalScale;
         var radius = Layout.HeroRingRadius * s;
@@ -59,7 +85,7 @@ internal static class SetupPanel
         var availX = ImGui.GetContentRegionAvail().X;
         var center = new Vector2(start.X + availX * 0.5f, start.Y + radius);
 
-        var allDone = depsOk && exhausted && runnable.Length == 0;
+        var allDone = depsOk && exhausted && runnable.Count == 0;
         var clicked = false;
         if (allDone) ProgressRing.DoneBadge(center, radius);
         else clicked = ProgressRing.PlayButton(center, radius, canRun);
@@ -69,10 +95,10 @@ internal static class SetupPanel
         ImGui.Dummy(new Vector2(availX, radius * 2f));
 
         if (clicked) controller.RunAll(runnable);
-        if (hovered) DrawHeroTooltip(depsOk, exhausted, selectedCount, runnable.Length);
+        if (hovered) DrawHeroTooltip(depsOk, exhausted, selectedCount, runnable.Count);
 
         Styling.VSpace(8);
-        var (caption, captionColor) = Caption(depsOk, exhausted, selectedCount, runnable.Length);
+        var (caption, captionColor) = Caption(depsOk, exhausted, selectedCount, runnable.Count);
         Styling.TextCentered(caption, captionColor, 1.15f);
 
         Styling.VSpace(2);
