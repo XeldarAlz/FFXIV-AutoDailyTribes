@@ -61,7 +61,7 @@ public sealed class ConfigWindow : Window, IDisposable
     public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
     {
         this.plugin = plugin;
-        Size = new Vector2(460, 480);
+        Size = new Vector2(460, 560);
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
@@ -72,10 +72,13 @@ public sealed class ConfigWindow : Window, IDisposable
         var cfg = plugin.Configuration;
         using var style = Styling.PushWindowStyle();
 
-        WindowHeader.Draw("Settings", "How Auto Daily Tribes picks a job for each tribe type, and when it pops up.");
+        WindowHeader.Draw("Settings", "How Auto Daily Tribes picks a job for each tribe type, when it pops up, and what runs once it finishes.");
 
         using (SettingsGroup.Begin("Behavior"))
             DrawBehaviorSection(cfg);
+
+        using (SettingsGroup.Begin(FontAwesomeIcon.Terminal, "After the run", Styling.AccentBlue))
+            DrawPostRunSection(cfg);
 
         DrawJobSection(
             cfg, FontAwesomeIcon.Hammer, Styling.KindCrafter,
@@ -120,6 +123,26 @@ public sealed class ConfigWindow : Window, IDisposable
         if (ImGui.Checkbox("Open this window when dailies are available after login", ref b))
         {
             cfg.AutoShowIfDailiesAvailable = b;
+            cfg.SaveDebounced();
+        }
+    }
+
+    private static void DrawPostRunSection(Configuration cfg)
+    {
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            ImGui.TextWrapped("Chat commands to run when every queued tribe has finished — one per line, e.g. \"/li home\" or \"/ays m\". Lines not starting with '/' are skipped, so nothing is ever said in chat. They do not run when you press Stop.");
+        ImGui.Spacing();
+
+        var commands = cfg.PostRunCommands;
+        var lineCount = 1;
+        for (var charIndex = 0; charIndex < commands.Length; charIndex++)
+        {
+            if (commands[charIndex] == '\n') lineCount++;
+        }
+        var boxHeight = ImGui.GetTextLineHeight() * Math.Clamp(lineCount + 1, 3, 8) + ImGui.GetStyle().FramePadding.Y * 2f;
+        if (ImGui.InputTextMultiline("##postRunCommands", ref commands, 1000, new Vector2(ImGui.GetContentRegionAvail().X, boxHeight)))
+        {
+            cfg.PostRunCommands = commands;
             cfg.SaveDebounced();
         }
     }

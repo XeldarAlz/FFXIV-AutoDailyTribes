@@ -21,6 +21,10 @@ public sealed class Configuration : IPluginConfiguration
 
     public List<uint> SelectedTribes { get; set; } = [];
 
+    // Chat commands (one per line, each starting with '/') dispatched after a batch run
+    // finishes naturally — e.g. "/ays m" to hand off to AutoRetainer. See issue #17.
+    public string PostRunCommands { get; set; } = string.Empty;
+
     // Per character+tribe rank-cycle memory (key "{contentId}:{beastTribeId}") so a plugin
     // reload mid-day doesn't forget that a rank-up already refreshed the daily offers.
     public Dictionary<string, TribeCycleState> RankCycles { get; set; } = [];

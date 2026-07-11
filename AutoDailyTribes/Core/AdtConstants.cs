@@ -22,6 +22,10 @@ internal static class AdtConstants
     public const string PrimaryCommand = "/adt";
     public const string AliasCommand = "/dailytribes";
 
+    // Some plugin commands misbehave when several arrive in the same frame, so queued
+    // post-run commands are spaced out rather than fired back-to-back.
+    public const int PostRunCommandSpacingMs = 500;
+
     internal static class ThrottleKeys
     {
         public const string Save = "AutoDailyTribes.Save";

@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.External;
+using AutoDailyTribes.Core.Game;
 using AutoDailyTribes.Core.Tribes;
 using clib.Services;
 using System.Threading;
@@ -60,6 +61,7 @@ internal sealed class AutoTribeController
         {
             Diag("RunAll: all queued tribes processed.");
             progress.End();
+            ChatCommands.Dispatch(Plugin.Cfg.PostRunCommands);
             return;
         }
 
