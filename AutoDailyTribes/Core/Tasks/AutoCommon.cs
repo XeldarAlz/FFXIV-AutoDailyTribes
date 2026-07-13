@@ -29,6 +29,16 @@ public abstract class AutoCommon : TaskBase
         || Svc.Condition[ConditionFlag.WatchingCutscene]
         || Svc.Condition[ConditionFlag.WatchingCutscene78];
 
+    internal static bool IsActivelyBusy()
+        => IsPositionFrozenLegit()
+        || Svc.Condition[ConditionFlag.InCombat]
+        || Svc.Condition[ConditionFlag.Gathering]
+        || Svc.Condition[ConditionFlag.Crafting]
+        || Svc.Condition[ConditionFlag.ExecutingCraftingAction]
+        || Svc.Condition[ConditionFlag.PreparingToCraft]
+        || Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
+        || Svc.Condition[ConditionFlag.OccupiedInEvent];
+
     internal Func<bool> IdleStallAbort(int timeoutMs)
     {
         Vector3? anchor = null;

@@ -5,6 +5,7 @@ using clib.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using System.Numerics;
 using System.Threading.Tasks;
 
 namespace AutoDailyTribes.Core.Tasks;
@@ -246,9 +247,9 @@ public sealed partial class AutoTribe
         long? idleSinceMs = null;
         var restarts = 0;
 
-        // Progress = a quest turned in, or Questionable switched to a different quest.
         var lastPending = active.Count;
         var lastCurrentId = questionable.CurrentQuestId();
+        var moveAnchor = Svc.Objects.LocalPlayer?.Position;
         var progressSinceMs = Environment.TickCount64;
 
         try
@@ -281,18 +282,18 @@ public sealed partial class AutoTribe
                 Status = curName is null
                     ? $"Questionable: {done}/{deliverable.Length} done"
                     : $"{curName} ({done}/{deliverable.Length})";
-                if (pending.Count < lastPending || currentId != lastCurrentId)
+                var playerPos = Svc.Objects.LocalPlayer?.Position;
+                var moved = playerPos is { } pos
+                         && (moveAnchor is null || Vector3.Distance(moveAnchor.Value, pos) > StuckMoveThresholdMeters);
+                if (pending.Count < lastPending || currentId != lastCurrentId
+                    || moved || IsActivelyBusy() || NavmeshIPC.Instance.IsBusy())
                 {
                     lastPending = pending.Count;
                     lastCurrentId = currentId;
+                    moveAnchor = playerPos ?? moveAnchor;
                     progressSinceMs = now;
                 }
 
-                // No turn-in and no quest change for too long → blame the active quest, drop it,
-                // and keep going with the rest. Fires whether Questionable is busy-wedged (e.g. an
-                // unautomatable fishing step) or idle-looping on a quest it can't run — in the
-                // latter case an undroppable quest at the head of the list would otherwise starve
-                // the doable ones, since Questionable always picks the first accepted quest.
                 if (now - progressSinceMs >= AdtConstants.QuestStuckMs)
                 {
                     var stuck = currentId is null ? 0u : pending.Find(q => QuestionableIPC.Compact(q) == currentId);
