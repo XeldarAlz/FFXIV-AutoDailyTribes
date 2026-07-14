@@ -10,6 +10,8 @@ internal static class AdtConstants
     public const int QuestIdleRestartMs = 3_000;
     public const int MaxQuestRestarts = 5;
 
+    // Questionable reports IsRunning()==true even while wedged inside a step, so the idle-restart
+    // nudge above never fires for a wedged quest — this timeout is the only terminator.
     public const int QuestStuckMs = 120_000; // 2 min
 
     public const int JobSwitchReadyMs = 5_000;

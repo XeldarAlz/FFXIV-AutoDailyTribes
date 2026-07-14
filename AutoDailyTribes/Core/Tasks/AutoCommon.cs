@@ -29,15 +29,16 @@ public abstract class AutoCommon : TaskBase
         || Svc.Condition[ConditionFlag.WatchingCutscene]
         || Svc.Condition[ConditionFlag.WatchingCutscene78];
 
+    // OccupiedInQuestEvent/OccupiedInEvent are deliberately excluded: an NPC conversation that
+    // never advances (e.g. TextAdvance disabled) latches them forever, and that wedge is the exact
+    // case the stuck timeout exists to break. Only self-terminating activity counts as progress.
     internal static bool IsActivelyBusy()
         => IsPositionFrozenLegit()
         || Svc.Condition[ConditionFlag.InCombat]
         || Svc.Condition[ConditionFlag.Gathering]
         || Svc.Condition[ConditionFlag.Crafting]
         || Svc.Condition[ConditionFlag.ExecutingCraftingAction]
-        || Svc.Condition[ConditionFlag.PreparingToCraft]
-        || Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
-        || Svc.Condition[ConditionFlag.OccupiedInEvent];
+        || Svc.Condition[ConditionFlag.PreparingToCraft];
 
     internal Func<bool> IdleStallAbort(int timeoutMs)
     {
