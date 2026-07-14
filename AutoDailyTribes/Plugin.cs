@@ -1,5 +1,6 @@
 using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.Debug;
+using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Windows;
 using clib;
@@ -77,6 +78,8 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(AdtConstants.PrimaryCommand);
         CommandManager.RemoveHandler(AdtConstants.AliasCommand);
+
+        QuestionableSettings.RestoreQuestCompletion();
 
         CLibMain.Dispose();
         ECommonsMain.Dispose();

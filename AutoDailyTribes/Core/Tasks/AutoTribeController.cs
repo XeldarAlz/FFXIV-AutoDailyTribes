@@ -29,9 +29,21 @@ internal sealed class AutoTribeController
         return false;
     }
 
+    private static bool QuestCompletionReady()
+    {
+        if (QuestionableSettings.TryBorrowQuestCompletion(out var failure)) return true;
+
+        Diag($"Start aborted: could not clear Questionable's '{QuestionableSettings.SettingDisplayName}' ({failure}).");
+        ECommons.DalamudServices.Svc.Chat.PrintError(
+            $"[ADT] Cannot start — could not check Questionable's '{QuestionableSettings.SettingDisplayName}' setting ({failure}). " +
+            $"Turn it off in Questionable's Advanced settings, then run again.");
+        return false;
+    }
+
     public void RunAll(IEnumerable<TribeInfo> tribes)
     {
         if (!RequiredPluginsReady()) return;
+        if (!QuestCompletionReady()) return;
 
         var list = tribes.ToList();
         if (list.Count == 0) return;
@@ -46,6 +58,7 @@ internal sealed class AutoTribeController
     {
         Interlocked.Increment(ref runGeneration);
         Svc.Automation.Stop();
+        QuestionableSettings.RestoreQuestCompletion();
         progress.End();
     }
 
@@ -60,6 +73,7 @@ internal sealed class AutoTribeController
         if (queue.Count == 0)
         {
             Diag("RunAll: all queued tribes processed.");
+            QuestionableSettings.RestoreQuestCompletion();
             progress.End();
             ChatCommands.Dispatch(Plugin.Cfg.PostRunCommands);
             return;
