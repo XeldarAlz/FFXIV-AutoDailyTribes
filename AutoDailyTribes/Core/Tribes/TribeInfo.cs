@@ -44,6 +44,12 @@ public sealed class TribeInfo
     public bool AllSlotsDone => AcceptSlotsRemaining <= 0 && !HasInProgressQuests;
 
     public bool CanRankUp => Unlocked && Rank < AdtConstants.MaxTribeRank && RepMax > 0 && RepCur >= RepMax;
+
+    private string? cardId;
+    private string? kindLabel;
+
+    public string CardId => cardId ??= $"##tribe_{BeastTribeId}";
+    public string KindLabel => kindLabel ??= Kind.ToString();
 }
 
 public enum TribeEra
@@ -66,5 +72,15 @@ public static class TribeEraExtensions
         TribeEra.ShB => "Shadowbringers 5.0",
         TribeEra.EW  => "Endwalker 6.0",
         TribeEra.DT  => "Dawntrail 7.0",
+    };
+
+    public static string ShortName(this TribeEra era) => era switch
+    {
+        TribeEra.ARR => "A Realm Reborn",
+        TribeEra.HW  => "Heavensward",
+        TribeEra.SB  => "Stormblood",
+        TribeEra.ShB => "Shadowbringers",
+        TribeEra.EW  => "Endwalker",
+        TribeEra.DT  => "Dawntrail",
     };
 }

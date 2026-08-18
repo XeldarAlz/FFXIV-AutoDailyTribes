@@ -5,47 +5,57 @@ using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Sections;
 
 internal static class SetupPanel
 {
+    private static readonly List<TribeInfo> Selectable = [];
+    private static readonly List<TribeInfo> Runnable = [];
+
     public static void Draw(AutoTribeController controller, Configuration cfg)
     {
-        foreach (var tribe in TribeRegistry.Tribes)
-            TribeStateReader.Refresh(tribe);
-
-        var ready = TribeRegistry.Tribes.Where(TribeList.IsRunnable).ToList();
-        PruneSelection(cfg, ready);
+        var tribes = TribeRegistry.Tribes;
+        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        {
+            TribeStateReader.Refresh(tribes[tribeIndex]);
+        }
 
         var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
         var exhausted = allowanceLeft <= 0;
 
-        var selectedReady = ready.Where(t => cfg.SelectedTribes.Contains(t.BeastTribeId)).ToArray();
-        var runnable = selectedReady
-            .Where(t => (t.AcceptSlotsRemaining > 0 && !exhausted) || t.HasInProgressQuests)
-            .ToArray();
+        Selectable.Clear();
+        Runnable.Clear();
+        var selectedCount = 0;
+        var selectedReadyCount = 0;
+
+        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        {
+            var tribe = tribes[tribeIndex];
+            var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
+            if (selected) selectedCount++;
+
+            if (!TribeList.IsRunnable(tribe) || !FilterBar.PassesKindFilter(cfg, tribe)) continue;
+            Selectable.Add(tribe);
+            if (!selected) continue;
+
+            selectedReadyCount++;
+            if (tribe.HasInProgressQuests || (tribe.AcceptSlotsRemaining > 0 && !exhausted)) Runnable.Add(tribe);
+        }
 
         var depsOk = ExternalPlugins.AllRequiredInstalled();
-        var canRun = runnable.Length > 0 && depsOk;
+        var canRun = Runnable.Count > 0 && depsOk;
 
-        DrawHero(controller, cfg, ready, selectedReady.Length, runnable, depsOk, exhausted, allowanceLeft, canRun);
+        DrawHero(controller, cfg, selectedCount, selectedReadyCount, depsOk, exhausted, allowanceLeft, canRun);
+        FilterBar.Draw(cfg);
+        Styling.VSpace(7);
         TribeList.Draw(controller, cfg);
     }
 
-    // Drop tribes from the saved selection once they're no longer runnable (finished mid-session).
-    private static void PruneSelection(Configuration cfg, List<TribeInfo> ready)
-    {
-        var readyIds = ready.Select(t => t.BeastTribeId).ToHashSet();
-        if (cfg.SelectedTribes.RemoveAll(id => !readyIds.Contains(id)) > 0)
-            cfg.SaveDebounced();
-    }
-
     private static void DrawHero(
-        AutoTribeController controller, Configuration cfg, List<TribeInfo> ready,
-        int selectedCount, TribeInfo[] runnable, bool depsOk, bool exhausted, int allowanceLeft, bool canRun)
+        AutoTribeController controller, Configuration cfg, int selectedCount, int selectedReadyCount,
+        bool depsOk, bool exhausted, int allowanceLeft, bool canRun)
     {
         var s = ImGuiHelpers.GlobalScale;
         var radius = Layout.HeroRingRadius * s;
@@ -55,7 +65,7 @@ internal static class SetupPanel
         var availX = ImGui.GetContentRegionAvail().X;
         var center = new Vector2(start.X + availX * 0.5f, start.Y + radius);
 
-        var allDone = depsOk && exhausted && runnable.Length == 0;
+        var allDone = depsOk && Runnable.Count == 0 && (exhausted || selectedCount > 0);
         var clicked = false;
         if (allDone) ProgressRing.DoneBadge(center, radius);
         else clicked = ProgressRing.PlayButton(center, radius, canRun);
@@ -64,28 +74,27 @@ internal static class SetupPanel
         ImGui.SetCursorScreenPos(start);
         ImGui.Dummy(new Vector2(availX, radius * 2f));
 
-        if (clicked) controller.RunAll(runnable);
-        if (hovered) DrawHeroTooltip(depsOk, exhausted, selectedCount, runnable.Length);
+        if (clicked) controller.RunAll(Runnable.ToArray());
+        if (hovered) DrawHeroTooltip(depsOk, exhausted, selectedCount, Runnable.Count);
 
         Styling.VSpace(8);
-        var (caption, captionColor) = Caption(depsOk, exhausted, selectedCount, runnable.Length);
+        var (caption, captionColor) = Caption(depsOk, exhausted, selectedCount, Runnable.Count);
         Styling.TextCentered(caption, captionColor, 1.15f);
 
         Styling.VSpace(2);
         var used = AdtConstants.DailyAllowanceCap - allowanceLeft;
         Styling.TextCentered($"Allowance {used} / {AdtConstants.DailyAllowanceCap}   ·   Reset {ResetCountdown()}", Styling.TextDim);
 
-        DrawSelectionButtons(cfg, ready, selectedCount);
+        DrawSelectionButtons(cfg, selectedCount, selectedReadyCount);
 
         Styling.VSpace(10);
         ImGui.Separator();
-        Styling.VSpace(4);
+        Styling.VSpace(6);
     }
 
-    private static void DrawSelectionButtons(Configuration cfg, List<TribeInfo> ready, int selectedCount)
+    private static void DrawSelectionButtons(Configuration cfg, int selectedCount, int selectedReadyCount)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var canSelectAll = ready.Count > selectedCount;
+        var canSelectAll = Selectable.Count > selectedReadyCount;
         var canClear = selectedCount > 0;
         if (!canSelectAll && !canClear) return;
 
@@ -105,19 +114,24 @@ internal static class SetupPanel
         {
             if (ImGui.Button(selectAll))
             {
-                foreach (var tribe in ready)
-                    if (!cfg.SelectedTribes.Contains(tribe.BeastTribeId))
-                        cfg.SelectedTribes.Add(tribe.BeastTribeId);
+                for (var tribeIndex = 0; tribeIndex < Selectable.Count; tribeIndex++)
+                {
+                    var id = Selectable[tribeIndex].BeastTribeId;
+                    if (!cfg.SelectedTribes.Contains(id)) cfg.SelectedTribes.Add(id);
+                }
                 cfg.SaveDebounced();
             }
+            Tooltip.For("Adds every tribe currently shown as ready. Tribes hidden by the filters are left alone.");
             if (canClear) ImGui.SameLine();
         }
 
-        if (canClear && ImGui.Button(clear))
+        if (!canClear) return;
+        if (ImGui.Button(clear))
         {
             cfg.SelectedTribes.Clear();
             cfg.SaveDebounced();
         }
+        Tooltip.For("Empties your standing pick, including tribes hidden by the filters.");
     }
 
     private static (string text, Vector4 color) Caption(bool depsOk, bool exhausted, int selectedCount, int runnableCount)
@@ -125,6 +139,7 @@ internal static class SetupPanel
         if (!depsOk) return ("Install required plugins first", Styling.AccentRose);
         if (exhausted && runnableCount == 0) return ("All done today — back after reset", Styling.AccentMint);
         if (selectedCount == 0) return ("Pick tribes below to begin", Styling.TextSecondary);
+        if (runnableCount == 0) return ("Your tribes are done — back after reset", Styling.AccentMint);
         if (runnableCount < selectedCount)
             return ($"Run {runnableCount} of {selectedCount} selected", Styling.TextStrong);
         return ($"Run {runnableCount} selected tribe{(runnableCount == 1 ? "" : "s")}", Styling.TextStrong);
@@ -137,10 +152,12 @@ internal static class SetupPanel
             : exhausted && runnableCount == 0
                 ? $"All {AdtConstants.DailyAllowanceCap} daily quests done — try again after reset."
                 : selectedCount == 0
-                    ? "Tick the tribe cards below to add them to the batch, then press play."
-                    : runnableCount < selectedCount
-                        ? $"{selectedCount} selected, {runnableCount} runnable — locked/maxed tribes are skipped."
-                        : $"Run {runnableCount} tribe(s) back-to-back. The daily allowance cap stops the queue early.";
+                    ? "Tick the tribe cards below to build your list, then press play. The list is remembered, so tomorrow is one click."
+                    : runnableCount == 0
+                        ? "Every tribe in your list is finished for today. The list is kept, so it runs again after the reset."
+                        : runnableCount < selectedCount
+                            ? $"{selectedCount} in your list, {runnableCount} runnable right now — finished and locked tribes are skipped."
+                            : $"Run {runnableCount} tribe(s) back-to-back. The daily allowance cap stops the queue early.";
         Tooltip.For(text);
     }
 

@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Tribes;
 using Dalamud.Configuration;
 using ECommons.Throttlers;
 
@@ -20,6 +21,16 @@ public sealed class Configuration : IPluginConfiguration
     public uint SelectedCombatJob { get; set; } = 19;
 
     public List<uint> SelectedTribes { get; set; } = [];
+
+    public ExpansionOrder ExpansionOrder { get; set; } = ExpansionOrder.NewestFirst;
+
+    public bool HideLockedExpansions { get; set; } = true;
+
+    public List<TribeEra> CollapsedEras { get; set; } = [];
+
+    public bool ShowReadyOnly { get; set; }
+
+    public List<TribeKind> HiddenKinds { get; set; } = [];
 
     // Chat commands (one per line, each starting with '/') dispatched after a batch run
     // finishes naturally — e.g. "/ays m" to hand off to AutoRetainer. See issue #17.
@@ -44,6 +55,12 @@ public sealed class TribeCycleState
     public int LastSeenRank { get; set; } = -1;
     public int Baseline { get; set; }
     public DateTime SavedUtc { get; set; }
+}
+
+public enum ExpansionOrder
+{
+    NewestFirst,
+    OldestFirst,
 }
 
 public enum JobChoice

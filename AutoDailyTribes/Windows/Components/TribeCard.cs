@@ -14,35 +14,42 @@ internal static class TribeCard
     private const float PadX = 13f;
 
     public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
+        => DrawSelectable(tribe, controller, cfg, done: false);
+
+    public static void DrawDone(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
+        => DrawSelectable(tribe, controller, cfg, done: true);
+
+    private static void DrawSelectable(TribeInfo tribe, AutoTribeController controller, Configuration cfg, bool done)
     {
         var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
-        var selectable = tribe.Unlocked && tribe.MeetsRankRequirement && !tribe.AllSlotsDone && !controller.Running;
+        var selectable = tribe.Unlocked && tribe.MeetsRankRequirement && !controller.Running;
 
         var s = ImGuiHelpers.GlobalScale;
         var startScreen = ImGui.GetCursorScreenPos();
         var width = ImGui.GetContentRegionAvail().X;
         var height = Layout.TribeCardHeight * s;
         var hovered = ImGui.IsMouseHoveringRect(startScreen, startScreen + new Vector2(width, height));
+        var alpha = done ? selected ? 0.72f : 0.55f : 1f;
 
-        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height),
-            ResolveBg(selected, hovered), ResolveBorder(selected, hovered), selected ? 2f : 1f))
+        using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, alpha))
+        using (Card.Begin(tribe.CardId, new Vector2(-1, height),
+            ResolveBg(selected, hovered, done), ResolveBorder(selected, hovered, done), selected ? 2f : 1f))
         {
-            DrawBody(tribe, selected, hovered, selectable, locked: false);
+            DrawBody(tribe, selected, hovered, selectable, locked: false, done: done);
         }
 
-        DrawKindStripe(tribe, startScreen, height, 1f);
+        DrawKindStripe(tribe, startScreen, height, alpha);
 
         if (!hovered) return;
-        DrawTooltip(tribe, selected);
+        DrawTooltip(tribe, selected, done);
         if (!selectable) return;
 
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-        {
-            if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
-            else cfg.SelectedTribes.Add(tribe.BeastTribeId);
-            cfg.SaveDebounced();
-        }
+        if (!ImGui.IsMouseClicked(ImGuiMouseButton.Left)) return;
+
+        if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
+        else cfg.SelectedTribes.Add(tribe.BeastTribeId);
+        cfg.SaveDebounced();
     }
 
     // Same card shape as Draw, but greyed out and non-interactive: a tribe the player hasn't unlocked
@@ -56,7 +63,7 @@ internal static class TribeCard
         var hovered = ImGui.IsMouseHoveringRect(startScreen, startScreen + new Vector2(width, height));
 
         using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.45f))
-        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height),
+        using (Card.Begin(tribe.CardId, new Vector2(-1, height),
             Styling.CardBgSoft, Styling.BorderLocked))
         {
             DrawBody(tribe, selected: false, hovered: false, selectable: false, locked: true);
@@ -68,35 +75,6 @@ internal static class TribeCard
         using var tt = ImRaii.Tooltip();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
             ImGui.TextUnformatted("Complete the intro quest in-game to unlock this tribe.");
-    }
-
-    // Same card shape as Draw, but dimmed and non-interactive: all daily slots are used, so the
-    // card stays in the grid (rather than vanishing into a chip) with a done check in the corner.
-    public static void DrawDone(TribeInfo tribe)
-    {
-        var s = ImGuiHelpers.GlobalScale;
-        var startScreen = ImGui.GetCursorScreenPos();
-        var width = ImGui.GetContentRegionAvail().X;
-        var height = Layout.TribeCardHeight * s;
-        var hovered = ImGui.IsMouseHoveringRect(startScreen, startScreen + new Vector2(width, height));
-
-        using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.55f))
-        using (Card.Begin($"##tribe_{tribe.BeastTribeId}", new Vector2(-1, height),
-            Styling.CardBgSoft, Styling.BorderActive * 0.45f))
-        {
-            DrawBody(tribe, selected: false, hovered: false, selectable: false, locked: false, done: true);
-        }
-
-        DrawKindStripe(tribe, startScreen, height, 0.55f);
-
-        if (!hovered) return;
-        using var tt = ImRaii.Tooltip();
-        if (tribe.CanRankUp)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentAmber))
-                ImGui.TextUnformatted("Daily rep is full — finish the rank-up quest in-game to refresh 3 more dailies today.");
-        else
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-                ImGui.TextUnformatted("All daily slots used for this tribe today.");
     }
 
     private static void DrawBody(TribeInfo tribe, bool selected, bool hovered, bool selectable, bool locked, bool done = false)
@@ -122,7 +100,6 @@ internal static class TribeCard
         var markHalf = 8f * s;
         var markC = new Vector2(origin.X + size.X - pad - markHalf, plateMin.Y + markHalf);
         if (locked) DrawLockGlyph(markC);
-        else if (done) DrawDoneGlyph(markC, markHalf);
         else DrawSelectMark(markC, markHalf, selected, hovered, selectable);
 
         var textX = plateMax.X + 11f * s;
@@ -132,13 +109,16 @@ internal static class TribeCard
             ImGui.TextUnformatted(tribe.Name);
         ImGui.SetWindowFontScale(1f);
 
-        ImGui.SetCursorScreenPos(new Vector2(textX, plateMax.Y - ImGui.GetTextLineHeight() - 1f * s));
+        var kindLineY = plateMax.Y - ImGui.GetTextLineHeight() - 1f * s;
+        ImGui.SetCursorScreenPos(new Vector2(textX, kindLineY));
         using (ImRaii.PushFont(UiBuilder.IconFont))
         using (ImRaii.PushColor(ImGuiCol.Text, kind))
             ImGui.TextUnformatted(KindIcon.Icon(tribe.Kind).ToIconString());
         ImGui.SameLine(0, 5f * s);
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted(tribe.Kind.ToString());
+            ImGui.TextUnformatted(tribe.KindLabel);
+
+        if (done) DrawDoneTag(origin, size, pad, kindLineY);
 
         DrawDataRows(tribe, origin, size, locked);
     }
@@ -172,13 +152,12 @@ internal static class TribeCard
         }
     }
 
-    private static void DrawDoneGlyph(Vector2 center, float half)
+    private static void DrawDoneTag(Vector2 origin, Vector2 size, float pad, float lineY)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var dl = ImGui.GetWindowDrawList();
-        var check = ImGui.GetColorU32(Styling.AccentMint);
-        dl.AddLine(center + new Vector2(-0.42f, 0.02f) * half, center + new Vector2(-0.12f, 0.34f) * half, check, 2.2f * s);
-        dl.AddLine(center + new Vector2(-0.12f, 0.34f) * half, center + new Vector2(0.46f, -0.34f) * half, check, 2.2f * s);
+        const string label = "Done";
+        ImGui.SetCursorScreenPos(new Vector2(origin.X + size.X - pad - ImGui.CalcTextSize(label).X, lineY));
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
+            ImGui.TextUnformatted(label);
     }
 
     private static void DrawLockGlyph(Vector2 center)
@@ -300,13 +279,19 @@ internal static class TribeCard
 
     // The card shows the rank name; the hover carries the numeric rank, says what a click will do,
     // plus the gatherer class-binding caveat (the one kind where behavior differs).
-    private static void DrawTooltip(TribeInfo tribe, bool selected)
+    private static void DrawTooltip(TribeInfo tribe, bool selected, bool done)
     {
         using var tt = ImRaii.Tooltip();
         using var wrap = ImRaii.TextWrapPos(ImGui.GetCursorPosX() + 280f * ImGuiHelpers.GlobalScale);
 
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
             ImGui.TextUnformatted(RankBadge.RankLabel(tribe));
+
+        if (done)
+        {
+            DrawDoneTooltipBody(tribe, selected);
+            return;
+        }
 
         if (tribe.HasInProgressQuests)
             using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentAmber))
@@ -327,16 +312,37 @@ internal static class TribeCard
                 ImGui.TextUnformatted("Gathering dailies bind to the class you accept them with.");
     }
 
-    private static Vector4 ResolveBg(bool selected, bool hovered)
+    private static void DrawDoneTooltipBody(TribeInfo tribe, bool selected)
     {
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
+            ImGui.TextUnformatted("All daily slots used for this tribe today.");
+
+        if (tribe.CanRankUp)
+            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentAmber))
+                ImGui.TextUnformatted("Daily rep is full — finish the rank-up quest in-game to refresh 3 more dailies today.");
+
+        using (ImRaii.PushColor(ImGuiCol.Text, selected ? Styling.AccentTeal : Styling.AccentTealSoft))
+            ImGui.TextUnformatted(selected
+                ? "Still in your list — it runs again after the reset. Click to drop it."
+                : "Click to keep it in your list for after the reset.");
+    }
+
+    private static Vector4 ResolveBg(bool selected, bool hovered, bool done)
+    {
+        if (done)
+        {
+            var quiet = hovered ? Styling.CardBgHover : Styling.CardBgSoft;
+            return selected ? Vector4.Lerp(quiet, Styling.AccentTeal, 0.18f) : quiet;
+        }
+
         if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.30f);
         if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.20f);
         if (hovered) return Styling.CardBgHover;
         return Styling.CardBg;
     }
 
-    private static Vector4 ResolveBorder(bool selected, bool hovered)
+    private static Vector4 ResolveBorder(bool selected, bool hovered, bool done)
         => selected ? Styling.AccentTeal
             : hovered ? Styling.WithAlpha(Styling.BorderActive, 0.70f)
-            : Styling.BorderActive * 0.45f;
+            : Styling.BorderActive * (done ? 0.35f : 0.45f);
 }

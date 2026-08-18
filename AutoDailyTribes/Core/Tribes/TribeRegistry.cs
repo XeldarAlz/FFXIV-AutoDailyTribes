@@ -227,5 +227,32 @@ public static class TribeRegistry
         },
     ];
 
-    public static IEnumerable<TribeInfo> ByEra(TribeEra era) => Tribes.Where(t => t.Era == era);
+    private static readonly TribeInfo[][] EraBuckets = BuildEraBuckets();
+
+    public static TribeInfo[] ByEra(TribeEra era) => EraBuckets[(int)era];
+
+    private static TribeInfo[][] BuildEraBuckets()
+    {
+        var eraCount = Enum.GetValues<TribeEra>().Length;
+        var counts = new int[eraCount];
+        for (var tribeIndex = 0; tribeIndex < Tribes.Length; tribeIndex++)
+        {
+            counts[(int)Tribes[tribeIndex].Era]++;
+        }
+
+        var buckets = new TribeInfo[eraCount][];
+        for (var eraIndex = 0; eraIndex < eraCount; eraIndex++)
+        {
+            buckets[eraIndex] = new TribeInfo[counts[eraIndex]];
+        }
+
+        var filled = new int[eraCount];
+        for (var tribeIndex = 0; tribeIndex < Tribes.Length; tribeIndex++)
+        {
+            var eraIndex = (int)Tribes[tribeIndex].Era;
+            buckets[eraIndex][filled[eraIndex]++] = Tribes[tribeIndex];
+        }
+
+        return buckets;
+    }
 }

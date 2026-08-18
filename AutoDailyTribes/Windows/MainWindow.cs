@@ -16,6 +16,11 @@ public sealed class MainWindow : Window, IDisposable
         this.plugin = plugin;
         Size = new Vector2(720, 560);
         SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(430, 340),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
+        };
     }
 
     public void Dispose() { }

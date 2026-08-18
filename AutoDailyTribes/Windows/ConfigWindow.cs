@@ -61,8 +61,13 @@ public sealed class ConfigWindow : Window, IDisposable
     public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
     {
         this.plugin = plugin;
-        Size = new Vector2(460, 560);
+        Size = new Vector2(470, 540);
         SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(420, 300),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
+        };
     }
 
     public void Dispose() { }
@@ -72,13 +77,49 @@ public sealed class ConfigWindow : Window, IDisposable
         var cfg = plugin.Configuration;
         using var style = Styling.PushWindowStyle();
 
-        WindowHeader.Draw("Settings", "How Auto Daily Tribes picks a job for each tribe type, when it pops up, and what runs once it finishes.");
+        WindowHeader.Draw("Settings", "How the tribe list is organised, which job runs each tribe type, and what happens once a batch finishes.");
+
+        using var tabs = ImRaii.TabBar("##adtsettings");
+        if (!tabs) return;
+
+        using (var general = ImRaii.TabItem("General"))
+        {
+            if (general) DrawGeneralTab(cfg);
+        }
+
+        using (var jobs = ImRaii.TabItem("Jobs"))
+        {
+            if (jobs) DrawJobsTab(cfg);
+        }
+
+        using (var postRun = ImRaii.TabItem("After the run"))
+        {
+            if (postRun) DrawPostRunTab(cfg);
+        }
+    }
+
+    private static void DrawGeneralTab(Configuration cfg)
+    {
+        Styling.VSpace(6);
 
         using (SettingsGroup.Begin("Behavior"))
             DrawBehaviorSection(cfg);
 
+        using (SettingsGroup.Begin(FontAwesomeIcon.List, "Tribe list", Styling.AccentViolet))
+            DrawTribeListSection(cfg);
+    }
+
+    private static void DrawPostRunTab(Configuration cfg)
+    {
+        Styling.VSpace(6);
+
         using (SettingsGroup.Begin(FontAwesomeIcon.Terminal, "After the run", Styling.AccentBlue))
             DrawPostRunSection(cfg);
+    }
+
+    private static void DrawJobsTab(Configuration cfg)
+    {
+        Styling.VSpace(6);
 
         DrawJobSection(
             cfg, FontAwesomeIcon.Hammer, Styling.KindCrafter,
@@ -125,6 +166,43 @@ public sealed class ConfigWindow : Window, IDisposable
             cfg.AutoShowIfDailiesAvailable = b;
             cfg.SaveDebounced();
         }
+    }
+
+    private static void DrawTribeListSection(Configuration cfg)
+    {
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            ImGui.TextWrapped("The main window groups tribes by expansion. Early on, everything you can actually run sits at the bottom of a long scroll — these two settings fix that.");
+        ImGui.Spacing();
+
+        if (ImGui.RadioButton("Newest expansion first (Dawntrail on top)", cfg.ExpansionOrder == ExpansionOrder.NewestFirst))
+        {
+            cfg.ExpansionOrder = ExpansionOrder.NewestFirst;
+            cfg.SaveDebounced();
+        }
+
+        if (ImGui.RadioButton("Oldest expansion first (A Realm Reborn on top)", cfg.ExpansionOrder == ExpansionOrder.OldestFirst))
+        {
+            cfg.ExpansionOrder = ExpansionOrder.OldestFirst;
+            cfg.SaveDebounced();
+        }
+
+        ImGui.Spacing();
+
+        var hideLocked = cfg.HideLockedExpansions;
+        if (ImGui.Checkbox("Collapse expansions with nothing unlocked", ref hideLocked))
+        {
+            cfg.HideLockedExpansions = hideLocked;
+            cfg.SaveDebounced();
+        }
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            ImGui.TextWrapped("Expansions where you haven't unlocked a single tribe fold into one line at the bottom of the list. Their names stay visible, and one click brings the cards back.");
+
+        if (cfg.CollapsedEras.Count == 0) return;
+
+        ImGui.Spacing();
+        if (!ImGui.Button($"Expand {cfg.CollapsedEras.Count} collapsed section(s)")) return;
+        cfg.CollapsedEras.Clear();
+        cfg.SaveDebounced();
     }
 
     private static void DrawPostRunSection(Configuration cfg)
