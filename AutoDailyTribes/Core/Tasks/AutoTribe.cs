@@ -154,7 +154,8 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     {
         ErrorIf(!tribe.Unlocked, $"{tribe.Name}: not unlocked — complete the intro quest in-game first");
         ErrorIf(!tribe.MeetsRankRequirement, $"{tribe.Name}: need rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        ErrorIf(tribe.IssuerInstanceId == 0, $"{tribe.Name}: BaseId placeholder — run /adt target next to the issuer to capture the real one");
+        ErrorIf(tribe.IssuerInstanceId == 0,
+            $"{tribe.Name}: issuer ENpc {tribe.IssuerENpcBaseId} not found in territory {tribe.IssuerTerritoryId} — run /adt target next to the issuer and report both numbers");
         ErrorIf(!questionable.IsAvailable, "Questionable plugin not installed/enabled");
         ErrorIf(!NavmeshIPC.Instance.IsAvailable, "vnavmesh plugin not installed/enabled");
     }

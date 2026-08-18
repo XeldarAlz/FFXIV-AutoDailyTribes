@@ -11,8 +11,8 @@ public static class TribeRegistry
             Era = TribeEra.ARR,
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 145,                // Eastern Thanalan
-            IssuerENpcBaseId = 1005550,             // Swift
+            IssuerTerritoryId = 146,                // Southern Thanalan
+            IssuerENpcBaseId = 1005550,             // Fibubb Gah
             IconFile = "Amalj'aa_Relations.png",
         },
         new()
@@ -23,7 +23,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 152,                // East Shroud
-            IssuerENpcBaseId = 1005561,             // Komuxio
+            IssuerENpcBaseId = 1005561,             // Tonaxia
             IconFile = "Sylphic_Relations.png",
         },
         new()
@@ -34,7 +34,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 180,                // Outer La Noscea
-            IssuerENpcBaseId = 1005928,             // Drekkenfrau
+            IssuerENpcBaseId = 1005928,             // 789th Order Dustman Bo Zu
             IconFile = "Kobold_Relations.png",
         },
         new()
@@ -45,7 +45,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 138,                // Western La Noscea
-            IssuerENpcBaseId = 1005938,             // Novv
+            IssuerENpcBaseId = 1005938,             // Fyuu
             IconFile = "Sahagin_Relations.png",
         },
         new()
@@ -79,7 +79,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 398,                // The Dravanian Forelands
-            IssuerENpcBaseId = 1016803,             // Vath Keeneye
+            IssuerENpcBaseId = 1016803,             // Vath keeneye
             IconFile = "Vath_Relations.png",
         },
         new()
@@ -90,7 +90,7 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 400,                // The Churning Mists
-            IssuerENpcBaseId = 1017171,             // Mogmill
+            IssuerENpcBaseId = 1017171,             // Mogek the Marvelous
             IconFile = "Moogle_Relations.png",
         },
         new()
@@ -122,7 +122,7 @@ public static class TribeRegistry
             Era = TribeEra.SB,
             Kind = TribeKind.Mixed,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 622,                // Yanxia
+            IssuerTerritoryId = 622,                // The Azim Steppe
             IssuerENpcBaseId = 1025602,             // Seigetsu the Enlightened
             IconFile = "Namazu_Relations.png",
         },
@@ -155,7 +155,7 @@ public static class TribeRegistry
             Era = TribeEra.ShB,
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
-            IssuerTerritoryId = 813,                // Kholusia
+            IssuerTerritoryId = 813,                // Lakeland
             IssuerENpcBaseId = 1033712,             // Regitt
             IconFile = "Dwarf_Relations.png",
         },
