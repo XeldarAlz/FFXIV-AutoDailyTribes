@@ -18,7 +18,8 @@ public sealed class AboutWindow : Window, IDisposable
     private const string IconFile = "Icon.png";
     private const string WindowId = "AutoDailyTribesAbout";
 
-    private const string SponsorUrl = "https://github.com/sponsors/XeldarAlz";
+    private const string PatreonUrl = "https://www.patreon.com/XeldarAlz";
+    private const string DiscordUrl = "https://discord.gg/3HbJCscMyS";
     private const string HubUrl = "https://github.com/XeldarAlz/DalamudPlugins";
     private const string Author = "XeldarAlz";
 
@@ -29,6 +30,7 @@ public sealed class AboutWindow : Window, IDisposable
     private static readonly (FontAwesomeIcon Icon, string Label, string Url, int AccentId)[] Links =
     {
         (FontAwesomeIcon.CodeBranch, "GitHub", RepoUrl, 0),
+        (FontAwesomeIcon.Hashtag, "Discord", DiscordUrl, 5),
         (FontAwesomeIcon.Comments, "Discussions", DiscussionsUrl, 1),
         (FontAwesomeIcon.Bug, "Report a bug", IssuesUrl, 2),
         (FontAwesomeIcon.ThLarge, "More plugins", HubUrl, 3),
@@ -341,7 +343,7 @@ public sealed class AboutWindow : Window, IDisposable
         var accent = Styling.PulseColor(Styling.AccentPink, Styling.AccentViolet, 5200.0);
 
         const string title = "Made with care";
-        const string body = "I build and maintain this in my spare time. If it has helped you, a sponsorship lets me keep improving it. No pressure, and thank you for being here.";
+        const string body = "I build and maintain this in my spare time. If it has helped you, a Patreon membership lets me keep improving it. No pressure, and thank you for being here.";
 
         var slotOrigin = ImGui.GetCursorScreenPos();
         var fullAvail = ImGui.GetContentRegionAvail().X;
@@ -381,7 +383,7 @@ public sealed class AboutWindow : Window, IDisposable
 
         var btnOrigin = new Vector2(origin.X + pad, end.Y - pad - btnH);
         var btnSize = new Vector2(innerW, btnH);
-        SponsorButton(btnOrigin, btnSize, accent);
+        PatreonButton(btnOrigin, btnSize, accent);
 
         ImGui.SetCursorScreenPos(slotOrigin);
         ImGui.Dummy(new Vector2(fullAvail, height));
@@ -408,7 +410,7 @@ public sealed class AboutWindow : Window, IDisposable
         return lines;
     }
 
-    private static void SponsorButton(Vector2 origin, Vector2 size, Vector4 accent)
+    private static void PatreonButton(Vector2 origin, Vector2 size, Vector4 accent)
     {
         var s = ImGuiHelpers.GlobalScale;
         var dl = ImGui.GetWindowDrawList();
@@ -434,7 +436,7 @@ public sealed class AboutWindow : Window, IDisposable
         dl.AddRect(origin, end, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, hover ? 0.42f : 0.18f)),
             rounding, ImDrawFlags.None, 1f);
 
-        const string label = "Become a Sponsor";
+        const string label = "Support on Patreon";
         var iconStr = FontAwesomeIcon.HandHoldingHeart.ToIconString();
         Vector2 iconSize;
         using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -465,9 +467,9 @@ public sealed class AboutWindow : Window, IDisposable
         if (!hover) return;
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
         using (ImRaii.Tooltip())
-            ImGui.TextUnformatted("Open GitHub Sponsors · right-click to copy");
-        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) OpenUrl(SponsorUrl);
-        else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(SponsorUrl);
+            ImGui.TextUnformatted("Open Patreon · right-click to copy");
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) OpenUrl(PatreonUrl);
+        else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(PatreonUrl);
     }
 
     private static void Sheen(Vector2 origin, Vector2 size, double periodMs)
@@ -501,7 +503,7 @@ public sealed class AboutWindow : Window, IDisposable
         var accents = new[]
         {
             Styling.AccentViolet, Styling.AccentBlue, Styling.AccentRose,
-            Styling.AccentMint, Styling.AccentAmber,
+            Styling.AccentMint, Styling.AccentAmber, Styling.AccentDiscord,
         };
 
         var widths = new float[Links.Length];
