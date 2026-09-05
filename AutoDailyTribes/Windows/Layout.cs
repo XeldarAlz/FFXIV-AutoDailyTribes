@@ -11,7 +11,9 @@ internal static class Layout
     public const float ContentRightInset = 6f;
 
     public const float HeroButtonHeight = 54f;
-    public const float SegmentHeight = 36f;
+    public const float SegmentHeight = 40f;
+    public const float ChipHeight = 32f;
+    public const float ActionPillHeight = 30f;
     public const float LibraryHeaderHeight = 36f;
 
     public const float TribeCardHeight = 120f;
@@ -20,7 +22,6 @@ internal static class Layout
     public const float TribeIconSize = 36f;
 
     public const float TodayRingRadius = 30f;
-    public const float ChipHeight = 32f;
 
     public const float HeroCardHeight = 176f;
     public const float StatTileHeight = 66f;

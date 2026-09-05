@@ -163,7 +163,8 @@ internal sealed class PluginsPage
         var width = PillButton.Width(text, FontAwesomeIcon.Download);
         ImGui.SetCursorScreenPos(new Vector2(end.X - padX - width, midY - 15f * scale));
         ImGui.PushID((nint)((int)plugin + 1));
-        if (PillButton.Draw("##adt_install", text, Styling.AccentTeal, PillButton.Emphasis.Filled, FontAwesomeIcon.Download, enabled: !installing, height: 30f))
+        if (PillButton.Draw("##adt_install", text, Styling.AccentTeal, PillButton.Emphasis.Filled, FontAwesomeIcon.Download,
+                enabled: !installing, height: Layout.ActionPillHeight))
         {
             _ = PluginInstaller.Install(plugin);
         }

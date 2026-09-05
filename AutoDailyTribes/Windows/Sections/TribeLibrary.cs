@@ -17,7 +17,6 @@ internal static class TribeLibrary
     private const float SummaryRowHeight = 32f;
     private const float ListSlide = 8f;
     private const float ChipGap = 6f;
-    private const float ChipHeight = 26f;
     private const float FilterGroupGap = 14f;
 
     private static readonly TribeEra[] ErasNewestFirst = [TribeEra.DT, TribeEra.EW, TribeEra.ShB, TribeEra.SB, TribeEra.HW, TribeEra.ARR];
@@ -75,7 +74,7 @@ internal static class TribeLibrary
         TextDraw.SectionTitle(title, new Vector2(origin.X, midY - titleSize.Y * 0.5f), Styling.TextStrong);
 
         var x = origin.X + width;
-        var chipTop = midY - ChipHeight * scale * 0.5f;
+        var chipTop = midY - Layout.ChipHeight * scale * 0.5f;
         for (var kindIndex = Kinds.Length - 1; kindIndex >= 0; kindIndex--)
         {
             var kind = Kinds[kindIndex];
@@ -89,7 +88,7 @@ internal static class TribeLibrary
             var shown = !cfg.HiddenKinds.Contains(kind);
             var emphasis = shown ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost;
             var hint = shown ? Loc.T(L.Tribes.KindHide, label) : Loc.T(L.Tribes.KindShow, label);
-            if (PillButton.Draw(KindIds[kindIndex], label, Styling.KindColor(kind), emphasis, height: ChipHeight, tooltip: hint))
+            if (PillButton.Draw(KindIds[kindIndex], label, Styling.KindColor(kind), emphasis, height: Layout.ChipHeight, tooltip: hint))
             {
                 if (shown) cfg.HiddenKinds.Add(kind);
                 else cfg.HiddenKinds.Remove(kind);
@@ -105,7 +104,7 @@ internal static class TribeLibrary
         ImGui.SetCursorScreenPos(new Vector2(x, chipTop));
         var hideMaxed = cfg.HideMaxedTribes;
         if (PillButton.Draw("##adt_filter_not_maxed", maxedLabel, Styling.AccentTeal, hideMaxed ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost,
-                height: ChipHeight, tooltip: Loc.T(hideMaxed ? L.Tribes.NotMaxedOn : L.Tribes.NotMaxedOff)))
+                height: Layout.ChipHeight, tooltip: Loc.T(hideMaxed ? L.Tribes.NotMaxedOn : L.Tribes.NotMaxedOff)))
         {
             cfg.HideMaxedTribes = !hideMaxed;
             cfg.SaveDebounced();

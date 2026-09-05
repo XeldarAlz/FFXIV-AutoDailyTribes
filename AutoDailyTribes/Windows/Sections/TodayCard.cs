@@ -20,7 +20,6 @@ internal static class TodayCard
     private const float RingGap = 18f;
     private const float TitleGap = 6f;
     private const float StripGap = 14f;
-    private const float ButtonHeight = 28f;
 
     private static readonly string[] AllowanceLabels = BuildAllowanceLabels();
 
@@ -113,9 +112,9 @@ internal static class TodayCard
         var canClear = !ctrl.Running && plan.SelectedCount > 0;
         var label = Loc.T(L.Common.Clear);
         var width = PillButton.Width(label);
-        ImGui.SetCursorScreenPos(new Vector2(rightX - width, midY - ButtonHeight * scale * 0.5f));
+        ImGui.SetCursorScreenPos(new Vector2(rightX - width, midY - Layout.ChipHeight * scale * 0.5f));
         if (!PillButton.Draw("##adt_clear_picks", label, Styling.AccentRose, PillButton.Emphasis.Ghost,
-                enabled: canClear, height: ButtonHeight, tooltip: Loc.T(L.Tribes.ClearHint)))
+                enabled: canClear, height: Layout.ChipHeight, tooltip: Loc.T(L.Tribes.ClearHint)))
         {
             return;
         }

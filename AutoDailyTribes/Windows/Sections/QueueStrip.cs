@@ -15,7 +15,6 @@ internal static class QueueStrip
 {
     private enum StateKind { None, Done, Locked, Hidden, UnderRank }
 
-    private const float ChipHeight = 32f;
     private const float Gap = 8f;
     private const float PadX = 11f;
     private const float InnerGap = 6f;
@@ -40,7 +39,7 @@ internal static class QueueStrip
 
         var running = controller.Running;
         var scale = ImGuiHelpers.GlobalScale;
-        var height = ChipHeight * scale;
+        var height = Layout.ChipHeight * scale;
         var gap = Gap * scale;
         var timesWidth = TextDraw.IconSize(FontAwesomeIcon.Times).X;
 

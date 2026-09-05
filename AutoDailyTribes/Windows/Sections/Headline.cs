@@ -13,7 +13,6 @@ internal static class Headline
     private const float GreetingGap = 8f;
     private const float DetailGap = 6f;
     private const float RightGap = 18f;
-    private const float ButtonHeight = 30f;
 
     public static bool Draw(Configuration cfg, AutoTribeController ctrl)
     {
@@ -71,8 +70,9 @@ internal static class Headline
         {
             var label = Loc.T(L.Tribes.OpenPlugins);
             var buttonWidth = PillButton.Width(label, FontAwesomeIcon.Plug);
-            ImGui.SetCursorScreenPos(new Vector2(rightX - buttonWidth, midY - ButtonHeight * scale * 0.5f));
-            openPlugins = PillButton.Draw("##adt_open_plugins", label, Styling.AccentRose, PillButton.Emphasis.Tinted, FontAwesomeIcon.Plug, height: ButtonHeight);
+            ImGui.SetCursorScreenPos(new Vector2(rightX - buttonWidth, midY - Layout.ActionPillHeight * scale * 0.5f));
+            openPlugins = PillButton.Draw("##adt_open_plugins", label, Styling.AccentRose, PillButton.Emphasis.Tinted, FontAwesomeIcon.Plug,
+                height: Layout.ActionPillHeight);
             return buttonWidth;
         }
 
