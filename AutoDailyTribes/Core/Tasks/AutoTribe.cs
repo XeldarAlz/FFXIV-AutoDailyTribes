@@ -179,13 +179,14 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             delegated = false;
             arrivedAtIssuer = false;
             acceptFailPasses = 0;
+            jobResolved = false;   // the new rank can ask a higher level than the equipped job clears
         }
 
         if (delegated) return TribeState.Done;
 
         if (!needAccept && !tribe.HasInProgressQuests) return TribeState.Done;
 
-        if (!jobResolved && !JobSwitcher.CurrentJobSatisfies(tribe.Kind)) return TribeState.SwitchingJob;
+        if (!jobResolved && !JobSwitcher.CurrentJobSatisfies(tribe, Plugin.Cfg)) return TribeState.SwitchingJob;
 
         if (needAccept)
         {

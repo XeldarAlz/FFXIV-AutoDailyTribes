@@ -25,6 +25,9 @@ public sealed class TribeInfo
     public int RepCur, RepMax;
     public int DailyAllowanceLeft;
 
+    // Highest level any daily unlocked at the current rank asks for; 0 when the tribe has none.
+    public int RequiredLevel;
+
     public uint[] InProgressQuestIds = [];
 
     public int AcceptedTodayCount;

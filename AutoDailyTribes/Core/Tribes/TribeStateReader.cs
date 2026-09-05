@@ -32,6 +32,7 @@ internal static unsafe class TribeStateReader
         tribe.Rank = ps->GetBeastTribeRank(tribeId);
         tribe.RepCur = ps->GetBeastTribeCurrentReputation(tribeId);
         tribe.RepMax = ps->GetBeastTribeNeededReputation(tribeId);
+        tribe.RequiredLevel = TribeDailyLevels.Required(tribe.BeastTribeId, tribe.Rank);
 
         tribe.Unlocked = tribe.Rank >= 1;
 

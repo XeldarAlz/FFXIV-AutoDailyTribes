@@ -14,7 +14,7 @@ public sealed partial class AutoTribe
 {
     private async Task<bool> EnsureCorrectJob()
     {
-        if (JobSwitcher.CurrentJobSatisfies(tribe.Kind)) return true;
+        if (JobSwitcher.CurrentJobSatisfies(tribe, Plugin.Cfg)) return true;
 
         var gearsetId = JobSwitcher.PickGearset(tribe, Plugin.Cfg);
         if (gearsetId < 0)
@@ -34,6 +34,18 @@ public sealed partial class AutoTribe
         }
 
         var targetJob = JobSwitcher.GearsetClassJob(gearsetId);
+        var targetLevel = JobSwitcher.JobLevel(targetJob);
+        if (targetLevel < tribe.RequiredLevel)
+        {
+            Warning($"{tribe.Name}: dailies need level {tribe.RequiredLevel}, but the {tribe.Kind} job it would use is " +
+                    $"{JobSwitcher.JobName(targetJob)} at level {targetLevel} — level it up or pick another job in Settings — skipping");
+            runOutcome = RunOutcome.Skipped;
+            runDetail = $"needs level {tribe.RequiredLevel}";
+            return false;
+        }
+
+        if (JobSwitcher.CurrentClassJob() == targetJob) return true;
+
         Status = $"Switching to gearset {gearsetId}";
         Diag($"{tribe.Name}: equipping gearset {gearsetId} (target ClassJob {targetJob})");
 

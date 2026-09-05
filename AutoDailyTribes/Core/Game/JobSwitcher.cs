@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.Tribes;
+using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
@@ -75,18 +76,48 @@ internal static unsafe class JobSwitcher
         return playerState == null ? NoClassJob : playerState->CurrentClassJobId;
     }
 
-    public static bool CurrentJobSatisfies(TribeKind kind)
+    // shouldGetSynced defaults to true, which reports the synced level while the player is
+    // level-synced and would rank jobs against a level nobody actually has.
+    public static int JobLevel(byte job)
+    {
+        var playerState = PlayerState.Instance();
+        return playerState == null ? 0 : playerState->GetClassJobLevel(job, shouldGetSynced: false);
+    }
+
+    public static string JobName(byte job)
+        => Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>()?.GetRowOrDefault(job)?.Abbreviation.ToString()
+           ?? job.ToString();
+
+    public static bool InCategory(byte job, TribeKind kind) => kind switch
+    {
+        TribeKind.Crafter  => IsCrafter(job),
+        TribeKind.Gatherer => IsAutoGatherer(job),
+        TribeKind.Mixed    => IsCrafter(job) || IsAutoGatherer(job),
+        TribeKind.Combat   => IsCombat(job),
+        _                  => false,
+    };
+
+    public static bool CurrentJobSatisfies(TribeInfo tribe, Configuration cfg)
     {
         var current = CurrentClassJob();
-        return kind switch
-        {
-            TribeKind.Crafter => IsCrafter(current),
-            TribeKind.Gatherer => IsAutoGatherer(current),
-            TribeKind.Mixed => IsCrafter(current) || IsAutoGatherer(current),
-            TribeKind.Combat => IsCombat(current),
-            _ => false,
-        };
+        return InCategory(current, tribe.Kind)
+            && JobLevel(current) >= tribe.RequiredLevel
+            && KeepsCurrentJob(tribe.Kind, cfg, current);
     }
+
+    // Only the "currently equipped" choice pins the job the player is already wearing. The other
+    // three are documented as switching, so an equipped in-category job must not quietly stand in
+    // for the lowest-level job someone asked the run to level.
+    private static bool KeepsCurrentJob(TribeKind kind, Configuration cfg, byte current) => kind switch
+    {
+        TribeKind.Crafter  => cfg.CrafterJobType == JobChoice.Current,
+        TribeKind.Gatherer => cfg.GathererJobType == JobChoice.Current,
+        TribeKind.Combat   => cfg.CombatJobType == JobChoice.Current,
+        TribeKind.Mixed    => IsCrafter(current)
+                                  ? cfg.CrafterJobType == JobChoice.Current
+                                  : cfg.GathererJobType == JobChoice.Current,
+        _                  => false,
+    };
 
     public static byte GearsetClassJob(int gearsetId)
     {
@@ -102,17 +133,30 @@ internal static unsafe class JobSwitcher
 
     public static int PickGearset(TribeInfo tribe, Configuration cfg)
     {
+        var required = tribe.RequiredLevel;
         switch (tribe.Kind)
         {
             case TribeKind.Crafter:
-                return PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
+                return PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter, required);
             case TribeKind.Gatherer:
-                return PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer);
+                return PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer, required);
             case TribeKind.Mixed:
-                var crafter = PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter);
-                return crafter >= 0 ? crafter : PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer);
+                // Namazu dailies take a crafter or a gatherer, so the crafter preference only holds
+                // while a crafter can actually accept them — otherwise a levelled gatherer wins.
+                var crafter = PickFromCategory(cfg.CrafterJobType, cfg.SelectedCrafterJob, IsCrafter, required);
+                if (MeetsRequirement(crafter, required))
+                {
+                    return crafter;
+                }
+
+                var gatherer = PickFromCategory(cfg.GathererJobType, cfg.SelectedGathererJob, IsAutoGatherer, required);
+                if (MeetsRequirement(gatherer, required))
+                {
+                    return gatherer;
+                }
+                return crafter >= 0 ? crafter : gatherer;
             case TribeKind.Combat:
-                return PickFromCategory(cfg.CombatJobType, cfg.SelectedCombatJob, IsCombat);
+                return PickFromCategory(cfg.CombatJobType, cfg.SelectedCombatJob, IsCombat, required);
             default:
                 return -1;
         }
@@ -129,10 +173,15 @@ internal static unsafe class JobSwitcher
         return gearsetModule->EquipGearset(gearsetId, 0) == 0;  // 0 = success
     }
 
-    private static int PickFromCategory(JobChoice mode, uint specificJob, Func<byte, bool> inCategory)
+    private static bool MeetsRequirement(int gearsetId, int requiredLevel)
+        => gearsetId >= 0 && JobLevel(GearsetClassJob(gearsetId)) >= requiredLevel;
+
+    private static int PickFromCategory(JobChoice mode, uint specificJob, Func<byte, bool> inCategory, int requiredLevel)
     {
         // Honor a specific job only if it is automatable for this category — guards against
         // e.g. Specific=Fisher, which Questionable cannot complete, falling through to MIN/BTN.
+        // An under-levelled specific job is honored too: the run then names it in the skip
+        // message rather than silently swapping to a job the player never asked for.
         if (mode == JobChoice.Specific && inCategory((byte)specificJob))
         {
             var exact = FindGearsetForJob((byte)specificJob);
@@ -155,14 +204,13 @@ internal static unsafe class JobSwitcher
         }
 
         var highest = mode != JobChoice.LowestXP;
-        return PickGearsetByLevel(inCategory, highest);
+        return PickGearsetByLevel(inCategory, highest, requiredLevel);
     }
 
-    private static int PickGearsetByLevel(Func<byte, bool> inCategory, bool highest)
+    private static int PickGearsetByLevel(Func<byte, bool> inCategory, bool highest, int requiredLevel)
     {
         var gearsetModule = RaptureGearsetModule.Instance();
-        var playerState = PlayerState.Instance();
-        if (gearsetModule == null || playerState == null)
+        if (gearsetModule == null || PlayerState.Instance() == null)
         {
             return -1;
         }
@@ -170,6 +218,7 @@ internal static unsafe class JobSwitcher
         var best = -1;
         var bestLevel = 0;
         var bestIsBaseClass = false;
+        var bestMeetsRequirement = false;
         for (var gearsetIndex = 0; gearsetIndex < MaxGearsets; gearsetIndex++)
         {
             if (!gearsetModule->IsValidGearset(gearsetIndex))
@@ -189,11 +238,11 @@ internal static unsafe class JobSwitcher
                 continue;
             }
 
-            // shouldGetSynced defaults to true, which reports the synced level while the player
-            // is level-synced and would rank gearsets against a level nobody actually has.
-            int level = playerState->GetClassJobLevel(job, shouldGetSynced: false);
+            var level = JobLevel(job);
             var isBaseClass = IsBaseClass(job);
-            if (best >= 0 && !IsBetterPick(level, isBaseClass, bestLevel, bestIsBaseClass, highest))
+            var meetsRequirement = level >= requiredLevel;
+            if (best >= 0 && !IsBetterPick(level, isBaseClass, meetsRequirement,
+                                           bestLevel, bestIsBaseClass, bestMeetsRequirement, highest))
             {
                 continue;
             }
@@ -201,14 +250,28 @@ internal static unsafe class JobSwitcher
             best = gearsetIndex;
             bestLevel = level;
             bestIsBaseClass = isBaseClass;
+            bestMeetsRequirement = meetsRequirement;
         }
         return best;
     }
 
-    private static bool IsBetterPick(int level, bool isBaseClass, int bestLevel, bool bestIsBaseClass, bool highest)
-        => level == bestLevel
-            ? bestIsBaseClass && !isBaseClass
-            : highest ? level > bestLevel : level < bestLevel;
+    // Clearing the tribe's level requirement outranks the XP preference: a job that cannot accept
+    // the dailies is worth no XP at all. When nothing clears it the highest job wins either way,
+    // so the run can name the closest one the player has.
+    private static bool IsBetterPick(int level, bool isBaseClass, bool meetsRequirement,
+                                     int bestLevel, bool bestIsBaseClass, bool bestMeetsRequirement, bool highest)
+    {
+        if (meetsRequirement != bestMeetsRequirement)
+        {
+            return meetsRequirement;
+        }
+
+        if (level != bestLevel)
+        {
+            return highest || !meetsRequirement ? level > bestLevel : level < bestLevel;
+        }
+        return bestIsBaseClass && !isBaseClass;
+    }
 
     private static int FindGearsetForJob(byte classJobId)
     {
