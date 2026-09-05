@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
@@ -17,23 +18,12 @@ internal static class TribeLibrary
     private const float ListSlide = 8f;
     private const float ChipGap = 6f;
     private const float ChipHeight = 26f;
-
-    private const string Title = "Tribes";
-    private const string EmptyFiltered = "Every tribe here is hidden by the filters above.";
-    private const string NotMaxedLabel = "Not maxed";
-    private const string NotMaxedId = "##adt_filter_not_maxed";
-    private const string NotMaxedOnHint = "Showing only tribes below max rank. Click to bring maxed tribes back into the list and the run.";
-    private const string NotMaxedOffHint = "Hide tribes already at max rank from the list and the run.";
     private const float FilterGroupGap = 14f;
 
     private static readonly TribeEra[] ErasNewestFirst = [TribeEra.DT, TribeEra.EW, TribeEra.ShB, TribeEra.SB, TribeEra.HW, TribeEra.ARR];
     private static readonly TribeEra[] ErasOldestFirst = [TribeEra.ARR, TribeEra.HW, TribeEra.SB, TribeEra.ShB, TribeEra.EW, TribeEra.DT];
     private static readonly TribeKind[] Kinds = Enum.GetValues<TribeKind>();
-    private static readonly string[] KindLabels = BuildKindStrings(static kind => kind.ToString());
-    private static readonly string[] KindIds = BuildKindStrings(static kind => $"##adt_kind_{kind}");
-    private static readonly string[] KindHideHints = BuildKindStrings(static kind => $"Hide {kind} tribes from the list and the run.");
-    private static readonly string[] KindShowHints = BuildKindStrings(static kind => $"Show {kind} tribes again.");
-    private static readonly string[] EraNames = BuildEraNames();
+    private static readonly string[] KindIds = BuildKindIds();
     private static readonly Segmented.Item[] segments = new Segmented.Item[ErasNewestFirst.Length];
     private static readonly List<TribeInfo> visible = [];
 
@@ -80,8 +70,9 @@ internal static class TribeLibrary
         var height = Layout.LibraryHeaderHeight * scale;
         var midY = origin.Y + height * 0.5f;
 
-        var titleSize = TextDraw.SectionTitleSize(Title);
-        TextDraw.SectionTitle(Title, new Vector2(origin.X, midY - titleSize.Y * 0.5f), Styling.TextStrong);
+        var title = Loc.T(L.Tribes.Library);
+        var titleSize = TextDraw.SectionTitleSize(title);
+        TextDraw.SectionTitle(title, new Vector2(origin.X, midY - titleSize.Y * 0.5f), Styling.TextStrong);
 
         var x = origin.X + width;
         var chipTop = midY - ChipHeight * scale * 0.5f;
@@ -90,14 +81,15 @@ internal static class TribeLibrary
             var kind = Kinds[kindIndex];
             if (!IsKindInPlay(cfg, kind)) continue;
 
-            var chipWidth = PillButton.Width(KindLabels[kindIndex]);
+            var label = Labels.Kind(kind);
+            var chipWidth = PillButton.Width(label);
             x -= chipWidth;
             ImGui.SetCursorScreenPos(new Vector2(x, chipTop));
 
             var shown = !cfg.HiddenKinds.Contains(kind);
             var emphasis = shown ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost;
-            var hint = shown ? KindHideHints[kindIndex] : KindShowHints[kindIndex];
-            if (PillButton.Draw(KindIds[kindIndex], KindLabels[kindIndex], Styling.KindColor(kind), emphasis, height: ChipHeight, tooltip: hint))
+            var hint = shown ? Loc.T(L.Tribes.KindHide, label) : Loc.T(L.Tribes.KindShow, label);
+            if (PillButton.Draw(KindIds[kindIndex], label, Styling.KindColor(kind), emphasis, height: ChipHeight, tooltip: hint))
             {
                 if (shown) cfg.HiddenKinds.Add(kind);
                 else cfg.HiddenKinds.Remove(kind);
@@ -108,11 +100,12 @@ internal static class TribeLibrary
         }
 
         x -= FilterGroupGap * scale - ChipGap * scale;
-        x -= PillButton.Width(NotMaxedLabel);
+        var maxedLabel = Loc.T(L.Tribes.NotMaxed);
+        x -= PillButton.Width(maxedLabel);
         ImGui.SetCursorScreenPos(new Vector2(x, chipTop));
         var hideMaxed = cfg.HideMaxedTribes;
-        if (PillButton.Draw(NotMaxedId, NotMaxedLabel, Styling.AccentTeal, hideMaxed ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost,
-                height: ChipHeight, tooltip: hideMaxed ? NotMaxedOnHint : NotMaxedOffHint))
+        if (PillButton.Draw("##adt_filter_not_maxed", maxedLabel, Styling.AccentTeal, hideMaxed ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost,
+                height: ChipHeight, tooltip: Loc.T(hideMaxed ? L.Tribes.NotMaxedOn : L.Tribes.NotMaxedOff)))
         {
             cfg.HideMaxedTribes = !hideMaxed;
             cfg.SaveDebounced();
@@ -140,7 +133,7 @@ internal static class TribeLibrary
         var selected = 0;
         for (var index = 0; index < eras.Length; index++)
         {
-            segments[index] = new Segmented.Item(null, EraNames[(int)eras[index]]);
+            segments[index] = new Segmented.Item(null, Labels.Era(eras[index]));
             if (eras[index] == current) selected = index;
         }
 
@@ -187,7 +180,7 @@ internal static class TribeLibrary
         if (visible.Count > 0) return;
 
         Styling.VSpace(10f);
-        Styling.TextCentered(EmptyFiltered, Styling.TextMuted);
+        Styling.TextCentered(Loc.T(L.Tribes.EmptyFiltered), Styling.TextMuted);
         Styling.VSpace(10f);
     }
 
@@ -205,7 +198,7 @@ internal static class TribeLibrary
             if (cfg.SelectedTribes.Contains(tribe.BeastTribeId)) picked++;
         }
 
-        return $"{unlocked} of {tribes.Length} unlocked · {ready} ready · {picked} in your list";
+        return Loc.T(L.Tribes.EraSummary, unlocked, tribes.Length, ready, picked);
     }
 
     private static int Count(TribeEra era, Func<TribeInfo, bool> predicate)
@@ -253,18 +246,10 @@ internal static class TribeLibrary
         return 0;
     }
 
-    private static string[] BuildKindStrings(Func<TribeKind, string> build)
+    private static string[] BuildKindIds()
     {
-        var strings = new string[Kinds.Length];
-        for (var index = 0; index < strings.Length; index++) strings[index] = build(Kinds[index]);
-        return strings;
-    }
-
-    private static string[] BuildEraNames()
-    {
-        var eras = Enum.GetValues<TribeEra>();
-        var names = new string[eras.Length];
-        for (var index = 0; index < eras.Length; index++) names[(int)eras[index]] = eras[index].ShortName();
-        return names;
+        var ids = new string[Kinds.Length];
+        for (var index = 0; index < ids.Length; index++) ids[index] = $"##adt_kind_{Kinds[index]}";
+        return ids;
     }
 }

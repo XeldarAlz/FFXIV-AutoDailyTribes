@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
@@ -8,20 +9,16 @@ namespace AutoDailyTribes.Windows.Sections.Config;
 
 internal static class PostRunSettings
 {
-    private const string Group = "Chat commands";
-    private const string Label = "Run when the batch finishes";
-    private const string Help = "One command per line, each starting with a slash. They fire only when every queued tribe has finished on its own, never after Stop.";
-    private const string Caption = "Lines that do not start with a slash are skipped, so nothing is ever said in chat. Try /li home to head home or /ays m to hand off to AutoRetainer.";
     private const int MaxLength = 1000;
     private const int MinLines = 3;
     private const int MaxLines = 8;
 
     public static void Draw(Configuration cfg)
     {
-        using var group = SettingsGroup.Begin(Group);
+        using var group = SettingsGroup.Begin(Loc.T(L.Settings.PostRunGroup));
 
-        SettingsRow.DrawBlock(Label, Help, () => DrawEditor(cfg));
-        SettingsRow.Caption(Caption);
+        SettingsRow.DrawBlock(Loc.T(L.Settings.PostRunLabel), Loc.T(L.Settings.PostRunHelp), () => DrawEditor(cfg));
+        SettingsRow.Caption(Loc.T(L.Settings.PostRunCaption));
     }
 
     private static void DrawEditor(Configuration cfg)

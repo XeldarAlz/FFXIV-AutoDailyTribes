@@ -18,6 +18,8 @@ internal static class AdtConstants
     public const int JobSwitchConfirmMs = 8_000;
     public const int JobSwitchRedispatchMs = 500;
 
+    public const string LogPrefix = "[ADT]";
+
     public const string PrimaryCommand = "/adt";
     public const string AliasCommand = "/dailytribes";
 

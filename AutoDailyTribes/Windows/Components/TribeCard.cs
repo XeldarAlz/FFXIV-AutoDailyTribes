@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Sections;
@@ -27,17 +28,6 @@ internal static class TribeCard
     private const float ColumnGap = 10f;
     private const float TextGap = 12f;
     private const float StatusIconGap = 5f;
-
-    private const string DailiesLabel = "Dailies";
-    private const string RankLabelLocked = "Rank";
-    private const string RepLocked = "–";
-    private const string RepMaxed = "MAX";
-    private const string StatusDone = "Done today";
-    private const string StatusLocked = "Locked";
-
-    private static readonly string[] SlotLabels = BuildSlotLabels();
-    private static readonly string[] QueueLabels = BuildQueueLabels();
-    private static readonly string[] RankNeeded = BuildRankNeeded();
 
     public static void Draw(TribeInfo tribe, Configuration cfg, AutoTribeController controller, float width, int queuePosition)
     {
@@ -158,8 +148,7 @@ internal static class TribeCard
         {
             using (Fonts.PushCaption())
             {
-                var label = queuePosition < QueueLabels.Length ? QueueLabels[queuePosition] : queuePosition.ToString();
-                TextDraw.Middle(label, center - new Vector2(radius, radius), center + new Vector2(radius, radius),
+                TextDraw.Middle(Formatting.Number(queuePosition), center - new Vector2(radius, radius), center + new Vector2(radius, radius),
                     Styling.WithAlpha(Styling.WindowBg with { W = 1f }, (active - 0.5f) * 2f));
             }
         }
@@ -184,11 +173,11 @@ internal static class TribeCard
             var kindIcon = KindIcon.Icon(tribe.Kind);
             var kindIconSize = TextDraw.IconSize(kindIcon);
             TextDraw.Icon(kindIcon, new Vector2(textX, lineY + (lineHeight - kindIconSize.Y) * 0.5f), kind);
-            TextDraw.At(tribe.KindLabel, new Vector2(textX + kindIconSize.X + 6f * scale, lineY), Styling.TextDim);
+            TextDraw.At(Labels.Kind(tribe.Kind), new Vector2(textX + kindIconSize.X + 6f * scale, lineY), Styling.TextDim);
 
-            var status = done ? StatusDone
-                : locked ? StatusLocked
-                : underRank ? RankNeeded[Math.Clamp(tribe.MinRankForDailies, 0, RankNeeded.Length - 1)]
+            var status = done ? Loc.T(L.Tribes.CardDone)
+                : locked ? Loc.T(L.Tribes.CardLocked)
+                : underRank ? Loc.T(L.Tribes.CardRankNeeded, tribe.MinRankForDailies)
                 : null;
             if (status is null) return;
 
@@ -221,12 +210,15 @@ internal static class TribeCard
             : Styling.TextDim;
 
         var rankName = RankBadge.RankName(tribe);
-        var rankLabel = locked ? RankLabelLocked : rankName.Length > 0 ? rankName : $"Rank {tribe.Rank}";
-        var dailyValue = SlotLabels[done];
-        var repValue = locked ? RepLocked : maxed ? RepMaxed : $"{(int)MathF.Round(fraction * 100f)}%";
+        var dailyLabel = Loc.T(L.Tribes.CardDailies);
+        var rankLabel = locked ? Loc.T(L.Tribes.CardRank) : rankName.Length > 0 ? rankName : Loc.T(L.Rank.Numbered, tribe.Rank);
+        var dailyValue = string.Format(Loc.Culture, "{0}/{1}", done, max);
+        var repValue = locked ? Loc.T(L.Tribes.CardRepLocked)
+            : maxed ? Loc.T(L.Tribes.CardRepMaxed)
+            : string.Format(Loc.Culture, "{0}%", (int)MathF.Round(fraction * 100f));
 
         using var caption = Fonts.PushCaption();
-        var labelWidth = MathF.Max(TextDraw.Measure(DailiesLabel).X, TextDraw.Measure(rankLabel).X);
+        var labelWidth = MathF.Max(TextDraw.Measure(dailyLabel).X, TextDraw.Measure(rankLabel).X);
         var valueWidth = MathF.Max(TextDraw.Measure(dailyValue).X, TextDraw.Measure(repValue).X);
 
         var lineHeight = ImGui.GetTextLineHeight();
@@ -238,7 +230,7 @@ internal static class TribeCard
         var valueX = end.X - pad;
         if (barX1 <= barX0) return;
 
-        TextDraw.At(DailiesLabel, new Vector2(origin.X + pad, row1Y), journal > 0 ? Styling.AccentAmber : Styling.TextDim);
+        TextDraw.At(dailyLabel, new Vector2(origin.X + pad, row1Y), journal > 0 ? Styling.AccentAmber : Styling.TextDim);
         TextDraw.Right(dailyValue, valueX, row1Y, stateColor);
 
         var segmentHeight = SegmentHeight * scale;
@@ -259,7 +251,7 @@ internal static class TribeCard
 
         if (locked)
         {
-            Tooltip.Text("Complete the intro quest in game to unlock this tribe.");
+            Tooltip.Text(Loc.T(L.Tribes.TipUnlock));
             return;
         }
 
@@ -267,49 +259,24 @@ internal static class TribeCard
 
         if (underRank)
         {
-            Tooltip.Text($"Reach rank {tribe.MinRankForDailies} to run dailies.", Styling.AccentAmberSoft);
+            Tooltip.Text(Loc.T(L.Tribes.TipReachRank, tribe.MinRankForDailies), Styling.AccentAmberSoft);
             return;
         }
 
-        Tooltip.Text($"{tribe.AcceptedTodayCount} / {AdtConstants.MaxAcceptsPerTribe} daily slots used · "
-                   + $"{AdtConstants.DailyAllowanceCap} allowances shared across all tribes.", Styling.TextDim);
+        Tooltip.Text(Loc.T(L.Tribes.TipSlots, tribe.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe, AdtConstants.DailyAllowanceCap), Styling.TextDim);
 
         if (done)
         {
-            Tooltip.Text("All daily slots used for this tribe today.", Styling.AccentMint);
-            if (tribe.CanRankUp) Tooltip.Text("Daily rep is full. Finish the rank-up quest in game to refresh 3 more dailies today.", Styling.AccentAmberSoft);
-            Tooltip.Text(selected
-                ? "Still in your list, so it runs again after the reset. Click to drop it."
-                : "Click to keep it in your list for after the reset.", Styling.AccentTealSoft);
+            Tooltip.Text(Loc.T(L.Tribes.TipAllUsed), Styling.AccentMint);
+            if (tribe.CanRankUp) Tooltip.Text(Loc.T(L.Tribes.TipCanRankUp), Styling.AccentAmberSoft);
+            Tooltip.Text(Loc.T(selected ? L.Tribes.TipKeepSelected : L.Tribes.TipKeepUnselected), Styling.AccentTealSoft);
             return;
         }
 
-        if (tribe.HasInProgressQuests) Tooltip.Text($"{tribe.InProgressQuestIds.Length} accepted quest(s) still in the journal. Click to run them.", Styling.AccentAmberSoft);
-        else if (selected) Tooltip.Text("In your list. Click to remove it from the run.", Styling.AccentTealSoft);
-        else Tooltip.Text("Click to add it to the run.", Styling.AccentTealSoft);
+        if (tribe.HasInProgressQuests) Tooltip.Text(Loc.T(L.Tribes.TipInJournal, tribe.InProgressQuestIds.Length), Styling.AccentAmberSoft);
+        else Tooltip.Text(Loc.T(selected ? L.Tribes.TipRemove : L.Tribes.TipAdd), Styling.AccentTealSoft);
 
-        if (tribe.DailiesRefreshedByRankUp) Tooltip.Text("Ranked up today, so 3 fresh dailies are available.", Styling.AccentMint);
-        if (tribe.Kind == TribeKind.Gatherer) Tooltip.Text("Gathering dailies bind to the class you accept them with.", Styling.TextDim);
-    }
-
-    private static string[] BuildSlotLabels()
-    {
-        var labels = new string[AdtConstants.MaxAcceptsPerTribe + 1];
-        for (var index = 0; index < labels.Length; index++) labels[index] = $"{index}/{AdtConstants.MaxAcceptsPerTribe}";
-        return labels;
-    }
-
-    private static string[] BuildQueueLabels()
-    {
-        var labels = new string[TribeRegistry.Tribes.Length + 1];
-        for (var index = 0; index < labels.Length; index++) labels[index] = index.ToString();
-        return labels;
-    }
-
-    private static string[] BuildRankNeeded()
-    {
-        var labels = new string[AdtConstants.MaxTribeRank + 1];
-        for (var index = 0; index < labels.Length; index++) labels[index] = $"Rank {index} needed";
-        return labels;
+        if (tribe.DailiesRefreshedByRankUp) Tooltip.Text(Loc.T(L.Tribes.TipRefreshed), Styling.AccentMint);
+        if (tribe.Kind == TribeKind.Gatherer) Tooltip.Text(Loc.T(L.Tribes.TipGatherer), Styling.TextDim);
     }
 }

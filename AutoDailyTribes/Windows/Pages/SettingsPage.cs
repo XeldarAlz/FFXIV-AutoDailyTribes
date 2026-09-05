@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using AutoDailyTribes.Windows.Sections.Config;
 using Dalamud.Bindings.ImGui;
@@ -12,15 +13,13 @@ internal sealed class SettingsPage
 {
     private enum Tab { General, Jobs, AfterRun }
 
-    private readonly record struct Entry(Tab Tab, string Label, FontAwesomeIcon Icon, string Subtitle);
-
-    private const string Title = "Settings";
+    private readonly record struct Entry(Tab Tab, LocString Label, FontAwesomeIcon Icon, LocString Subtitle);
 
     private static readonly Entry[] entries =
     [
-        new(Tab.General,  "General",       FontAwesomeIcon.Cog,        "How the window behaves and how the tribe list is arranged."),
-        new(Tab.Jobs,     "Jobs",          FontAwesomeIcon.UserShield, "Which job runs each kind of tribe."),
-        new(Tab.AfterRun, "After the run", FontAwesomeIcon.Terminal,   "Chat commands to fire once every queued tribe has finished."),
+        new(Tab.General,  L.Settings.CatGeneral,  FontAwesomeIcon.Cog,        L.Settings.CatGeneralSub),
+        new(Tab.Jobs,     L.Settings.CatJobs,     FontAwesomeIcon.UserShield, L.Settings.CatJobsSub),
+        new(Tab.AfterRun, L.Settings.CatAfterRun, FontAwesomeIcon.Terminal,   L.Settings.CatAfterRunSub),
     ];
 
     private Tab activeTab = Tab.General;
@@ -52,16 +51,17 @@ internal sealed class SettingsPage
     {
         var scale = ImGuiHelpers.GlobalScale;
         var origin = ImGui.GetCursorScreenPos();
+        var title = Loc.T(L.Settings.Title);
         using (Fonts.PushTitle())
         {
-            TextDraw.At(Title, new Vector2(origin.X + 6f * scale, origin.Y), Styling.TextStrong);
-            ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, TextDraw.Measure(Title).Y + 10f * scale));
+            TextDraw.At(title, new Vector2(origin.X + 6f * scale, origin.Y), Styling.TextStrong);
+            ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, TextDraw.Measure(title).Y + 10f * scale));
         }
 
         for (var index = 0; index < entries.Length; index++)
         {
             var entry = entries[index];
-            if (SidebarTab.Draw(entry.Label, entry.Icon, Styling.AccentTeal, activeTab == entry.Tab)) Select(entry.Tab);
+            if (SidebarTab.Draw(Loc.T(entry.Label), entry.Icon, Styling.AccentTeal, activeTab == entry.Tab)) Select(entry.Tab);
         }
     }
 
@@ -86,7 +86,7 @@ internal sealed class SettingsPage
         using var reveal = Motion.PushSwitch("##adt_settings_tab", (int)activeTab);
         using var group = ImRaii.Group();
         ImGui.Dummy(new Vector2(0f, 2f * scale));
-        PageHeader.Draw(entry.Label, entry.Subtitle);
+        PageHeader.Draw(Loc.T(entry.Label), Loc.T(entry.Subtitle));
 
         switch (activeTab)
         {

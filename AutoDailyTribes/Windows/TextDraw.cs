@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
@@ -9,7 +10,7 @@ internal static class TextDraw
 {
     private const string Ellipsis = "…";
 
-    public static string Upper(string text) => text.ToUpperInvariant();
+    public static string Upper(string text) => Loc.Upper(text);
 
     public static Vector2 Measure(string text) => ImGui.CalcTextSize(text);
 

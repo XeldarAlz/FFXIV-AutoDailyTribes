@@ -9,6 +9,10 @@ public sealed class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 1;
 
+    // Empty means "not chosen yet"; the plugin detects one from Dalamud, the game client or the OS
+    // on first run and writes it back.
+    public string Language { get; set; } = "";
+
     public bool AutoShowIfDailiesAvailable { get; set; } = true;
 
     public JobChoice CrafterJobType { get; set; } = JobChoice.HighestXP;

@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
@@ -13,12 +14,6 @@ internal static class Headline
     private const float DetailGap = 6f;
     private const float RightGap = 18f;
     private const float ButtonHeight = 30f;
-
-    private const string OpenPlugins = "Open Plugins";
-    private const string GreetingMorning = "Good morning, ready for your dailies?";
-    private const string GreetingAfternoon = "Good afternoon, ready for your dailies?";
-    private const string GreetingEvening = "Good evening, ready for your dailies?";
-    private const string GreetingNight = "Late night, still on dailies?";
 
     public static bool Draw(Configuration cfg, AutoTribeController ctrl)
     {
@@ -61,10 +56,10 @@ internal static class Headline
 
     private static (FontAwesomeIcon Icon, Vector4 Color, string Greeting) Greeting() => DateTime.Now.Hour switch
     {
-        >= 5 and < 12  => (FontAwesomeIcon.Sun,       Styling.AccentAmber,    GreetingMorning),
-        >= 12 and < 17 => (FontAwesomeIcon.Sun,       Styling.AccentAmber,    GreetingAfternoon),
-        >= 17 and < 22 => (FontAwesomeIcon.CloudMoon, Styling.AccentTealSoft, GreetingEvening),
-        _              => (FontAwesomeIcon.Moon,      Styling.AccentBlue,     GreetingNight),
+        >= 5 and < 12  => (FontAwesomeIcon.Sun,       Styling.AccentAmber,    Loc.T(L.Tribes.GreetingMorning)),
+        >= 12 and < 17 => (FontAwesomeIcon.Sun,       Styling.AccentAmber,    Loc.T(L.Tribes.GreetingAfternoon)),
+        >= 17 and < 22 => (FontAwesomeIcon.CloudMoon, Styling.AccentTealSoft, Loc.T(L.Tribes.GreetingEvening)),
+        _              => (FontAwesomeIcon.Moon,      Styling.AccentBlue,     Loc.T(L.Tribes.GreetingNight)),
     };
 
     private static float DrawRightColumn(ReadyState.Info info, float rightX, float midY, out bool openPlugins)
@@ -74,14 +69,15 @@ internal static class Headline
 
         if (info.Kind == ReadyState.Kind.SetupNeeded)
         {
-            var buttonWidth = PillButton.Width(OpenPlugins, FontAwesomeIcon.Plug);
+            var label = Loc.T(L.Tribes.OpenPlugins);
+            var buttonWidth = PillButton.Width(label, FontAwesomeIcon.Plug);
             ImGui.SetCursorScreenPos(new Vector2(rightX - buttonWidth, midY - ButtonHeight * scale * 0.5f));
-            openPlugins = PillButton.Draw("##adt_open_plugins", OpenPlugins, Styling.AccentRose, PillButton.Emphasis.Tinted, FontAwesomeIcon.Plug, height: ButtonHeight);
+            openPlugins = PillButton.Draw("##adt_open_plugins", label, Styling.AccentRose, PillButton.Emphasis.Tinted, FontAwesomeIcon.Plug, height: ButtonHeight);
             return buttonWidth;
         }
 
-        var title = $"Reset in {Formatting.ResetCountdown()}";
-        var detail = $"Daily reset at {Formatting.LocalResetTime()}";
+        var title = Loc.T(L.Tribes.ResetIn, Formatting.ResetCountdown());
+        var detail = Loc.T(L.Tribes.ResetAt, Formatting.LocalResetTime());
         using (Fonts.PushCaption())
         {
             var titleSize = TextDraw.Measure(title);

@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
@@ -8,7 +9,7 @@ using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Sections;
 
-// The plan for today: an allowance ring, a one-line summary, the pick buttons and the run-order
+// The plan for today: an allowance ring, a one-line summary, the clear button and the run-order
 // strip. The card grows with the strip, so the background is painted on a lower draw channel once
 // the content height is known.
 internal static class TodayCard
@@ -20,11 +21,6 @@ internal static class TodayCard
     private const float TitleGap = 6f;
     private const float StripGap = 14f;
     private const float ButtonHeight = 28f;
-
-    private const string Title = "Today";
-    private const string Clear = "Clear";
-    private const string RingCaption = "left";
-    private const string ClearHint = "Empties your standing pick, including tribes hidden by the filters.";
 
     private static readonly string[] AllowanceLabels = BuildAllowanceLabels();
 
@@ -49,8 +45,9 @@ internal static class TodayCard
         var columnRight = origin.X + width - padX;
         var y = origin.Y + padY;
 
-        var titleSize = TextDraw.SectionTitleSize(Title);
-        TextDraw.SectionTitle(Title, new Vector2(columnX, y), Styling.TextStrong);
+        var title = Loc.T(L.Tribes.Today);
+        var titleSize = TextDraw.SectionTitleSize(title);
+        TextDraw.SectionTitle(title, new Vector2(columnX, y), Styling.TextStrong);
         DrawClearButton(cfg, ctrl, plan, columnRight, y + titleSize.Y * 0.5f);
         y += titleSize.Y + TitleGap * scale;
 
@@ -89,14 +86,13 @@ internal static class TodayCard
 
         ProgressRing.Track(center, radius, thickness, Styling.WithAlpha(Styling.BorderDim, 0.7f));
         ProgressRing.Fill(center, radius, thickness, fraction, accent);
-        ProgressRing.CenterValue(center, AllowanceLabels[left], RingCaption, Styling.TextStrong, Styling.TextDim);
+        ProgressRing.CenterValue(center, AllowanceLabels[left], Loc.T(L.Tribes.RingCaption), Styling.TextStrong, Styling.TextDim);
 
         var extent = new Vector2(radius, radius);
         if (!Hit.HoveringRect(center - extent, center + extent)) return;
 
-        Tooltip.Show($"{used} of {AdtConstants.DailyAllowanceCap} daily allowances used. Every tribe offers {AdtConstants.MaxAcceptsPerTribe} a day, "
-                   + $"so a full day is {AdtConstants.DailyAllowanceCap / AdtConstants.MaxAcceptsPerTribe} tribes. "
-                   + "The game spends an allowance the moment a quest is accepted, not when it is turned in.");
+        Tooltip.Show(Loc.T(L.Tribes.RingTooltip, used, AdtConstants.DailyAllowanceCap, AdtConstants.MaxAcceptsPerTribe,
+            AdtConstants.DailyAllowanceCap / AdtConstants.MaxAcceptsPerTribe));
     }
 
     private static string Summary(RunPlan.Snapshot plan)
@@ -104,20 +100,22 @@ internal static class TodayCard
         var countdown = Formatting.ResetCountdown();
         if (plan.SelectedCount == 0)
         {
-            return $"Nothing picked yet · {plan.AllowanceLeft} of {AdtConstants.DailyAllowanceCap} allowances left · reset in {countdown}";
+            return Loc.T(L.Tribes.SummaryEmpty, plan.AllowanceLeft, AdtConstants.DailyAllowanceCap, countdown);
         }
 
-        return $"{Formatting.Plural(plan.SelectedCount, "tribe", "tribes")} picked · {plan.Runnable.Count} runnable now · "
-             + $"needs {plan.AllowancesNeeded} of {plan.AllowanceLeft} allowances · reset in {countdown}";
+        return Loc.T(L.Tribes.SummaryPicked, Formatting.Tribes(plan.SelectedCount), plan.Runnable.Count,
+            plan.AllowancesNeeded, plan.AllowanceLeft, countdown);
     }
 
     private static void DrawClearButton(Configuration cfg, AutoTribeController ctrl, RunPlan.Snapshot plan, float rightX, float midY)
     {
         var scale = ImGuiHelpers.GlobalScale;
         var canClear = !ctrl.Running && plan.SelectedCount > 0;
-        var width = PillButton.Width(Clear);
+        var label = Loc.T(L.Common.Clear);
+        var width = PillButton.Width(label);
         ImGui.SetCursorScreenPos(new Vector2(rightX - width, midY - ButtonHeight * scale * 0.5f));
-        if (!PillButton.Draw("##adt_clear_picks", Clear, Styling.AccentRose, PillButton.Emphasis.Ghost, enabled: canClear, height: ButtonHeight, tooltip: ClearHint))
+        if (!PillButton.Draw("##adt_clear_picks", label, Styling.AccentRose, PillButton.Emphasis.Ghost,
+                enabled: canClear, height: ButtonHeight, tooltip: Loc.T(L.Tribes.ClearHint)))
         {
             return;
         }

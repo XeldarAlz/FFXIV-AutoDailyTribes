@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
@@ -12,25 +13,18 @@ namespace AutoDailyTribes.Windows.Sections;
 // close glyph to drop a tribe; both are frozen while a run is in progress.
 internal static class QueueStrip
 {
+    private enum StateKind { None, Done, Locked, Hidden, UnderRank }
+
     private const float ChipHeight = 32f;
     private const float Gap = 8f;
     private const float PadX = 11f;
     private const float InnerGap = 6f;
     private const float IconSize = 20f;
 
-    private const string EmptyHint = "Pick tribes below. They run in the order you add them, and the list is remembered for tomorrow.";
-    private const string DragHint = "Drag to reorder";
-    private const string RemoveHint = "Remove from the run";
-    private const string StateDone = "done";
-    private const string StateLocked = "locked";
-    private const string StateHidden = "hidden";
-
     private readonly record struct ChipMetrics(
-        float Total, float BodyWidth, float NumberWidth, float NameWidth, float StateWidth, string Number, string? State);
+        float Total, float BodyWidth, float NumberWidth, float NameWidth, string Number, string? State, StateKind Kind);
 
     private static readonly List<TribeInfo> tribes = [];
-    private static readonly string[] Numbers = BuildNumbers();
-    private static readonly string[] RankNeeded = BuildRankNeeded();
     private static (Vector2 Min, Vector2 Max)[] rects = new (Vector2, Vector2)[TribeRegistry.Tribes.Length];
     private static int? dragIndex;
 
@@ -131,33 +125,34 @@ internal static class QueueStrip
     {
         using (Fonts.PushCaption())
         {
+            var hint = Loc.T(L.Tribes.StripEmpty);
             var origin = ImGui.GetCursorScreenPos();
-            TextDraw.Wrapped(EmptyHint, origin + new Vector2(2f * ImGuiHelpers.GlobalScale, 0f), width, Styling.TextMuted);
-            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(EmptyHint, width).Y));
+            TextDraw.Wrapped(hint, origin + new Vector2(2f * ImGuiHelpers.GlobalScale, 0f), width, Styling.TextMuted);
+            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(hint, width).Y));
         }
     }
 
     private static bool Contains(Vector2 min, Vector2 max, Vector2 point)
         => point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
 
-    private static string? StateLabel(Configuration cfg, TribeInfo tribe)
+    private static (string? Label, StateKind Kind) StateLabel(Configuration cfg, TribeInfo tribe)
     {
-        if (!tribe.Unlocked) return StateLocked;
-        if (!tribe.MeetsRankRequirement) return RankNeeded[Math.Clamp(tribe.MinRankForDailies, 0, RankNeeded.Length - 1)];
-        if (!RunPlan.PassesFilters(cfg, tribe)) return StateHidden;
-        if (!RunPlan.IsRunnable(tribe)) return StateDone;
-        return null;
+        if (!tribe.Unlocked) return (Loc.T(L.Tribes.StripLocked), StateKind.Locked);
+        if (!tribe.MeetsRankRequirement) return (Loc.T(L.Tribes.StripRank, tribe.MinRankForDailies), StateKind.UnderRank);
+        if (!RunPlan.PassesFilters(cfg, tribe)) return (Loc.T(L.Tribes.StripHidden), StateKind.Hidden);
+        if (!RunPlan.IsRunnable(tribe)) return (Loc.T(L.Tribes.StripDone), StateKind.Done);
+        return (null, StateKind.None);
     }
 
     private static ChipMetrics Measure(Configuration cfg, TribeInfo tribe, int position, float timesWidth, float scale)
     {
         var padX = PadX * scale;
         var gap = InnerGap * scale;
-        var number = position < Numbers.Length ? Numbers[position] : position.ToString();
+        var number = Formatting.Number(position);
         var numberWidth = TextDraw.Measure(number).X;
         var nameWidth = TextDraw.Measure(tribe.Name).X;
 
-        var state = StateLabel(cfg, tribe);
+        var (state, kind) = StateLabel(cfg, tribe);
         var stateWidth = 0f;
         if (state is not null)
         {
@@ -169,7 +164,7 @@ internal static class QueueStrip
             + (state is not null ? gap + stateWidth : 0f)
             + gap;
         var closeWidth = timesWidth + gap * 2f;
-        return new ChipMetrics(bodyWidth + closeWidth, bodyWidth, numberWidth, nameWidth, stateWidth, number, state);
+        return new ChipMetrics(bodyWidth + closeWidth, bodyWidth, numberWidth, nameWidth, number, state, kind);
     }
 
     private static void DrawChip(Vector2 origin, Vector2 end, ChipMetrics metrics, TribeInfo tribe, int index, bool running,
@@ -186,7 +181,7 @@ internal static class QueueStrip
         if (!running && ImGui.IsItemActivated()) dragIndex = index;
         var beingDragged = dragIndex == index;
         if (!running && (bodyHovered || beingDragged)) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
-        if (!running && bodyHovered && !beingDragged && !ImGui.IsMouseDown(ImGuiMouseButton.Left)) Tooltip.Show(DragHint);
+        if (!running && bodyHovered && !beingDragged && !ImGui.IsMouseDown(ImGuiMouseButton.Left)) Tooltip.Show(Loc.T(L.Tribes.StripDrag));
 
         ImGui.SetCursorScreenPos(new Vector2(origin.X + metrics.BodyWidth, origin.Y));
         var closeClicked = ImGui.InvisibleButton("##adt_chip_close", new Vector2(end.X - origin.X - metrics.BodyWidth, height));
@@ -232,7 +227,7 @@ internal static class QueueStrip
         if (metrics.State is not null)
         {
             cursorX += gap;
-            var stateColor = ReferenceEquals(metrics.State, StateDone) ? Styling.AccentMint : Styling.TextMuted;
+            var stateColor = metrics.Kind == StateKind.Done ? Styling.AccentMint : Styling.TextMuted;
             using (Fonts.PushCaption())
                 PutText(metrics.State, cursorX, midY, stateColor);
         }
@@ -241,7 +236,7 @@ internal static class QueueStrip
         var closeSize = TextDraw.IconSize(FontAwesomeIcon.Times);
         TextDraw.Icon(FontAwesomeIcon.Times, new Vector2(origin.X + metrics.BodyWidth + gap, midY - closeSize.Y * 0.5f), closeColor);
 
-        if (!running && closeHovered) Tooltip.Show(RemoveHint);
+        if (!running && closeHovered) Tooltip.Show(Loc.T(L.Tribes.StripRemove));
     }
 
     private static void DrawDragPreview(string name, Vector2 mouse)
@@ -279,18 +274,4 @@ internal static class QueueStrip
 
     private static bool MoveFiltered(List<uint> selected, int fromFiltered, int toFiltered)
         => ListReorder.Move(selected, RealIndex(selected, fromFiltered), RealIndex(selected, toFiltered));
-
-    private static string[] BuildNumbers()
-    {
-        var numbers = new string[TribeRegistry.Tribes.Length + 1];
-        for (var index = 0; index < numbers.Length; index++) numbers[index] = index.ToString();
-        return numbers;
-    }
-
-    private static string[] BuildRankNeeded()
-    {
-        var labels = new string[Core.AdtConstants.MaxTribeRank + 1];
-        for (var index = 0; index < labels.Length; index++) labels[index] = $"rank {index}";
-        return labels;
-    }
 }

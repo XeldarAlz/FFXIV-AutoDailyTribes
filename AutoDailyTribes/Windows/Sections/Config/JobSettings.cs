@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 
 namespace AutoDailyTribes.Windows.Sections.Config;
@@ -8,36 +9,26 @@ internal static class JobSettings
 
     private sealed class KindSection
     {
-        public required string Title;
-        public required string Scope;
-        public required string Help;
+        public required LocString Title;
+        public required LocString Scope;
+        public required LocString Help;
         public required string ChoiceId;
         public required string JobId;
         public required string SectionId;
         public required Job[] Jobs;
         public required string[] JobLabels;
-        public string? Footnote;
+        public LocString? Footnote;
     }
 
-    private const string JobRow = "Job to use";
-    private const string SpecificRow = "Which job";
-    private const string SpecificHelp = "The gearset for this job is equipped before the tribe's dailies are accepted.";
-
     private static readonly JobChoice[] ChoiceOrder = [JobChoice.Current, JobChoice.HighestXP, JobChoice.LowestXP, JobChoice.Specific];
-    private static readonly string[] ChoiceNames = ["Currently equipped", "Highest level", "Lowest level", "Specific job"];
-    private static readonly string[] ChoiceDetails =
-    [
-        "Keeps whatever job of this type you are wearing when the run starts.",
-        "Switches to the gearset of your highest-level job of this type.",
-        "Switches to the gearset of your lowest-level job of this type, handy for levelling.",
-        "Always switches to the job picked below.",
-    ];
+    private static readonly LocString[] ChoiceNames = [L.Settings.JobCurrent, L.Settings.JobHighest, L.Settings.JobLowest, L.Settings.JobSpecific];
+    private static readonly LocString[] ChoiceDetails = [L.Settings.JobCurrentDetail, L.Settings.JobHighestDetail, L.Settings.JobLowestDetail, L.Settings.JobSpecificDetail];
 
     private static readonly KindSection Crafter = new()
     {
-        Title = "Crafter tribes",
-        Scope = "Ixal · Moogles · Dwarves · Loporrits · Yok Huy",
-        Help = "Which Disciple of the Hand job runs crafter tribe dailies.",
+        Title = L.Settings.CrafterTitle,
+        Scope = L.Settings.CrafterScope,
+        Help = L.Settings.CrafterHelp,
         ChoiceId = "##adt_job_crafter",
         JobId = "##adt_job_crafter_pick",
         SectionId = "##adt_job_crafter_section",
@@ -59,9 +50,9 @@ internal static class JobSettings
     // cannot be automated and gatherer tribes run on Miner or Botanist only.
     private static readonly KindSection Gatherer = new()
     {
-        Title = "Gatherer tribes",
-        Scope = "Qitari · Omicron · Mamool Ja",
-        Help = "Which Disciple of the Land job runs gatherer tribe dailies.",
+        Title = L.Settings.GathererTitle,
+        Scope = L.Settings.GathererScope,
+        Help = L.Settings.GathererHelp,
         ChoiceId = "##adt_job_gatherer",
         JobId = "##adt_job_gatherer_pick",
         SectionId = "##adt_job_gatherer_section",
@@ -71,14 +62,14 @@ internal static class JobSettings
             new(17, "Botanist (BTN)"),
         ],
         JobLabels = [],
-        Footnote = "Fisher is excluded. Questionable cannot automate fishing, so gatherer tribes run on Miner or Botanist and any fishing daily is skipped.",
+        Footnote = L.Settings.GathererFootnote,
     };
 
     private static readonly KindSection Combat = new()
     {
-        Title = "Combat tribes",
-        Scope = "Amalj'aa · Sylphs · Kobolds · Sahagin · Vanu Vanu · Vath · Kojin · Ananta · Pixies · Arkasodara · Pelupelu",
-        Help = "Which combat job runs battle tribe dailies.",
+        Title = L.Settings.CombatTitle,
+        Scope = L.Settings.CombatScope,
+        Help = L.Settings.CombatHelp,
         ChoiceId = "##adt_job_combat",
         JobId = "##adt_job_combat_pick",
         SectionId = "##adt_job_combat_section",
@@ -131,22 +122,22 @@ internal static class JobSettings
     private static void DrawSection(Configuration cfg, KindSection section, JobChoice current, uint currentJob,
         Action<JobChoice> setChoice, Action<uint> setJob)
     {
-        using (SettingsGroup.Begin(section.Title))
+        using (SettingsGroup.Begin(Loc.T(section.Title)))
         {
             var selected = Math.Max(0, Array.IndexOf(ChoiceOrder, current));
-            SettingsRow.Draw(JobRow, section.Help, SettingsControls.RowComboWidth,
+            SettingsRow.Draw(Loc.T(L.Settings.JobRow), Loc.T(section.Help), SettingsControls.RowComboWidth,
                 () => SettingsControls.DrawChoices(section.ChoiceId, ChoiceNames, ChoiceDetails, selected, choice =>
                 {
                     setChoice(ChoiceOrder[choice]);
                     cfg.SaveDebounced();
                 }));
-            SettingsRow.Caption(section.Scope);
+            SettingsRow.Caption(Loc.T(section.Scope));
 
             using var specific = Motion.PushSection(section.SectionId, current == JobChoice.Specific);
             if (specific is not null) DrawJobPicker(cfg, section, currentJob, setJob);
         }
 
-        if (section.Footnote is not null) SettingsGroup.Footnote(section.Footnote);
+        if (section.Footnote is { } footnote) SettingsGroup.Footnote(Loc.T(footnote));
     }
 
     private static void DrawJobPicker(Configuration cfg, KindSection section, uint currentJob, Action<uint> setJob)
@@ -157,7 +148,7 @@ internal static class JobSettings
             if (section.Jobs[index].Id == currentJob) selected = index;
         }
 
-        SettingsRow.Draw(SpecificRow, SpecificHelp, SettingsControls.RowComboWidth, () =>
+        SettingsRow.Draw(Loc.T(L.Settings.JobSpecificRow), Loc.T(L.Settings.JobSpecificHelp), SettingsControls.RowComboWidth, () =>
         {
             var picked = selected;
             if (!Dropdown.Draw(section.JobId, section.JobLabels, ref picked, SettingsControls.RowComboWidth,

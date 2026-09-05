@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
@@ -10,10 +11,6 @@ namespace AutoDailyTribes.Windows.Shell;
 internal static class HeaderBar
 {
     private const string Title = "Auto Daily Tribes";
-    private const string CloseHint = "Close";
-    private const string MinimizeHint = "Minimize to the header bar";
-    private const string RestoreHint = "Restore the window";
-    private const string CompactPick = "Pick tribes to begin";
     private const float PadX = 16f;
     private const float IconBox = 26f;
     private const float ButtonSize = 30f;
@@ -85,14 +82,14 @@ internal static class HeaderBar
         var top = midY - buttonSize * 0.5f;
 
         ImGui.SetCursorScreenPos(new Vector2(end.X - padX - buttonSize, top));
-        if (IconButton.Draw(FontAwesomeIcon.Times, "##adt_close", buttonSize, tooltip: CloseHint))
+        if (IconButton.Draw(FontAwesomeIcon.Times, "##adt_close", buttonSize, tooltip: Loc.T(L.Common.Close)))
         {
             window.IsOpen = false;
         }
 
         ImGui.SetCursorScreenPos(new Vector2(end.X - padX - buttonSize - stride, top));
         if (IconButton.Draw(compact ? FontAwesomeIcon.ChevronUp : FontAwesomeIcon.ChevronDown, "##adt_minimize", buttonSize,
-                tooltip: compact ? RestoreHint : MinimizeHint))
+                tooltip: Loc.T(compact ? L.Shell.Restore : L.Shell.Minimize)))
         {
             window.ToggleCompact();
         }
@@ -134,8 +131,8 @@ internal static class HeaderBar
         {
             var plan = RunPlan.Resolve(plugin.Configuration);
             var summary = plan.SelectedCount == 0
-                ? CompactPick
-                : $"{Formatting.Plural(plan.Runnable.Count, "tribe", "tribes")} · {plan.AllowancesNeeded} allowances · reset in {Formatting.ResetCountdown()}";
+                ? Loc.T(L.Shell.CompactPick)
+                : Loc.T(L.Shell.CompactPlan, Formatting.Tribes(plan.Runnable.Count), plan.AllowancesNeeded, Formatting.ResetCountdown());
             using (Fonts.PushCaption())
             {
                 var summarySize = TextDraw.Measure(summary);
@@ -154,7 +151,7 @@ internal static class HeaderBar
         var textWidth = barX - 12f * scale - x;
         if (textWidth <= 0f) return;
 
-        var text = $"{ReadyState.PhaseLabel(progress.Phase)}  ·  {ctrl.Status}";
+        var text = Loc.T(L.Shell.CompactRunning, ReadyState.PhaseLabel(progress.Phase), ctrl.Status);
         using (Fonts.PushCaption())
         {
             var textSize = TextDraw.Measure(text);

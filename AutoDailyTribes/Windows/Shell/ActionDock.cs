@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
@@ -10,12 +11,6 @@ namespace AutoDailyTribes.Windows.Shell;
 internal static class ActionDock
 {
     private const float PadX = 18f;
-    private const string StartLabel = "Start";
-    private const string StopLabel = "Stop";
-    private const string ReasonInstall = "Install the required plugins first";
-    private const string ReasonPick = "Pick a tribe below";
-    private const string ReasonExhausted = "All allowances spent, back after the reset";
-    private const string ReasonDone = "Your tribes are done for today";
 
     public static void Draw(Plugin plugin, Vector2 size, float windowRounding)
     {
@@ -41,21 +36,21 @@ internal static class ActionDock
     {
         var ctrl = plugin.Controller;
         var progress = ctrl.Progress;
-        var sub = $"Tribe {progress.CurrentNumber} of {Math.Max(progress.Total, 1)} · {Formatting.Clock(progress.ElapsedMs)}";
-        if (HeroButton.Draw(FontAwesomeIcon.Stop, StopLabel, sub, Styling.AccentRose, true, null, innerWidth)) ctrl.Stop();
+        var sub = Loc.T(L.Shell.StopSub, progress.CurrentNumber, Math.Max(progress.Total, 1), Formatting.Clock(progress.ElapsedMs));
+        if (HeroButton.Draw(FontAwesomeIcon.Stop, Loc.T(L.Shell.Stop), sub, Styling.AccentRose, true, null, innerWidth)) ctrl.Stop();
     }
 
     private static void DrawStart(Plugin plugin, float innerWidth)
     {
         var plan = RunPlan.Resolve(plugin.Configuration);
-        var reason = !plan.DependenciesReady ? ReasonInstall
-            : plan.SelectedCount == 0 ? ReasonPick
-            : plan.Exhausted && plan.Runnable.Count == 0 ? ReasonExhausted
-            : plan.Runnable.Count == 0 ? ReasonDone
+        var reason = !plan.DependenciesReady ? Loc.T(L.Shell.ReasonInstall)
+            : plan.SelectedCount == 0 ? Loc.T(L.Shell.ReasonPick)
+            : plan.Exhausted && plan.Runnable.Count == 0 ? Loc.T(L.Shell.ReasonExhausted)
+            : plan.Runnable.Count == 0 ? Loc.T(L.Shell.ReasonDone)
             : string.Empty;
-        var sub = $"{Formatting.Plural(plan.Runnable.Count, "tribe", "tribes")} · {plan.AllowancesNeeded} allowances · reset in {Formatting.ResetCountdown()}";
+        var sub = Loc.T(L.Shell.StartSub, Formatting.Tribes(plan.Runnable.Count), plan.AllowancesNeeded, Formatting.ResetCountdown());
 
-        if (HeroButton.Draw(FontAwesomeIcon.Play, StartLabel, sub, Styling.AccentTealDeep, plan.CanRun, reason, innerWidth))
+        if (HeroButton.Draw(FontAwesomeIcon.Play, Loc.T(L.Shell.Start), sub, Styling.AccentTealDeep, plan.CanRun, reason, innerWidth))
         {
             plugin.Controller.RunAll(plan.Runnable);
         }

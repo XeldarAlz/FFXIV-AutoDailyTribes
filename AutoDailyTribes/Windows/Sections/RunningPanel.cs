@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
@@ -13,7 +14,7 @@ internal static class RunningPanel
 {
     private enum StepState { Pending, Active, Done }
 
-    private readonly record struct Step(string Label, TribePhase Phase);
+    private readonly record struct Step(LocString Label, TribePhase Phase);
 
     private const float PadX = 18f;
     private const float RingInset = 22f;
@@ -24,23 +25,12 @@ internal static class RunningPanel
     private const float StepLabelGap = 5f;
     private const int LogRows = 5;
 
-    private const string StatusRunning = "Running";
-    private const string RingCaption = "tribes";
-    private const string WaitingLabel = "Waiting for the next tribe…";
-    private const string WorkingLabel = "Working…";
-    private const string UpNextTitle = "Up next";
-    private const string ActivityTitle = "Activity";
-    private const string TileAllowances = "Allowances";
-    private const string TileCurrent = "This tribe";
-    private const string TileElapsed = "Elapsed";
-    private const string TileReset = "Reset in";
-
     private static readonly Step[] Steps =
     [
-        new("Switch job", TribePhase.SwitchingJob),
-        new("Travel", TribePhase.Traveling),
-        new("Accept", TribePhase.Accepting),
-        new("Run quests", TribePhase.Delegating),
+        new(L.Run.StepSwitchJob, TribePhase.SwitchingJob),
+        new(L.Run.StepTravel, TribePhase.Traveling),
+        new(L.Run.StepAccept, TribePhase.Accepting),
+        new(L.Run.StepRunQuests, TribePhase.Delegating),
     ];
 
     public static void Draw(Configuration cfg, AutoTribeController controller)
@@ -106,10 +96,11 @@ internal static class RunningPanel
         var radius = 4f * scale;
         Paint.Dot(dl, new Vector2(origin.X + radius + 3f * scale, midY), radius, Styling.PulseColor(accent, accentSoft, Styling.PulseMedium));
 
-        var statusSize = TextDraw.SmallCapsSize(StatusRunning);
-        TextDraw.SmallCaps(StatusRunning, new Vector2(origin.X + radius * 2f + 12f * scale, midY - statusSize.Y * 0.5f), Styling.TextSecondary);
+        var status = Loc.T(L.Shell.StatusRunning);
+        var statusSize = TextDraw.SmallCapsSize(status);
+        TextDraw.SmallCaps(status, new Vector2(origin.X + radius * 2f + 12f * scale, midY - statusSize.Y * 0.5f), Styling.TextSecondary);
 
-        var footer = $"Tribe {progress.CurrentNumber} of {Math.Max(progress.Total, 1)} · {Formatting.Clock(progress.ElapsedMs)}";
+        var footer = Loc.T(L.Run.HeaderFooter, progress.CurrentNumber, Math.Max(progress.Total, 1), Formatting.Clock(progress.ElapsedMs));
         using (Fonts.PushCaption())
         {
             var footerSize = TextDraw.Measure(footer);
@@ -163,7 +154,8 @@ internal static class RunningPanel
         var fraction = Motion.Approach(Motion.Key("##adt_run_ring"), SmoothFraction(progress), 6f);
         ProgressRing.Fill(center, radius, thickness, fraction, accent);
         ProgressRing.Sweep(center, radius, thickness * 0.72f, accentSoft, Styling.PulseOrbit, MathF.PI * 0.5f, 1f);
-        ProgressRing.CenterValue(center, $"{progress.Completed} / {Math.Max(progress.Total, 1)}", RingCaption, Styling.TextStrong, Styling.TextDim);
+        var value = string.Format(Loc.Culture, "{0} / {1}", progress.Completed, Math.Max(progress.Total, 1));
+        ProgressRing.CenterValue(center, value, Loc.T(L.Run.RingCaption), Styling.TextStrong, Styling.TextDim);
     }
 
     private static float DrawPhaseChip(float x, float y, string text, Vector4 accent, Vector4 accentSoft)
@@ -193,8 +185,9 @@ internal static class RunningPanel
         {
             using (Fonts.PushHeadline())
             {
-                var waitingSize = TextDraw.Measure(WaitingLabel);
-                TextDraw.At(WaitingLabel, new Vector2(x, y + (iconSize - waitingSize.Y) * 0.5f), Styling.TextDim);
+                var waiting = Loc.T(L.Shell.Waiting);
+                var waitingSize = TextDraw.Measure(waiting);
+                TextDraw.At(waiting, new Vector2(x, y + (iconSize - waitingSize.Y) * 0.5f), Styling.TextDim);
             }
 
             return iconSize;
@@ -221,7 +214,7 @@ internal static class RunningPanel
         dl.AddCircleFilled(new Vector2(position.X + dotRadius, midY), dotRadius, Paint.Col(Styling.WithAlpha(accent, alpha)));
 
         var textX = position.X + dotRadius * 2f + 8f * scale;
-        var text = string.IsNullOrWhiteSpace(status) ? WorkingLabel : status;
+        var text = string.IsNullOrWhiteSpace(status) ? Loc.T(L.Common.Working) : status;
         TextDraw.At(TextDraw.Truncate(text, width - (textX - position.X)), new Vector2(textX, position.Y), Styling.TextSecondary);
     }
 
@@ -257,7 +250,7 @@ internal static class RunningPanel
                 StepState.Active => Styling.TextStrong,
                 _                => Styling.TextMuted,
             };
-            TextDraw.At(step.Label, new Vector2(segmentX, labelY), text);
+            TextDraw.At(Loc.T(step.Label), new Vector2(segmentX, labelY), text);
 
             var suffix = StepSuffix(step.Phase, current);
             if (suffix is null) continue;
@@ -270,8 +263,8 @@ internal static class RunningPanel
         if (current is null) return null;
         return phase switch
         {
-            TribePhase.Accepting  => $"{Math.Min(current.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe)}/{AdtConstants.MaxAcceptsPerTribe}",
-            TribePhase.Delegating => current.InProgressQuestIds.Length > 0 ? $"{current.InProgressQuestIds.Length} left" : null,
+            TribePhase.Accepting  => string.Format(Loc.Culture, "{0}/{1}", Math.Min(current.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe), AdtConstants.MaxAcceptsPerTribe),
+            TribePhase.Delegating => current.InProgressQuestIds.Length > 0 ? Loc.T(L.Run.StepLeft, current.InProgressQuestIds.Length) : null,
             _                     => null,
         };
     }
@@ -299,13 +292,15 @@ internal static class RunningPanel
         var accepted = current is null ? 0 : Math.Min(current.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe);
         var journal = current?.InProgressQuestIds.Length ?? 0;
 
-        StatTile.Draw(TileAllowances, $"{used} / {AdtConstants.DailyAllowanceCap}", $"{left} left", Styling.AccentTeal, tileWidth);
+        StatTile.Draw(Loc.T(L.Run.TileAllowances), string.Format(Loc.Culture, "{0} / {1}", used, AdtConstants.DailyAllowanceCap),
+            Loc.T(L.Run.TileLeft, left), Styling.AccentTeal, tileWidth);
         ImGui.SameLine(0, gap);
-        StatTile.Draw(TileCurrent, $"{accepted} / {AdtConstants.MaxAcceptsPerTribe}", journal > 0 ? $"{journal} in journal" : null, Styling.AccentAmber, tileWidth);
+        StatTile.Draw(Loc.T(L.Run.TileCurrent), string.Format(Loc.Culture, "{0} / {1}", accepted, AdtConstants.MaxAcceptsPerTribe),
+            journal > 0 ? Loc.T(L.Run.TileInJournal, journal) : null, Styling.AccentAmber, tileWidth);
         ImGui.SameLine(0, gap);
-        StatTile.Draw(TileElapsed, Formatting.Clock(progress.ElapsedMs), null, Styling.AccentMint, tileWidth);
+        StatTile.Draw(Loc.T(L.Run.TileElapsed), Formatting.Clock(progress.ElapsedMs), null, Styling.AccentMint, tileWidth);
         ImGui.SameLine(0, gap);
-        StatTile.Draw(TileReset, Formatting.ResetCountdown(), null, Styling.AccentViolet, tileWidth);
+        StatTile.Draw(Loc.T(L.Run.TileReset), Formatting.ResetCountdown(), null, Styling.AccentViolet, tileWidth);
     }
 
     private static void DrawQueue(TribeRunProgress progress)
@@ -314,7 +309,7 @@ internal static class RunningPanel
         var first = progress.Completed + 1;
         if (first >= runList.Count) return;
 
-        SectionTitle(UpNextTitle);
+        SectionTitle(Loc.T(L.Run.UpNext));
         for (var index = first; index < runList.Count; index++)
         {
             var tribe = runList[index];
@@ -339,7 +334,7 @@ internal static class RunningPanel
         var icon = 28f * scale;
         TribeIcon.Draw(dl, tribe, new Vector2(origin.X + padX, midY - icon * 0.5f), icon);
 
-        var meta = $"{tribe.AcceptSlotsRemaining} dailies · {RankBadge.RankName(tribe)}";
+        var meta = Loc.T(L.Run.QueueMeta, tribe.AcceptSlotsRemaining, RankBadge.RankName(tribe));
         float metaWidth;
         using (Fonts.PushCaption())
         {
@@ -358,7 +353,7 @@ internal static class RunningPanel
 
     private static void DrawLog(TribeRunProgress progress)
     {
-        SectionTitle(ActivityTitle);
+        SectionTitle(Loc.T(L.Run.Activity));
 
         var scale = ImGuiHelpers.GlobalScale;
         var rowHeight = Layout.LogRowHeight * scale;

@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.External;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -12,20 +13,6 @@ internal sealed class PluginsPage
     private const float PadX = 16f;
     private const float DiscRadius = 17f;
 
-    private const string Title = "Plugins";
-    private const string AllInstalled = "All required plugins are installed and loaded.";
-    private const string Footer = "Install adds the plugin's repository to Dalamud and queues an install. If one-click install fails, "
-                                + "click a plugin name to open its repository or right-click to copy the URL, then add it under "
-                                + "/xlsettings, Experimental, Custom Plugin Repositories.";
-    private const string Required = "Required";
-    private const string Optional = "Optional";
-    private const string Installed = "Installed";
-    private const string Disabled = "Disabled";
-    private const string Install = "Install";
-    private const string Installing = "Installing…";
-    private const string TextAdvanceDisabled = "Loaded, but TextAdvance's own \"Enable plugin\" toggle is off. Questionable needs it on to advance "
-                                             + "quest dialogue and cutscenes; with it off, dailies stall mid-quest. Turn it on in TextAdvance's settings.";
-
     public void Draw()
     {
         var missing = 0;
@@ -34,8 +21,8 @@ internal sealed class PluginsPage
             if (ExternalPlugins.Catalog[plugin].Required && !ExternalPlugins.IsInstalled(plugin)) missing++;
         }
 
-        var status = missing == 0 ? AllInstalled : $"{Formatting.Plural(missing, "required plugin is", "required plugins are")} missing.";
-        PageHeader.Draw(Title, status, missing == 0 ? Styling.AccentMint : Styling.AccentRose);
+        var status = missing == 0 ? Loc.T(L.Plugins.AllInstalled) : Loc.Plural(L.Plugins.Missing, missing);
+        PageHeader.Draw(Loc.T(L.Plugins.Title), status, missing == 0 ? Styling.AccentMint : Styling.AccentRose);
 
         foreach (var plugin in ExternalPlugins.All)
         {
@@ -46,12 +33,22 @@ internal sealed class PluginsPage
         Styling.VSpace(6f);
         using (Fonts.PushCaption())
         {
+            var footer = Loc.T(L.Plugins.Footer);
             var origin = ImGui.GetCursorScreenPos();
             var width = ImGui.GetContentRegionAvail().X;
-            TextDraw.Wrapped(Footer, origin, width, Styling.TextMuted);
-            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(Footer, width).Y));
+            TextDraw.Wrapped(footer, origin, width, Styling.TextMuted);
+            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(footer, width).Y));
         }
     }
+
+    private static string Purpose(ExternalPlugin plugin) => plugin switch
+    {
+        ExternalPlugin.Vnavmesh     => Loc.T(L.Plugins.PurposeVnavmesh),
+        ExternalPlugin.Questionable => Loc.T(L.Plugins.PurposeQuestionable),
+        ExternalPlugin.TextAdvance  => Loc.T(L.Plugins.PurposeTextAdvance),
+        ExternalPlugin.Artisan      => Loc.T(L.Plugins.PurposeArtisan),
+        _                           => ExternalPlugins.Catalog[plugin].Purpose,
+    };
 
     private static void DrawCard(ExternalPlugin plugin)
     {
@@ -85,6 +82,7 @@ internal sealed class PluginsPage
 
         var rightWidth = DrawAction(plugin, installed, disabled, installing, end, midY);
 
+        var purpose = Purpose(plugin);
         var textX = discCenter.X + discRadius + 16f * scale;
         var maxTextWidth = end.X - padX - rightWidth - textX;
         float nameHeight;
@@ -92,7 +90,7 @@ internal sealed class PluginsPage
             nameHeight = TextDraw.Measure(info.DisplayName).Y;
         float purposeHeight;
         using (Fonts.PushCaption())
-            purposeHeight = TextDraw.Measure(info.Purpose).Y;
+            purposeHeight = TextDraw.Measure(purpose).Y;
         var top = midY - (nameHeight + 3f * scale + purposeHeight) * 0.5f;
 
         Vector2 nameSize;
@@ -105,14 +103,14 @@ internal sealed class PluginsPage
         DrawRequirementTag(dl, info.Required, textX + nameSize.X + 10f * scale, top + nameHeight * 0.5f);
 
         using (Fonts.PushCaption())
-            TextDraw.At(TextDraw.Truncate(info.Purpose, maxTextWidth), new Vector2(textX, top + nameHeight + 3f * scale), Styling.TextDim);
+            TextDraw.At(TextDraw.Truncate(purpose, maxTextWidth), new Vector2(textX, top + nameHeight + 3f * scale), Styling.TextDim);
 
         var nameMin = new Vector2(textX, top);
         var nameMax = nameMin + nameSize;
         if (Hit.HoveringRect(nameMin, nameMax))
         {
             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-            Tooltip.Show($"{info.RepoUrl}\nClick to open · right-click to copy");
+            Tooltip.Show(Loc.T(L.Plugins.RepoHint, info.RepoUrl));
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) UrlActions.Open(info.RepoUrl, log: false);
             else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(info.RepoUrl);
         }
@@ -124,7 +122,7 @@ internal sealed class PluginsPage
     private static void DrawRequirementTag(ImDrawListPtr dl, bool required, float x, float midY)
     {
         var scale = ImGuiHelpers.GlobalScale;
-        var label = TextDraw.Upper(required ? Required : Optional);
+        var label = TextDraw.Upper(Loc.T(required ? L.Plugins.Required : L.Plugins.Optional));
         using (Fonts.PushCaption())
         {
             var labelSize = TextDraw.Measure(label);
@@ -144,8 +142,8 @@ internal sealed class PluginsPage
         if (installed)
         {
             var (label, color, icon) = disabled
-                ? (Disabled, Styling.AccentAmber, FontAwesomeIcon.ExclamationTriangle)
-                : (Installed, Styling.AccentMint, FontAwesomeIcon.Check);
+                ? (Loc.T(L.Plugins.Disabled), Styling.AccentAmber, FontAwesomeIcon.ExclamationTriangle)
+                : (Loc.T(L.Plugins.Installed), Styling.AccentMint, FontAwesomeIcon.Check);
             var labelSize = TextDraw.Measure(label);
             var iconSize = TextDraw.IconSize(icon);
             var labelX = end.X - padX - labelSize.X;
@@ -155,13 +153,13 @@ internal sealed class PluginsPage
 
             if (disabled && Hit.HoveringRect(new Vector2(iconX, midY - labelSize.Y), new Vector2(end.X - padX, midY + labelSize.Y)))
             {
-                Tooltip.Show(TextAdvanceDisabled);
+                Tooltip.Show(Loc.T(L.Plugins.TextAdvanceDisabled));
             }
 
             return end.X - padX - iconX + 12f * scale;
         }
 
-        var text = installing ? Installing : Install;
+        var text = Loc.T(installing ? L.Plugins.Installing : L.Plugins.Install);
         var width = PillButton.Width(text, FontAwesomeIcon.Download);
         ImGui.SetCursorScreenPos(new Vector2(end.X - padX - width, midY - 15f * scale));
         ImGui.PushID((nint)((int)plugin + 1));

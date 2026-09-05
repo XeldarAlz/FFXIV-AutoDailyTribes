@@ -11,7 +11,7 @@ jobs:
   # Cheap gates that don't need the SDK or Dalamud — run them first so a
   # version-sync mistake fails fast without burning the full build.
   guards:
-    name: Guards (version sync)
+    name: Guards (version sync, localization)
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +34,32 @@ jobs:
           echo "repo.json TestingAssemblyVersion    = $testing_ver"
           if [ "$build_ver" != "$assembly_ver" ] || [ "$build_ver" != "$testing_ver" ]; then
             echo "::error::Version mismatch — Directory.Build.props ($build_ver), repo.json AssemblyVersion ($assembly_ver), TestingAssemblyVersion ($testing_ver) must all match."
+            exit 1
+          fi
+
+      # Every language catalog must carry exactly the keys of en.json, in the same
+      # order, and the copy rules ban em dashes in the string table and the catalogs.
+      - name: Verify localization catalogs
+        shell: bash
+        run: |
+          dir=AutoDailyTribes/Localization
+          for f in "$dir"/*.json; do
+            jq empty "$f" || { echo "::error::$f is not valid JSON"; exit 1; }
+          done
+          jq -r 'keys_unsorted[]' "$dir/en.json" > /tmp/en.keys
+          for code in de es fr ja pt ru tr zh; do
+            jq -r 'keys_unsorted[]' "$dir/$code.json" > "/tmp/$code.keys"
+            if ! diff -q /tmp/en.keys "/tmp/$code.keys" > /dev/null; then
+              echo "::error::$code.json keys differ from en.json (same keys, same order required):"
+              diff /tmp/en.keys "/tmp/$code.keys" || true
+              exit 1
+            fi
+          done
+          dash=$(printf '\xe2\x80\x94')
+          offenders=$(grep -n -F -- "$dash" "$dir"/*.json AutoDailyTribes/Core/Localization/L.cs || true)
+          if [ -n "$offenders" ]; then
+            echo "$offenders"
+            echo "::error::No em dashes in L.cs or the language catalogs. Use commas, colons, or parentheses."
             exit 1
           fi
 

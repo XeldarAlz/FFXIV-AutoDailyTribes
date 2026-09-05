@@ -1,42 +1,40 @@
 using AutoDailyTribes.Core;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tribes;
 
 namespace AutoDailyTribes.Windows.Components;
 
 internal static class RankBadge
 {
-    private const string LockedLabel = "Locked";
-    private const string AlliedName = "Allied";
-
-    private static readonly string[] RankNames =
+    private static readonly LocString[] RankNames =
     [
-        "Neutral",
-        "Recognized",
-        "Friendly",
-        "Trusted",
-        "Respected",
-        "Honored",
-        "Sworn",
-        "Bloodsworn",
+        L.Rank.Neutral,
+        L.Rank.Recognized,
+        L.Rank.Friendly,
+        L.Rank.Trusted,
+        L.Rank.Respected,
+        L.Rank.Honored,
+        L.Rank.Sworn,
+        L.Rank.Bloodsworn,
     ];
 
     // ARR-era societies finish at "Allied"; later eras use "Bloodsworn".
     private static string RankName(int rank, TribeEra era)
     {
-        if (era == TribeEra.ARR && rank >= AdtConstants.MaxTribeRank) return AlliedName;
+        if (era == TribeEra.ARR && rank >= AdtConstants.MaxTribeRank) return Loc.T(L.Rank.Allied);
         var index = rank - 1;
-        return index >= 0 && index < RankNames.Length ? RankNames[index] : string.Empty;
+        return index >= 0 && index < RankNames.Length ? Loc.T(RankNames[index]) : string.Empty;
     }
 
     public static string RankLabel(TribeInfo tribe)
     {
-        if (!tribe.Unlocked) return LockedLabel;
+        if (!tribe.Unlocked) return Loc.T(L.Rank.Locked);
         var name = RankName(tribe.Rank, tribe.Era);
-        return name.Length > 0 ? $"Rank {tribe.Rank} · {name}" : $"Rank {tribe.Rank}";
+        return name.Length > 0 ? Loc.T(L.Rank.NamedLabel, tribe.Rank, name) : Loc.T(L.Rank.Numbered, tribe.Rank);
     }
 
     public static string RankName(TribeInfo tribe)
-        => tribe.Unlocked ? RankName(tribe.Rank, tribe.Era) : LockedLabel;
+        => tribe.Unlocked ? RankName(tribe.Rank, tribe.Era) : Loc.T(L.Rank.Locked);
 
     public static (float Fraction, bool Maxed) Rep(TribeInfo tribe)
     {

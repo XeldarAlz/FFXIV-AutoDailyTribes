@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
@@ -13,8 +14,6 @@ internal static class MiniPlayer
     private const float ButtonSize = 34f;
     private const float BarWidth = 160f;
     private const float BarHeight = 8f;
-    private const string StopHint = "Stop the run";
-    private const string WaitingLabel = "Waiting for the next tribe…";
 
     public static bool Draw(Plugin plugin, Vector2 size, float windowRounding)
     {
@@ -55,11 +54,11 @@ internal static class MiniPlayer
         var top = midY - (phaseSize.Y + gap + lineHeight) * 0.5f;
         TextDraw.SmallCaps(phase, new Vector2(textX, top), info.AccentSoft);
 
-        var main = progress.Current is { } tribe ? $"{tribe.Name}   ·   {ctrl.Status}" : WaitingLabel;
+        var main = progress.Current is { } tribe ? Loc.T(L.Shell.MiniStatus, tribe.Name, ctrl.Status) : Loc.T(L.Shell.Waiting);
         TextDraw.At(TextDraw.Truncate(main, barX - 16f * scale - textX), new Vector2(textX, top + phaseSize.Y + gap), Styling.TextStrong);
 
         ImGui.SetCursorScreenPos(new Vector2(end.X - padX - buttonSize, midY - buttonSize * 0.5f));
-        if (IconButton.Draw(FontAwesomeIcon.Stop, "##adt_mini_stop", buttonSize, Styling.AccentRose, StopHint))
+        if (IconButton.Draw(FontAwesomeIcon.Stop, "##adt_mini_stop", buttonSize, Styling.AccentRose, Loc.T(L.Shell.StopHint)))
         {
             ctrl.Stop();
         }

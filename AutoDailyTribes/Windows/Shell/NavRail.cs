@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.External;
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -9,7 +10,7 @@ namespace AutoDailyTribes.Windows.Shell;
 
 internal static class NavRail
 {
-    private readonly record struct Entry(AppWindow.Page Page, FontAwesomeIcon Icon, string Id, string Label);
+    private readonly record struct Entry(AppWindow.Page Page, FontAwesomeIcon Icon, string Id, LocString Label);
 
     private const float TopPad = 12f;
     private const float Gap = 8f;
@@ -17,10 +18,10 @@ internal static class NavRail
 
     private static readonly Entry[] entries =
     [
-        new(AppWindow.Page.Tribes,   FontAwesomeIcon.Users,      "##adt_nav_tribes",   "Tribes"),
-        new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", "Settings"),
-        new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  "Plugins"),
-        new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    "About"),
+        new(AppWindow.Page.Tribes,   FontAwesomeIcon.Users,      "##adt_nav_tribes",   L.Shell.NavTribes),
+        new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", L.Shell.NavSettings),
+        new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  L.Shell.NavPlugins),
+        new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    L.Shell.NavAbout),
     ];
 
     public static AppWindow.Page? Draw(AppWindow.Page current, Plugin plugin)
@@ -72,7 +73,7 @@ internal static class NavRail
 
             DrawBadge(dl, entry.Page, center, button, missingPlugins, running);
 
-            if (hit.Hovered) Tooltip.Show(entry.Label);
+            if (hit.Hovered) Tooltip.Show(Loc.T(entry.Label));
             if (hit.Clicked) clicked = entry.Page;
         }
 

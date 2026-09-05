@@ -36,6 +36,13 @@ Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawn
 - A live run view with a progress ring, phase stepper, stat tiles, up-next queue and activity log.
 - Cancellable mid-run; selection persists across reloads.
 - Per-discipline job preference for crafter, gatherer and combat tribes.
+- Nine interface languages, picked automatically on first run and changeable under Settings, General.
+
+## Languages
+
+English, Français, Deutsch, Türkçe, Español, Português (Brasil), Русский, 日本語, 中文.
+
+The plugin picks one on first run from your Dalamud interface language, then your game client, then your OS, falling back to English. Change it any time under **Settings → General → Language**. Tribe and job names always follow your game client.
 
 ## Install
 

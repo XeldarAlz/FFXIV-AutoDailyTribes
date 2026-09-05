@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
@@ -37,7 +38,6 @@ internal static class Dropdown
     private const float SearchPadX = 9f;
     private const float SearchIconGap = 7f;
     private const int FilterMaxLength = 64;
-    private const string SearchHint = "Search…";
 
     private const float RevealMs = 200f;
     private const float StaggerMs = 14f;
@@ -476,7 +476,7 @@ internal static class Dropdown
             .Push(ImGuiCol.FrameBgHovered, Vector4.Zero)
             .Push(ImGuiCol.FrameBgActive, Vector4.Zero))
         {
-            ImGui.InputTextWithHint(SearchId, hint ?? SearchHint, ref filter, FilterMaxLength);
+            ImGui.InputTextWithHint(SearchId, hint ?? Loc.T(L.Common.Search), ref filter, FilterMaxLength);
         }
 
         if (string.Equals(filter, state.Filter, StringComparison.Ordinal))
@@ -493,7 +493,7 @@ internal static class Dropdown
     {
         using (Fonts.PushCaption())
         {
-            var text = $"No matches for \"{state.Filter}\"";
+            var text = Loc.T(L.Common.NoMatches, state.Filter);
             var padX = RowPadX * scale;
             TextDraw.At(TextDraw.Truncate(text, width - padX * 2f), origin + new Vector2(padX, RowPadY * scale), Styling.TextMuted);
         }

@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
@@ -20,28 +21,20 @@ internal sealed class AboutPage
     private const string DiscussionsUrl = RepoUrl + "/discussions";
     private const string SecurityUrl = RepoUrl + "/security/advisories/new";
 
-    private const string ConnectTitle = "Connect";
-    private const string SupportTitle = "Made with care";
-    private const string SupportBody = "I build and maintain this in my spare time. If it has helped you, a Patreon membership lets me keep improving it. No pressure, and thank you for being here.";
-    private const string SupportButton = "Support on Patreon";
-    private const string PatreonHint = "Open Patreon · right-click to copy";
-    private const string LinkHint = "Click to open · right-click to copy";
-    private const string MadeBy = "Made by " + Author;
-
     private const float RevealMs = 420f;
     private const float RevealStaggerMs = 95f;
     private const float RevealSlide = 12f;
     private const float HeroIconSize = 148f;
     private const float HeroRingRadius = 120f;
 
-    private static readonly (FontAwesomeIcon Icon, string Label, string Url, Vector4 Accent)[] Links =
+    private static readonly (FontAwesomeIcon Icon, LocString Label, string Url, Vector4 Accent)[] Links =
     [
-        (FontAwesomeIcon.CodeBranch, "GitHub", RepoUrl, Styling.AccentViolet),
-        (FontAwesomeIcon.Hashtag, "Discord", DiscordUrl, Styling.AccentDiscord),
-        (FontAwesomeIcon.Comments, "Discussions", DiscussionsUrl, Styling.AccentBlue),
-        (FontAwesomeIcon.Bug, "Report a bug", IssuesUrl, Styling.AccentRose),
-        (FontAwesomeIcon.ThLarge, "More plugins", HubUrl, Styling.AccentMint),
-        (FontAwesomeIcon.ShieldAlt, "Security", SecurityUrl, Styling.AccentAmber),
+        (FontAwesomeIcon.CodeBranch, L.About.LinkGitHub, RepoUrl, Styling.AccentViolet),
+        (FontAwesomeIcon.Hashtag, L.About.LinkDiscord, DiscordUrl, Styling.AccentDiscord),
+        (FontAwesomeIcon.Comments, L.About.LinkDiscussions, DiscussionsUrl, Styling.AccentBlue),
+        (FontAwesomeIcon.Bug, L.About.LinkBug, IssuesUrl, Styling.AccentRose),
+        (FontAwesomeIcon.ThLarge, L.About.LinkMore, HubUrl, Styling.AccentMint),
+        (FontAwesomeIcon.ShieldAlt, L.About.LinkSecurity, SecurityUrl, Styling.AccentAmber),
     ];
 
     private static readonly Vector2[] BloomOffsets =
@@ -51,65 +44,13 @@ internal sealed class AboutPage
 
     private static readonly FactCategory[] Categories =
     [
-        new(FontAwesomeIcon.Heart, "A little reminder", Styling.AccentRose,
-        [
-            "Been at it a while? Roll your shoulders and take one slow breath.",
-            "Hydration check. When did you last drink some water?",
-            "Blink a few times and let your eyes rest for a moment.",
-            "Stand up, stretch, and shake out your hands. Future you says thanks.",
-            "Sit up and settle in comfortably. Your back will thank you later.",
-            "Remember to eat something today. You matter more than any score.",
-            "Eyes feel tired? Look at something far away for twenty seconds.",
-            "Whatever you're chasing, you're allowed to take a break whenever.",
-            "You're doing great. Be a little kinder to yourself today.",
-            "A glass of water and a quick stretch can reset a long session.",
-            "Unclench your jaw and drop your shoulders. There you go.",
-            "Rest is part of the journey too. Step away whenever you need to.",
-        ]),
-        new(FontAwesomeIcon.Lightbulb, "Did you know?", Styling.AccentAmberSoft,
-        [
-            "Honey never spoils. Jars over 3,000 years old have been found still edible.",
-            "Octopuses have three hearts and blue blood.",
-            "A day on Venus is longer than a whole year on Venus.",
-            "Bananas are berries, but strawberries aren't.",
-            "There are more possible chess games than atoms in the observable universe.",
-            "Sharks have been around longer than trees have.",
-            "A group of flamingos is called a flamboyance.",
-            "Honeybees can recognize individual human faces.",
-            "Wombat droppings are cube shaped.",
-            "The Eiffel Tower can grow over 15 cm taller on a hot day.",
-            "Hot water can sometimes freeze faster than cold water.",
-            "A bolt of lightning is roughly five times hotter than the surface of the Sun.",
-        ]),
-        new(FontAwesomeIcon.Star, "Words to live by", Styling.AccentMintSoft,
-        [
-            "Done is better than perfect. You can always polish later.",
-            "Small steps every day add up to surprising distances.",
-            "Comparison is the thief of joy. Run your own race.",
-            "Progress, not perfection.",
-            "You don't have to be great to start, but you have to start to be great.",
-            "Be patient with yourself. Growth takes time.",
-            "The best time to begin was yesterday. The second best is right now.",
-            "Celebrate the small wins. They count too.",
-            "Slow progress is still progress.",
-            "Your only real competition is who you were yesterday.",
-        ]),
-        new(FontAwesomeIcon.GrinBeam, "Just for fun", Styling.AccentBlueSoft,
-        [
-            "Why don't scientists trust atoms? Because they make up everything.",
-            "I would tell you a chemistry joke, but I know I wouldn't get a reaction.",
-            "Why did the scarecrow win an award? He was outstanding in his field.",
-            "I'm reading a book about anti-gravity. It's impossible to put down.",
-            "Why don't skeletons fight each other? They don't have the guts.",
-            "What do you call fake spaghetti? An impasta.",
-            "Why did the bicycle fall over? It was two tired.",
-            "What do you call cheese that isn't yours? Nacho cheese.",
-            "I'm on a seafood diet. I see food, and I eat it.",
-            "I only know 25 letters of the alphabet. I don't know y.",
-        ]),
+        new(FontAwesomeIcon.Heart, L.About.ReminderTitle, Styling.AccentRose, L.About.Reminders),
+        new(FontAwesomeIcon.Lightbulb, L.About.FactsTitle, Styling.AccentAmberSoft, L.About.Facts),
+        new(FontAwesomeIcon.Star, L.About.QuotesTitle, Styling.AccentMintSoft, L.About.Quotes),
+        new(FontAwesomeIcon.GrinBeam, L.About.JokesTitle, Styling.AccentBlueSoft, L.About.Jokes),
     ];
 
-    private readonly record struct FactCategory(FontAwesomeIcon Icon, string Header, Vector4 Color, string[] Lines);
+    private readonly record struct FactCategory(FontAwesomeIcon Icon, LocString Header, Vector4 Color, LocString[] Lines);
 
     private static readonly float[] linkWidths = new float[Links.Length];
     private static readonly List<string> bodyLines = [];
@@ -117,9 +58,9 @@ internal sealed class AboutPage
     private static readonly int[] factBagPositions = new int[Categories.Length];
     private static readonly int[] factLastServed = new int[Categories.Length];
     private static readonly string version = typeof(AboutPage).Assembly.GetName().Version?.ToString() ?? "?";
-    private static readonly string versionLabel = $"v {version}";
 
     private static float bodyLinesWidth = -1f;
+    private static string bodyLinesSource = string.Empty;
     private static int factCategory = -1;
     private static int factLine;
     private static bool iconHovered;
@@ -145,7 +86,7 @@ internal sealed class AboutPage
         });
         RevealSection(2, () =>
         {
-            SectionHeader(FontAwesomeIcon.Link, ConnectTitle, Styling.AccentBlue);
+            SectionHeader(FontAwesomeIcon.Link, Loc.T(L.About.Connect), Styling.AccentBlue);
             Styling.VSpace(6f);
             DrawConnect();
             Styling.VSpace(16f);
@@ -232,7 +173,7 @@ internal sealed class AboutPage
         Styling.VSpace(10f);
         ShimmerCentered(Name, Styling.TextStrong, Styling.AccentTealSoft, Styling.PulseOrbit, 0.42f);
         Styling.VSpace(9f);
-        CenteredPill(versionLabel, Styling.TextSecondary, Styling.WithAlpha(Styling.AccentTeal, 0.45f), Styling.CardBgSoft);
+        CenteredPill(Loc.T(L.About.Version, version), Styling.TextSecondary, Styling.WithAlpha(Styling.AccentTeal, 0.45f), Styling.CardBgSoft);
     }
 
     private static void OrbitParticles(ImDrawListPtr dl, Vector2 center, float radius, int count, double periodMs, int direction, Vector4 color, float dotRadius)
@@ -272,9 +213,9 @@ internal sealed class AboutPage
                 ImGui.TextUnformatted(category.Icon.ToIconString());
             ImGui.SameLine(0, 8f * scale);
             using (ImRaii.PushColor(ImGuiCol.Text, category.Color))
-                ImGui.TextUnformatted(category.Header);
+                ImGui.TextUnformatted(Loc.T(category.Header));
             ImGui.Spacing();
-            Tooltip.Text(category.Lines[factLine]);
+            Tooltip.Text(Loc.T(category.Lines[factLine]));
         }
     }
 
@@ -334,7 +275,8 @@ internal sealed class AboutPage
         using (Fonts.PushHeadline())
             titleHeight = ImGui.GetTextLineHeight();
 
-        EnsureBodyLines(innerWidth);
+        var body = Loc.T(L.About.SupportBody);
+        EnsureBodyLines(body, innerWidth);
         var bodyHeight = bodyLines.Count * lineHeight + MathF.Max(0, bodyLines.Count - 1) * spacing;
         var height = pad + medallionRadius * 2f + 12f * scale + titleHeight + spacing + bodyHeight + 14f * scale + buttonHeight + pad;
 
@@ -354,7 +296,7 @@ internal sealed class AboutPage
 
         var textY = origin.Y + pad + medallionRadius * 2f + 12f * scale;
         using (Fonts.PushHeadline())
-            TextDraw.Center(SupportTitle, centerX, textY, Styling.TextStrong);
+            TextDraw.Center(Loc.T(L.About.SupportTitle), centerX, textY, Styling.TextStrong);
         textY += titleHeight + spacing;
         for (var lineIndex = 0; lineIndex < bodyLines.Count; lineIndex++)
         {
@@ -371,13 +313,14 @@ internal sealed class AboutPage
 
     // ImGui wraps text but always left-aligns it, so the paragraph is broken into lines by hand so
     // each can be centered. The lines only change with the available width, so they are cached.
-    private static void EnsureBodyLines(float width)
+    private static void EnsureBodyLines(string body, float width)
     {
-        if (MathF.Abs(width - bodyLinesWidth) < 0.5f) return;
+        if (MathF.Abs(width - bodyLinesWidth) < 0.5f && ReferenceEquals(body, bodyLinesSource)) return;
 
         bodyLinesWidth = width;
+        bodyLinesSource = body;
         bodyLines.Clear();
-        var words = SupportBody.Split(' ');
+        var words = body.Split(' ');
         var current = string.Empty;
         for (var wordIndex = 0; wordIndex < words.Length; wordIndex++)
         {
@@ -418,19 +361,20 @@ internal sealed class AboutPage
         Sheen(dl, origin, size, 3000.0);
         Paint.Stroke(dl, origin, end, new Vector4(1f, 1f, 1f, hover ? 0.42f : 0.18f), rounding);
 
+        var label = Loc.T(L.About.SupportButton);
         var iconSize = TextDraw.IconSize(FontAwesomeIcon.HandHoldingHeart);
-        var labelSize = TextDraw.Measure(SupportButton);
+        var labelSize = TextDraw.Measure(label);
         var innerGap = 9f * scale;
         var contentWidth = iconSize.X + innerGap + labelSize.X;
         var startX = origin.X + (size.X - contentWidth) * 0.5f;
         var midY = origin.Y + size.Y * 0.5f;
 
         TextDraw.Icon(FontAwesomeIcon.HandHoldingHeart, new Vector2(startX, midY - iconSize.Y * 0.5f), Styling.TextStrong);
-        TextDraw.At(SupportButton, new Vector2(startX + iconSize.X + innerGap, midY - labelSize.Y * 0.5f), Styling.TextStrong);
+        TextDraw.At(label, new Vector2(startX + iconSize.X + innerGap, midY - labelSize.Y * 0.5f), Styling.TextStrong);
 
         if (!hover) return;
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        Tooltip.Show(PatreonHint);
+        Tooltip.Show(Loc.T(L.About.PatreonHint));
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) UrlActions.Open(PatreonUrl);
         else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(PatreonUrl);
     }
@@ -463,7 +407,7 @@ internal sealed class AboutPage
         var avail = ImGui.GetContentRegionAvail().X;
         var pillHeight = ImGui.GetFrameHeight() * 1.15f;
 
-        for (var index = 0; index < Links.Length; index++) linkWidths[index] = PillWidth(Links[index].Icon, Links[index].Label);
+        for (var index = 0; index < Links.Length; index++) linkWidths[index] = PillWidth(Links[index].Icon, Loc.T(Links[index].Label));
 
         var rowStart = 0;
         while (rowStart < Links.Length)
@@ -484,7 +428,7 @@ internal sealed class AboutPage
                 if (index == rowStart) ImGui.SetCursorPosX(startX);
                 else ImGui.SameLine(0, gap);
                 var (icon, label, url, accent) = Links[index];
-                LinkPill(icon, label, url, accent, new Vector2(linkWidths[index], pillHeight));
+                LinkPill(icon, Loc.T(label), url, accent, new Vector2(linkWidths[index], pillHeight));
             }
 
             rowStart = rowEnd;
@@ -538,7 +482,7 @@ internal sealed class AboutPage
 
         if (!hovered) return;
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        Tooltip.Show(LinkHint);
+        Tooltip.Show(Loc.T(L.Common.OpenCopyHint));
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) UrlActions.Open(url);
         else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(url);
     }
@@ -549,16 +493,17 @@ internal sealed class AboutPage
         Paint.Divider(4f);
 
         var twinkle = Styling.Pulse(2600.0);
+        var madeBy = Loc.T(L.About.MadeBy, Author);
         var glyphSize = TextDraw.IconSize(FontAwesomeIcon.Code);
         var gap = 6f * scale;
-        var labelSize = TextDraw.Measure(MadeBy);
+        var labelSize = TextDraw.Measure(madeBy);
         var origin = ImGui.GetCursorScreenPos();
         var avail = ImGui.GetContentRegionAvail().X;
         var startX = origin.X + MathF.Max(0f, (avail - glyphSize.X - gap - labelSize.X) * 0.5f);
 
         TextDraw.Icon(FontAwesomeIcon.Code, new Vector2(startX, origin.Y + (labelSize.Y - glyphSize.Y) * 0.5f),
             Vector4.Lerp(Styling.AccentBlue, Styling.Lighten(Styling.AccentBlueSoft, 0.3f), twinkle));
-        TextDraw.At(MadeBy, new Vector2(startX + glyphSize.X + gap, origin.Y), Styling.TextDim);
+        TextDraw.At(madeBy, new Vector2(startX + glyphSize.X + gap, origin.Y), Styling.TextDim);
         ImGui.Dummy(new Vector2(avail, labelSize.Y));
     }
 
