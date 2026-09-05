@@ -1,0 +1,66 @@
+name: Translation fix
+description: Report wrong, awkward, or untranslated text in one of the nine languages.
+title: "[Translation] "
+labels: ["bug"]
+assignees: ["XeldarAlz"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping the plugin read naturally in your language.
+
+        Tell me where the text appears and what it should say instead, and I will fix it in the next release.
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Deutsch (de)
+        - English (en)
+        - Español (es)
+        - Français (fr)
+        - 日本語 (ja)
+        - Português (pt)
+        - Русский (ru)
+        - Türkçe (tr)
+        - 中文 (zh)
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: Where does it appear?
+      description: The page and control where you saw the text.
+      placeholder: "Settings, the Job section, the gearset picker tooltip"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+      description: The text exactly as the plugin shows it today. A screenshot works too.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested text
+      description: Your proposed wording. Leave it empty if you only want to flag the problem.
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this better?
+      description: Wrong meaning, wrong register, grammar, truncation, or an FFXIV term that the official localization renders differently. For game terms, the official in-game wording wins.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
