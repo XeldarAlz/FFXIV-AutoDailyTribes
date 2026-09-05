@@ -1,92 +1,13 @@
-using AutoDailyTribes.Core.External;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
-namespace AutoDailyTribes.Windows.Components;
+namespace AutoDailyTribes.Windows.Shell;
 
-internal static class DependencyRow
+internal static class Dock
 {
-    public static void Draw(ExternalPlugin plugin)
+    public static void Background(ImDrawListPtr dl, Vector2 origin, Vector2 end, float windowRounding)
     {
-        var info = ExternalPlugins.Catalog[plugin];
-        var installed = ExternalPlugins.IsInstalled(plugin);
-        var disabled = ExternalPlugins.IsInstalledButDisabled(plugin);
-        var installing = PluginInstaller.IsInstalling(plugin);
-
-        ImGui.TableNextRow();
-
-        ImGui.TableSetColumnIndex(0);
-        DrawStatusIcon(installed, disabled, info.Required);
-
-        ImGui.TableSetColumnIndex(1);
-        DrawName(info);
-
-        ImGui.TableSetColumnIndex(2);
-        DrawAction(plugin, installed, disabled, installing);
-    }
-
-    private static void DrawStatusIcon(bool installed, bool disabled, bool required)
-    {
-        var (icon, color) = (installed, disabled, required) switch
-        {
-            (true,  true,  _    ) => (FontAwesomeIcon.ExclamationCircle, Styling.AccentAmber),
-            (true,  false, _    ) => (FontAwesomeIcon.CheckCircle,       Styling.AccentMint),
-            (false, _,     true ) => (FontAwesomeIcon.TimesCircle,       Styling.AccentRose),
-            (false, _,     false) => (FontAwesomeIcon.Circle,            Styling.TextDim),
-        };
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-            ImGui.TextUnformatted(icon.ToIconString());
-    }
-
-    private static void DrawName(ExternalPluginInfo info)
-    {
-        ImGui.AlignTextToFramePadding();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
-            ImGui.TextUnformatted(info.DisplayName);
-        ImGui.SameLine();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextUnformatted(info.Required ? "  required" : "  optional");
-
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-        {
-            using (ImRaii.Tooltip())
-                ImGui.TextUnformatted($"Repo: {info.RepoUrl}\nLeft-click to open repo URL · right-click to copy");
-            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) UrlActions.Open(info.RepoUrl, log: false);
-            else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(info.RepoUrl);
-        }
-    }
-
-    private static void DrawAction(ExternalPlugin plugin, bool installed, bool disabled, bool installing)
-    {
-        var size = new Vector2(110 * ImGuiHelpers.GlobalScale, 0);
-        if (installed)
-        {
-            var (text, color) = disabled ? ("disabled", Styling.AccentAmber) : ("installed", Styling.AccentMint);
-            using (ImRaii.PushColor(ImGuiCol.Text, color))
-            {
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(text);
-            }
-            if (disabled && ImGui.IsItemHovered())
-                using (ImRaii.Tooltip())
-                    ImGui.TextUnformatted(
-                        "Loaded, but TextAdvance's own \"Enable plugin\" toggle is off.\n" +
-                        "Questionable needs it on to advance quest dialogue and cutscenes —\n" +
-                        "with it off, dailies will stall mid-quest.\n" +
-                        "Turn it on in TextAdvance's settings (/xlplugins -> TextAdvance).");
-            return;
-        }
-
-        using (ImRaii.Disabled(installing))
-        using (Styling.PushAccentButtonColors())
-        {
-            var label = installing ? "Installing..." : "Install";
-            if (ImGui.Button($"{label}##install_{plugin}", size))
-                _ = PluginInstaller.Install(plugin);
-        }
+        Paint.Gradient(dl, origin, end, Styling.WithAlpha(Styling.Surface1, 0.97f), Styling.WithAlpha(Styling.Surface0, 0.97f), windowRounding, ImDrawFlags.RoundCornersBottom);
+        Paint.Hairline(dl, origin, new Vector2(end.X, origin.Y));
     }
 }

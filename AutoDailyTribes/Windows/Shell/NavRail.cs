@@ -1,46 +1,101 @@
+using AutoDailyTribes.Core.External;
+using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility.Raii;
+using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using System.Numerics;
 
-namespace AutoDailyTribes.Windows.Components;
+namespace AutoDailyTribes.Windows.Shell;
 
-internal static class Card
+internal static class NavRail
 {
-    public static CardScope Begin(string id, Vector2 size, Vector4 background, Vector4 border, float borderSize = 1f)
-    {
-        var style = Styling.PushCardStyle();
-        var backgroundColor = ImRaii.PushColor(ImGuiCol.ChildBg, background);
-        var borderColor = ImRaii.PushColor(ImGuiCol.Border, border);
-        var sizeStyle = ImRaii.PushStyle(ImGuiStyleVar.ChildBorderSize, borderSize);
-        var child = ImRaii.Child(id, size, true,
-            ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-        return new CardScope(child, sizeStyle, borderColor, backgroundColor, style);
-    }
+    private readonly record struct Entry(AppWindow.Page Page, FontAwesomeIcon Icon, string Id, string Label);
 
-    public ref struct CardScope
-    {
-        private ImRaii.ChildDisposable child;
-        private readonly IDisposable sizeStyle;
-        private readonly IDisposable borderColor;
-        private readonly IDisposable backgroundColor;
-        private readonly IDisposable style;
+    private const float TopPad = 12f;
+    private const float Gap = 8f;
+    private const float IconHeight = 17f;
 
-        internal CardScope(ImRaii.ChildDisposable child, IDisposable sizeStyle, IDisposable borderColor, IDisposable backgroundColor, IDisposable style)
+    private static readonly Entry[] entries =
+    [
+        new(AppWindow.Page.Tribes,   FontAwesomeIcon.Users,      "##adt_nav_tribes",   "Tribes"),
+        new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", "Settings"),
+        new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  "Plugins"),
+        new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    "About"),
+    ];
+
+    public static AppWindow.Page? Draw(AppWindow.Page current, Plugin plugin)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var button = Layout.RailButton * scale;
+        var gap = Gap * scale;
+        var railOrigin = ImGui.GetCursorScreenPos();
+        var avail = ImGui.GetContentRegionAvail().X;
+        var x = railOrigin.X + (avail - button) * 0.5f;
+        var startY = railOrigin.Y + TopPad * scale;
+        var dl = ImGui.GetWindowDrawList();
+
+        var selectedIndex = 0;
+        for (var index = 0; index < entries.Length; index++)
         {
-            this.child = child;
-            this.sizeStyle = sizeStyle;
-            this.borderColor = borderColor;
-            this.backgroundColor = backgroundColor;
-            this.style = style;
+            if (entries[index].Page == current) selectedIndex = index;
         }
 
-        public void Dispose()
+        var indicator = Motion.Approach(Motion.Key("##adt_rail_indicator"), selectedIndex, 16f);
+        var indicatorY = startY + (button + gap) * indicator;
+        var indicatorMin = new Vector2(x, indicatorY);
+        var indicatorMax = indicatorMin + new Vector2(button, button);
+        Paint.Glass(dl, indicatorMin, indicatorMax, 12f * scale, Styling.AccentTeal, 0.30f);
+        Paint.Fill(dl, new Vector2(railOrigin.X, indicatorY + button * 0.25f), new Vector2(railOrigin.X + 3f * scale, indicatorY + button * 0.75f),
+            Styling.AccentTeal, 2f * scale);
+
+        var missingPlugins = !ExternalPlugins.AllRequiredInstalled();
+        var running = plugin.Controller.Running;
+        AppWindow.Page? clicked = null;
+
+        for (var index = 0; index < entries.Length; index++)
         {
-            child.Dispose();
-            sizeStyle?.Dispose();
-            borderColor?.Dispose();
-            backgroundColor?.Dispose();
-            style?.Dispose();
+            var entry = entries[index];
+            var y = startY + (button + gap) * index;
+            ImGui.SetCursorScreenPos(new Vector2(x, y));
+            var hit = Hit.Area(entry.Id, new Vector2(button, button));
+            var hover = Motion.Hover(Motion.Key(entry.Id), hit.Hovered);
+            var selected = index == selectedIndex;
+
+            if (!selected && hover > 0.01f)
+            {
+                Paint.Fill(dl, new Vector2(x, y), new Vector2(x + button, y + button), Styling.WithAlpha(Styling.Surface2, 0.8f * hover), 12f * scale);
+            }
+
+            var center = new Vector2(x + button * 0.5f, y + button * 0.5f);
+            var color = selected ? Styling.TextStrong : Vector4.Lerp(Styling.TextDim, Styling.TextSecondary, hover);
+            ProgressRing.CenterIcon(center, entry.Icon, color, IconHeight * scale);
+
+            DrawBadge(dl, entry.Page, center, button, missingPlugins, running);
+
+            if (hit.Hovered) Tooltip.Show(entry.Label);
+            if (hit.Clicked) clicked = entry.Page;
+        }
+
+        ImGui.SetCursorScreenPos(railOrigin);
+        ImGui.Dummy(new Vector2(avail, TopPad * scale + (button + gap) * entries.Length));
+        return clicked;
+    }
+
+    private static void DrawBadge(ImDrawListPtr dl, AppWindow.Page page, Vector2 center, float button, bool missingPlugins, bool running)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var badgeCenter = center + new Vector2(button * 0.30f, -button * 0.30f);
+        var radius = 3.5f * scale;
+
+        if (page == AppWindow.Page.Plugins && missingPlugins)
+        {
+            dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
+            dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.AccentRose));
+        }
+        else if (page == AppWindow.Page.Tribes && running)
+        {
+            dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
+            dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.PulseColor(Styling.AccentTeal, Styling.AccentTealSoft, Styling.PulseMedium)));
         }
     }
 }

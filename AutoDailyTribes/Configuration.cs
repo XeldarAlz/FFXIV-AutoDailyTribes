@@ -24,13 +24,9 @@ public sealed class Configuration : IPluginConfiguration
 
     public ExpansionOrder ExpansionOrder { get; set; } = ExpansionOrder.NewestFirst;
 
-    public bool HideLockedExpansions { get; set; } = true;
-
-    public List<TribeEra> CollapsedEras { get; set; } = [];
-
-    public bool ShowReadyOnly { get; set; }
-
     public List<TribeKind> HiddenKinds { get; set; } = [];
+
+    public bool HideMaxedTribes { get; set; }
 
     // Chat commands (one per line, each starting with '/') dispatched after a batch run
     // finishes naturally — e.g. "/ays m" to hand off to AutoRetainer. See issue #17.

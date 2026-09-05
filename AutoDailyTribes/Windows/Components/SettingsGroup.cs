@@ -1,18 +1,22 @@
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
 
-// Wraps a block of settings in a rounded card. Uses a split draw-list channel so the background can
-// be drawn behind variable-height content measured at Dispose. Ported from the sibling plugins.
+// Wraps a block of settings in a rounded card. The draw list is split so the background can be
+// painted behind variable-height content whose extent is only known at Dispose.
 internal sealed class SettingsGroup : IDisposable
 {
-    private const float PaddingX = 12f;
-    private const float PaddingY = 9f;
-    private const float GroupGap = 12f;
+    private const float PaddingX = 14f;
+    private const float PaddingY = 8f;
+    private const float GroupGap = 18f;
+    private const float FootnotePullUp = 6f;
+    private const float FootnoteIndent = 4f;
+
+    internal static float ContentRightEdge { get; private set; }
+    internal static bool RowDrawnInGroup;
 
     private readonly Vector2 cardOrigin;
     private readonly float cardWidth;
@@ -22,20 +26,9 @@ internal sealed class SettingsGroup : IDisposable
         if (title.Length > 0)
         {
             Styling.SectionLabel(title);
-            Styling.VSpace(3f);
+            Styling.VSpace(6f);
         }
-        return new SettingsGroup();
-    }
 
-    public static SettingsGroup Begin(FontAwesomeIcon icon, string title, Vector4 accent)
-    {
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        using (ImRaii.PushColor(ImGuiCol.Text, accent))
-            ImGui.TextUnformatted(icon.ToIconString());
-        ImGui.SameLine(0, 7f * ImGuiHelpers.GlobalScale);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted(title.ToUpperInvariant());
-        Styling.VSpace(3f);
         return new SettingsGroup();
     }
 
@@ -44,6 +37,8 @@ internal sealed class SettingsGroup : IDisposable
         var scale = ImGuiHelpers.GlobalScale;
         cardOrigin = ImGui.GetCursorScreenPos();
         cardWidth = ImGui.GetContentRegionAvail().X;
+        ContentRightEdge = cardOrigin.X + cardWidth - PaddingX * scale;
+        RowDrawnInGroup = false;
 
         var drawList = ImGui.GetWindowDrawList();
         drawList.ChannelsSplit(2);
@@ -51,12 +46,10 @@ internal sealed class SettingsGroup : IDisposable
 
         ImGui.SetCursorScreenPos(cardOrigin + new Vector2(PaddingX, PaddingY) * scale);
         ImGui.BeginGroup();
-        ImGui.PushTextWrapPos(cardOrigin.X + cardWidth - PaddingX * scale);
     }
 
     public void Dispose()
     {
-        ImGui.PopTextWrapPos();
         ImGui.EndGroup();
         var scale = ImGuiHelpers.GlobalScale;
         var cardEnd = new Vector2(cardOrigin.X + cardWidth, ImGui.GetItemRectMax().Y + PaddingY * scale);
@@ -64,12 +57,29 @@ internal sealed class SettingsGroup : IDisposable
         var drawList = ImGui.GetWindowDrawList();
         drawList.ChannelsSetCurrent(0);
         var rounding = Styling.CardRounding * scale;
-        drawList.AddRectFilled(cardOrigin, cardEnd, ImGui.GetColorU32(Styling.CardBgSoft), rounding);
-        drawList.AddRect(cardOrigin, cardEnd, ImGui.GetColorU32(Styling.WithAlpha(Styling.BorderDim, 0.55f)), rounding);
+        Paint.Surface(drawList, cardOrigin, cardEnd, rounding, Styling.WithAlpha(Styling.Surface1, 0.55f), Styling.WithAlpha(Styling.BorderDim, 0.5f));
         drawList.ChannelsMerge();
 
         ImGui.SetCursorScreenPos(new Vector2(cardOrigin.X, cardEnd.Y));
         ImGui.Dummy(new Vector2(cardWidth, 0f));
         Styling.VSpace(GroupGap);
     }
+
+    public static void Footnote(string text)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - FootnotePullUp * scale);
+        ImGui.Indent(FootnoteIndent * scale);
+        using (Fonts.PushCaption())
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+        {
+            ImGui.TextWrapped(text);
+        }
+
+        ImGui.Unindent(FootnoteIndent * scale);
+        Styling.VSpace(GroupGap);
+    }
+
+    public static float InnerRightLocalX()
+        => ImGui.GetCursorPosX() + (ContentRightEdge - ImGui.GetCursorScreenPos().X);
 }

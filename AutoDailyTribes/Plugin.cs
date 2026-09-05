@@ -3,6 +3,7 @@ using AutoDailyTribes.Core.Debug;
 using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Windows;
+using AutoDailyTribes.Windows.Shell;
 using clib;
 using Dalamud.Game.Command;
 using Dalamud.IoC;
@@ -26,10 +27,7 @@ public sealed class Plugin : IDalamudPlugin
     internal WindowSystem WindowSystem { get; } = new("AutoDailyTribes");
     internal AutoTribeController Controller { get; }
 
-    private readonly MainWindow mainWindow;
-    private readonly ConfigWindow configWindow;
-    private readonly AboutWindow aboutWindow;
-    private readonly DependenciesWindow dependenciesWindow;
+    private readonly AppWindow appWindow;
 
     public Plugin()
     {
@@ -40,15 +38,9 @@ public sealed class Plugin : IDalamudPlugin
         Cfg = Configuration;
         Controller = new AutoTribeController();
 
-        mainWindow = new MainWindow(this);
-        configWindow = new ConfigWindow(this);
-        aboutWindow = new AboutWindow();
-        dependenciesWindow = new DependenciesWindow();
-
-        WindowSystem.AddWindow(mainWindow);
-        WindowSystem.AddWindow(configWindow);
-        WindowSystem.AddWindow(aboutWindow);
-        WindowSystem.AddWindow(dependenciesWindow);
+        Fonts.Initialize(PluginInterface.UiBuilder, PluginInterface.AssemblyLocation.DirectoryName ?? string.Empty);
+        appWindow = new AppWindow(this);
+        WindowSystem.AddWindow(appWindow);
 
         CommandManager.AddHandler(AdtConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
@@ -71,10 +63,8 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
 
         WindowSystem.RemoveAllWindows();
-        mainWindow.Dispose();
-        configWindow.Dispose();
-        aboutWindow.Dispose();
-        dependenciesWindow.Dispose();
+        appWindow.Dispose();
+        Fonts.Dispose();
 
         CommandManager.RemoveHandler(AdtConstants.PrimaryCommand);
         CommandManager.RemoveHandler(AdtConstants.AliasCommand);
@@ -100,8 +90,8 @@ public sealed class Plugin : IDalamudPlugin
             ToggleMainUi();
     }
 
-    public void ToggleMainUi() => mainWindow.Toggle();
-    public void ToggleConfigUi() => configWindow.Toggle();
-    public void ToggleAboutUi() => aboutWindow.Toggle();
-    public void ToggleDependenciesUi() => dependenciesWindow.Toggle();
+    public void ToggleMainUi() => appWindow.Toggle();
+    public void ToggleConfigUi() => appWindow.TogglePage(AppWindow.Page.Settings);
+    public void ToggleAboutUi() => appWindow.TogglePage(AppWindow.Page.About);
+    public void ToggleDependenciesUi() => appWindow.TogglePage(AppWindow.Page.Plugins);
 }

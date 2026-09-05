@@ -13,221 +13,235 @@ internal static class RunningPanel
 {
     private enum StepState { Pending, Active, Done }
 
-    public static void Draw(AutoTribeController controller)
+    private readonly record struct Step(string Label, TribePhase Phase);
+
+    private const float PadX = 18f;
+    private const float RingInset = 22f;
+    private const float ColumnGap = 20f;
+    private const float IdentityIcon = 36f;
+    private const float StepBarHeight = 3f;
+    private const float StepGap = 8f;
+    private const float StepLabelGap = 5f;
+    private const int LogRows = 5;
+
+    private const string StatusRunning = "Running";
+    private const string RingCaption = "tribes";
+    private const string WaitingLabel = "Waiting for the next tribe…";
+    private const string WorkingLabel = "Working…";
+    private const string UpNextTitle = "Up next";
+    private const string ActivityTitle = "Activity";
+    private const string TileAllowances = "Allowances";
+    private const string TileCurrent = "This tribe";
+    private const string TileElapsed = "Elapsed";
+    private const string TileReset = "Reset in";
+
+    private static readonly Step[] Steps =
+    [
+        new("Switch job", TribePhase.SwitchingJob),
+        new("Travel", TribePhase.Traveling),
+        new("Accept", TribePhase.Accepting),
+        new("Run quests", TribePhase.Delegating),
+    ];
+
+    public static void Draw(Configuration cfg, AutoTribeController controller)
     {
         var progress = controller.Progress;
-        var (accent, accentSoft, label) = PhaseInfo(progress.Phase);
+        var (accent, accentSoft) = ReadyState.PhasePalette(progress.Phase);
+        var label = ReadyState.PhaseLabel(progress.Phase);
 
-        Styling.VSpace(4);
+        DrawHeaderStrip(progress, accent, accentSoft);
+        Styling.VSpace(6f);
         DrawHeroCard(controller, progress, accent, accentSoft, label);
 
-        var upNext = progress.UpNext.ToArray();
-        if (upNext.Length > 0)
-        {
-            Styling.VSpace(10);
-            DrawQueue(upNext);
-        }
+        Styling.VSpace(10f);
+        DrawStatTiles(progress);
 
-        if (progress.Log.Count > 0)
-        {
-            Styling.VSpace(10);
-            Styling.SectionLabel("Activity");
-            Styling.VSpace(2);
-            DrawLog(progress);
-        }
+        Styling.VSpace(10f);
+        DrawQueue(progress);
+
+        if (progress.Log.Count == 0) return;
+        Styling.VSpace(10f);
+        DrawLog(progress);
     }
 
-    private static (Vector4 accent, Vector4 accentSoft, string label) PhaseInfo(TribePhase phase) => phase switch
+    // Completed tribes plus a fraction of the in-flight tribe, so the ring keeps moving within a
+    // single tribe instead of only jumping on tribe completion.
+    public static float SmoothFraction(TribeRunProgress progress)
     {
-        TribePhase.SwitchingJob => (Styling.AccentTeal, Styling.AccentTealSoft, "SWITCHING JOB"),
-        TribePhase.Traveling    => (Styling.AccentTeal, Styling.AccentTealSoft, "TRAVELING"),
-        TribePhase.Accepting    => (Styling.AccentTeal, Styling.AccentTealSoft, "ACCEPTING DAILIES"),
-        TribePhase.Delegating   => (Styling.AccentTeal, Styling.AccentTealSoft, "DELEGATING QUESTS"),
-        TribePhase.Recovering   => (Styling.AccentRose, Styling.AccentRose,     "RECOVERING"),
-        TribePhase.Done         => (Styling.AccentMint, Styling.AccentMintSoft, "TRIBE COMPLETE"),
-        _                       => (Styling.AccentTeal, Styling.AccentTealSoft, "PREPARING"),
-    };
-
-    // Continuous batch progress: completed tribes plus a fraction of the in-flight tribe, so the ring
-    // keeps moving within a single tribe instead of only jumping on tribe completion.
-    private static float SmoothFraction(TribeRunProgress p)
-    {
-        if (p.Total == 0) return 0f;
-        return Math.Clamp((p.Completed + StageFraction(p.Phase, p.Current)) / p.Total, 0f, 1f);
+        if (progress.Total == 0) return 0f;
+        return Math.Clamp((progress.Completed + StageFraction(progress.Phase, progress.Current)) / progress.Total, 0f, 1f);
     }
 
-    private static float StageFraction(TribePhase phase, TribeInfo? cur) => phase switch
+    private static float StageFraction(TribePhase phase, TribeInfo? current) => phase switch
     {
         TribePhase.SwitchingJob => 0.12f,
         TribePhase.Traveling    => 0.35f,
-        TribePhase.Accepting    => 0.45f + 0.25f * AcceptFraction(cur),
-        TribePhase.Delegating   => 0.72f + 0.28f * DelegateFraction(cur),
+        TribePhase.Accepting    => 0.45f + 0.25f * AcceptFraction(current),
+        TribePhase.Delegating   => 0.72f + 0.28f * DelegateFraction(current),
         TribePhase.Recovering   => 0.30f,
         TribePhase.Done         => 1.00f,
         _                       => 0.05f,
     };
 
-    private static float AcceptFraction(TribeInfo? cur)
-        => cur is null ? 0f : Math.Clamp(cur.AcceptedTodayCount / (float)AdtConstants.MaxAcceptsPerTribe, 0f, 1f);
+    private static float AcceptFraction(TribeInfo? current)
+        => current is null ? 0f : Math.Clamp(current.AcceptedTodayCount / (float)AdtConstants.MaxAcceptsPerTribe, 0f, 1f);
 
-    private static float DelegateFraction(TribeInfo? cur)
+    private static float DelegateFraction(TribeInfo? current)
     {
-        if (cur is null) return 1f;
-        var left = cur.InProgressQuestIds.Length;
-        var total = Math.Max(Math.Max(cur.AcceptedTodayCount, left), 1);
+        if (current is null) return 1f;
+        var left = current.InProgressQuestIds.Length;
+        var total = Math.Max(Math.Max(current.AcceptedTodayCount, left), 1);
         return Math.Clamp(1f - left / (float)total, 0f, 1f);
     }
 
-    private static void DrawHeroCard(
-        AutoTribeController controller, TribeRunProgress progress, Vector4 accent, Vector4 accentSoft, string phaseLabel)
+    private static void DrawHeaderStrip(TribeRunProgress progress, Vector4 accent, Vector4 accentSoft)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        using var card = Card.Begin("##runhero", new Vector2(-1, Layout.RunHeroHeight * s),
-            Styling.CardBg, Styling.WithAlpha(accent, 0.35f));
-
+        var scale = ImGuiHelpers.GlobalScale;
+        var dl = ImGui.GetWindowDrawList();
         var origin = ImGui.GetCursorScreenPos();
-        var avail = ImGui.GetContentRegionAvail();
-        var wide = avail.X >= 430f * s;
-        var leftW = wide ? 156f * s : 0f;
+        var avail = ImGui.GetContentRegionAvail().X;
+        var lineHeight = ImGui.GetTextLineHeight();
+        var midY = origin.Y + lineHeight * 0.5f;
 
-        if (wide)
+        var radius = 4f * scale;
+        Paint.Dot(dl, new Vector2(origin.X + radius + 3f * scale, midY), radius, Styling.PulseColor(accent, accentSoft, Styling.PulseMedium));
+
+        var statusSize = TextDraw.SmallCapsSize(StatusRunning);
+        TextDraw.SmallCaps(StatusRunning, new Vector2(origin.X + radius * 2f + 12f * scale, midY - statusSize.Y * 0.5f), Styling.TextSecondary);
+
+        var footer = $"Tribe {progress.CurrentNumber} of {Math.Max(progress.Total, 1)} · {Formatting.Clock(progress.ElapsedMs)}";
+        using (Fonts.PushCaption())
         {
-            DrawRingZone(progress, accent, accentSoft, origin, leftW, avail.Y);
-            var lineX = origin.X + leftW;
-            ImGui.GetWindowDrawList().AddLine(
-                new Vector2(lineX, origin.Y + 6f * s), new Vector2(lineX, origin.Y + avail.Y - 6f * s),
-                ImGui.GetColorU32(Styling.Hairline), 1f);
+            var footerSize = TextDraw.Measure(footer);
+            TextDraw.At(footer, new Vector2(origin.X + avail - footerSize.X, midY - footerSize.Y * 0.5f), Styling.TextMuted);
         }
-        else
+
+        ImGui.Dummy(new Vector2(avail, lineHeight));
+    }
+
+    private static void DrawHeroCard(AutoTribeController controller, TribeRunProgress progress, Vector4 accent, Vector4 accentSoft, string label)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var size = new Vector2(ImGui.GetContentRegionAvail().X, Layout.HeroCardHeight * scale);
+        var origin = ImGui.GetCursorScreenPos();
+        var end = origin + size;
+        var dl = ImGui.GetWindowDrawList();
+        var rounding = Styling.PanelRounding * scale;
+
+        Paint.Glass(dl, origin, end, rounding, accent, 0.10f, 0f, elevated: true);
+        var border = Styling.PulseColor(Styling.WithAlpha(accent, 0.5f), accentSoft, Styling.PulseMedium);
+        Paint.Stroke(dl, origin, end, border, rounding, 1.6f);
+
+        var padX = PadX * scale;
+        var ringRadius = size.Y * 0.5f - RingInset * scale;
+        var ringCenter = new Vector2(origin.X + padX + ringRadius, origin.Y + size.Y * 0.5f);
+        DrawRing(ringCenter, ringRadius, accent, accentSoft, progress);
+
+        var columnX = ringCenter.X + ringRadius + ColumnGap * scale;
+        var columnRight = end.X - padX;
+        var columnWidth = columnRight - columnX;
+        var y = origin.Y + 16f * scale;
+
+        y += DrawPhaseChip(columnX, y, label, accent, accentSoft) + 10f * scale;
+        y += DrawIdentity(dl, progress.Current, columnX, y, columnWidth) + 10f * scale;
+        DrawLiveLine(dl, controller.Status, accentSoft, new Vector2(columnX, y), columnWidth);
+
+        float captionHeight;
+        using (Fonts.PushCaption())
+            captionHeight = ImGui.GetTextLineHeight();
+        var stepperHeight = StepBarHeight * scale + StepLabelGap * scale + captionHeight;
+        DrawStepper(dl, progress, columnX, end.Y - 16f * scale - stepperHeight, columnWidth);
+
+        ImGui.Dummy(size);
+    }
+
+    private static void DrawRing(Vector2 center, float radius, Vector4 accent, Vector4 accentSoft, TribeRunProgress progress)
+    {
+        var thickness = 6f * ImGuiHelpers.GlobalScale;
+        ProgressRing.Glow(center, radius, accent, 0.35f + 0.30f * Styling.Pulse(Styling.PulseBreath));
+        ProgressRing.Track(center, radius, thickness, Styling.WithAlpha(Styling.BorderDim, 0.7f));
+        var fraction = Motion.Approach(Motion.Key("##adt_run_ring"), SmoothFraction(progress), 6f);
+        ProgressRing.Fill(center, radius, thickness, fraction, accent);
+        ProgressRing.Sweep(center, radius, thickness * 0.72f, accentSoft, Styling.PulseOrbit, MathF.PI * 0.5f, 1f);
+        ProgressRing.CenterValue(center, $"{progress.Completed} / {Math.Max(progress.Total, 1)}", RingCaption, Styling.TextStrong, Styling.TextDim);
+    }
+
+    private static float DrawPhaseChip(float x, float y, string text, Vector4 accent, Vector4 accentSoft)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var dl = ImGui.GetWindowDrawList();
+        var padX = 9f * scale;
+        var padY = 3f * scale;
+
+        using (Fonts.PushCaption())
         {
-            phaseLabel = $"{phaseLabel} · {progress.Completed}/{Math.Max(progress.Total, 1)} · {Clock(progress.ElapsedMs)}";
+            var label = TextDraw.Upper(text);
+            var textSize = TextDraw.Measure(label);
+            var chipMin = new Vector2(x, y);
+            var chipMax = chipMin + new Vector2(padX * 2f + textSize.X, textSize.Y + padY * 2f);
+            Paint.Pill(dl, chipMin, chipMax, Styling.WithAlpha(accent, 0.28f), Styling.WithAlpha(accent, 0.65f));
+            TextDraw.At(label, new Vector2(x + padX, y + padY), accentSoft);
+            return chipMax.Y - chipMin.Y;
         }
-
-        var zoneX = origin.X + leftW + (wide ? 16f * s : 0f);
-        var zoneW = origin.X + avail.X - zoneX;
-        DrawStatusZone(controller, progress, accent, accentSoft, phaseLabel, new Vector2(zoneX, origin.Y), zoneW, avail.Y);
-
-        ImGui.SetCursorScreenPos(origin);
-        ImGui.Dummy(avail);
     }
 
-    private static void DrawRingZone(
-        TribeRunProgress progress, Vector4 accent, Vector4 accentSoft, Vector2 origin, float leftW, float innerH)
+    private static float DrawIdentity(ImDrawListPtr dl, TribeInfo? tribe, float x, float y, float width)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var ringR = Layout.RunRingRadius * s;
-        var thickness = 5f * s;
-        var lineH = ImGui.GetTextLineHeight();
-        var blockH = ringR * 2f + 8f * s + lineH;
-        var topY = origin.Y + MathF.Max(0f, (innerH - blockH) * 0.5f);
-        var center = new Vector2(origin.X + leftW * 0.5f, topY + ringR);
-
-        ProgressRing.Glow(center, ringR, accent, 0.35f + 0.30f * Styling.Pulse(Styling.PulseBreath));
-        ProgressRing.Track(center, ringR, thickness, Styling.WithAlpha(Styling.BorderDim, 0.7f));
-        ProgressRing.Fill(center, ringR, thickness, SmoothFraction(progress), accent);
-        ProgressRing.Sweep(center, ringR, thickness * 0.72f, accentSoft, Styling.PulseOrbit, MathF.PI * 0.5f, 1f);
-
-        var total = Math.Max(progress.Total, 1);
-        ProgressRing.CenterValue(center, $"{progress.Completed} / {total}", "tribes",
-            Styling.TextStrong, Styling.TextDim, 1.45f);
-
-        var clock = Clock(progress.ElapsedMs);
-        var clockW = ImGui.CalcTextSize(clock).X;
-        ImGui.SetCursorScreenPos(new Vector2(center.X - clockW * 0.5f, topY + ringR * 2f + 8f * s));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted(clock);
-    }
-
-    private static void DrawStatusZone(
-        AutoTribeController controller, TribeRunProgress progress,
-        Vector4 accent, Vector4 accentSoft, string phaseLabel, Vector2 origin, float width, float innerH)
-    {
-        var s = ImGuiHelpers.GlobalScale;
-        var lineH = ImGui.GetTextLineHeight();
-
-        var btnH = 24f * s;
-        DrawStopButton(controller, new Vector2(origin.X + width, origin.Y), btnH);
-
-        ImGui.SetCursorScreenPos(new Vector2(origin.X, origin.Y + (btnH - lineH) * 0.5f));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.PulseColor(accent, accentSoft, Styling.PulseMedium)))
-            ImGui.TextUnformatted(phaseLabel);
-
-        var y = origin.Y + btnH + 12f * s;
-        DrawIdentity(progress.Current, new Vector2(origin.X, y));
-
-        y += 40f * s;
-        DrawLiveLine(controller.Status, accentSoft, new Vector2(origin.X, y));
-
-        var stepH = 3f * s + 5f * s + lineH;
-        DrawStepper(progress, origin.X, origin.Y + innerH - stepH, width);
-    }
-
-    private static void DrawIdentity(TribeInfo? tribe, Vector2 pos)
-    {
-        var s = ImGuiHelpers.GlobalScale;
+        var scale = ImGuiHelpers.GlobalScale;
+        var iconSize = IdentityIcon * scale;
         if (tribe is null)
         {
-            ImGui.SetCursorScreenPos(pos);
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-                ImGui.TextUnformatted("Waiting for next tribe…");
-            return;
+            using (Fonts.PushHeadline())
+            {
+                var waitingSize = TextDraw.Measure(WaitingLabel);
+                TextDraw.At(WaitingLabel, new Vector2(x, y + (iconSize - waitingSize.Y) * 0.5f), Styling.TextDim);
+            }
+
+            return iconSize;
         }
 
-        var iconSize = 36f * s;
-        ImGui.SetCursorScreenPos(pos);
-        TribeIcon.Draw(tribe, iconSize);
+        TribeIcon.Draw(dl, tribe, new Vector2(x, y), iconSize);
+        var textX = x + iconSize + 10f * scale;
+        using (Fonts.PushHeadline())
+        {
+            var name = TextDraw.Truncate(tribe.Name, width - (textX - x));
+            var nameSize = TextDraw.Measure(name);
+            TextDraw.At(name, new Vector2(textX, y + (iconSize - nameSize.Y) * 0.5f), Styling.TextStrong);
+        }
 
-        var textX = pos.X + iconSize + 10f * s;
-        var nameH = ImGui.GetTextLineHeight() * 1.25f;
-
-        ImGui.SetCursorScreenPos(new Vector2(textX, pos.Y + (iconSize - nameH) * 0.5f));
-        ImGui.SetWindowFontScale(1.25f);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
-            ImGui.TextUnformatted(tribe.Name);
-        ImGui.SetWindowFontScale(1f);
+        return iconSize;
     }
 
-    private static void DrawLiveLine(string text, Vector4 accent, Vector2 pos)
+    private static void DrawLiveLine(ImDrawListPtr dl, string status, Vector4 accent, Vector2 position, float width)
     {
-        if (string.IsNullOrWhiteSpace(text)) return;
-
-        var s = ImGuiHelpers.GlobalScale;
-        var dotR = 3.5f * s;
-        var midY = pos.Y + ImGui.GetTextLineHeight() * 0.5f;
-
+        var scale = ImGuiHelpers.GlobalScale;
+        var dotRadius = 3.5f * scale;
+        var midY = position.Y + ImGui.GetTextLineHeight() * 0.5f;
         var alpha = 0.4f + 0.6f * Styling.Pulse(Styling.PulseBreath);
-        ImGui.GetWindowDrawList().AddCircleFilled(new Vector2(pos.X + dotR, midY), dotR,
-            ImGui.GetColorU32(Styling.WithAlpha(accent, alpha)));
+        dl.AddCircleFilled(new Vector2(position.X + dotRadius, midY), dotRadius, Paint.Col(Styling.WithAlpha(accent, alpha)));
 
-        ImGui.SetCursorScreenPos(new Vector2(pos.X + dotR * 2f + 8f * s, pos.Y));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted(text);
+        var textX = position.X + dotRadius * 2f + 8f * scale;
+        var text = string.IsNullOrWhiteSpace(status) ? WorkingLabel : status;
+        TextDraw.At(TextDraw.Truncate(text, width - (textX - position.X)), new Vector2(textX, position.Y), Styling.TextSecondary);
     }
 
-    private static void DrawStepper(TribeRunProgress progress, float x, float y, float width)
+    private static void DrawStepper(ImDrawListPtr dl, TribeRunProgress progress, float x, float y, float width)
     {
-        var s = ImGuiHelpers.GlobalScale;
+        var scale = ImGuiHelpers.GlobalScale;
         var rank = PhaseRank(progress.Phase);
-        var cur = progress.Current;
+        var current = progress.Current;
+        var gap = StepGap * scale;
+        var segmentWidth = (width - gap * (Steps.Length - 1)) / Steps.Length;
+        var barHeight = StepBarHeight * scale;
+        var labelY = y + barHeight + StepLabelGap * scale;
 
-        var steps = new (string label, int rank, string suffix)[]
+        using var caption = Fonts.PushCaption();
+        for (var index = 0; index < Steps.Length; index++)
         {
-            ("Switch job", 1, ""),
-            ("Travel",     2, ""),
-            ("Accept",     3, cur is null ? "" : $"{Math.Min(cur.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe)}/{AdtConstants.MaxAcceptsPerTribe}"),
-            ("Delegate",   4, cur is { InProgressQuestIds.Length: > 0 } ? $"{cur.InProgressQuestIds.Length} left" : ""),
-        };
-
-        var gap = 8f * s;
-        var segW = (width - gap * (steps.Length - 1)) / steps.Length;
-        var barH = 3f * s;
-        var dl = ImGui.GetWindowDrawList();
-
-        for (var i = 0; i < steps.Length; i++)
-        {
-            var (label, r, suffix) = steps[i];
-            var state = r < rank ? StepState.Done : r == rank ? StepState.Active : StepState.Pending;
-            var segX = x + i * (segW + gap);
+            var step = Steps[index];
+            var stepRank = PhaseRank(step.Phase);
+            var state = stepRank < rank ? StepState.Done : stepRank == rank ? StepState.Active : StepState.Pending;
+            var segmentX = x + index * (segmentWidth + gap);
 
             var bar = state switch
             {
@@ -235,8 +249,7 @@ internal static class RunningPanel
                 StepState.Active => Styling.WithAlpha(Styling.AccentTeal, 0.45f + 0.55f * Styling.Pulse(Styling.PulseMedium)),
                 _                => Styling.WithAlpha(Styling.BorderDim, 0.6f),
             };
-            dl.AddRectFilled(new Vector2(segX, y), new Vector2(segX + segW, y + barH),
-                ImGui.GetColorU32(bar), barH * 0.5f);
+            Paint.Fill(dl, new Vector2(segmentX, y), new Vector2(segmentX + segmentWidth, y + barHeight), bar, barHeight * 0.5f);
 
             var text = state switch
             {
@@ -244,19 +257,23 @@ internal static class RunningPanel
                 StepState.Active => Styling.TextStrong,
                 _                => Styling.TextMuted,
             };
+            TextDraw.At(step.Label, new Vector2(segmentX, labelY), text);
 
-            ImGui.SetCursorScreenPos(new Vector2(segX, y + barH + 5f * s));
-            using (ImRaii.PushColor(ImGuiCol.Text, text))
-                ImGui.TextUnformatted(label);
-
-            if (suffix.Length > 0)
-            {
-                var suffixW = ImGui.CalcTextSize(suffix).X;
-                ImGui.SetCursorScreenPos(new Vector2(segX + segW - suffixW, y + barH + 5f * s));
-                using (ImRaii.PushColor(ImGuiCol.Text, state == StepState.Pending ? Styling.TextMuted : Styling.TextSecondary))
-                    ImGui.TextUnformatted(suffix);
-            }
+            var suffix = StepSuffix(step.Phase, current);
+            if (suffix is null) continue;
+            TextDraw.Right(suffix, segmentX + segmentWidth, labelY, state == StepState.Pending ? Styling.TextMuted : Styling.TextSecondary);
         }
+    }
+
+    private static string? StepSuffix(TribePhase phase, TribeInfo? current)
+    {
+        if (current is null) return null;
+        return phase switch
+        {
+            TribePhase.Accepting  => $"{Math.Min(current.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe)}/{AdtConstants.MaxAcceptsPerTribe}",
+            TribePhase.Delegating => current.InProgressQuestIds.Length > 0 ? $"{current.InProgressQuestIds.Length} left" : null,
+            _                     => null,
+        };
     }
 
     private static int PhaseRank(TribePhase phase) => phase switch
@@ -269,68 +286,99 @@ internal static class RunningPanel
         _                       => 0,
     };
 
-    private static void DrawStopButton(AutoTribeController controller, Vector2 topRight, float height)
+    private static void DrawStatTiles(TribeRunProgress progress)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        const string label = "Stop";
-        var width = ImGui.CalcTextSize(label).X + 28f * s;
+        var scale = ImGuiHelpers.GlobalScale;
+        var avail = ImGui.GetContentRegionAvail().X;
+        var gap = 8f * scale;
+        var tileWidth = (avail - gap * 3f) / 4f;
 
-        ImGui.SetCursorScreenPos(new Vector2(topRight.X - width, topRight.Y));
-        using (ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f))
-        using (ImRaii.PushColor(ImGuiCol.Button, Styling.WithAlpha(Styling.AccentRose, 0.14f))
-            .Push(ImGuiCol.ButtonHovered, Styling.WithAlpha(Styling.AccentRose, 0.45f))
-            .Push(ImGuiCol.ButtonActive, Styling.WithAlpha(Styling.AccentRose, 0.70f))
-            .Push(ImGuiCol.Border, Styling.WithAlpha(Styling.AccentRose, 0.65f))
-            .Push(ImGuiCol.Text, Styling.TextStrong))
-            if (ImGui.Button(label, new Vector2(width, height)))
-                controller.Stop();
+        var left = Math.Clamp(TribeStateReader.GlobalAllowanceLeft(), 0, AdtConstants.DailyAllowanceCap);
+        var used = AdtConstants.DailyAllowanceCap - left;
+        var current = progress.Current;
+        var accepted = current is null ? 0 : Math.Min(current.AcceptedTodayCount, AdtConstants.MaxAcceptsPerTribe);
+        var journal = current?.InProgressQuestIds.Length ?? 0;
+
+        StatTile.Draw(TileAllowances, $"{used} / {AdtConstants.DailyAllowanceCap}", $"{left} left", Styling.AccentTeal, tileWidth);
+        ImGui.SameLine(0, gap);
+        StatTile.Draw(TileCurrent, $"{accepted} / {AdtConstants.MaxAcceptsPerTribe}", journal > 0 ? $"{journal} in journal" : null, Styling.AccentAmber, tileWidth);
+        ImGui.SameLine(0, gap);
+        StatTile.Draw(TileElapsed, Formatting.Clock(progress.ElapsedMs), null, Styling.AccentMint, tileWidth);
+        ImGui.SameLine(0, gap);
+        StatTile.Draw(TileReset, Formatting.ResetCountdown(), null, Styling.AccentViolet, tileWidth);
     }
 
-    private static void DrawQueue(TribeInfo[] upNext)
+    private static void DrawQueue(TribeRunProgress progress)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        Styling.SectionLabel(upNext.Length == 1 ? "Up next" : $"Up next · {upNext.Length}");
-        Styling.VSpace(2);
+        var runList = progress.RunList;
+        var first = progress.Completed + 1;
+        if (first >= runList.Count) return;
 
-        var maxX = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
-        var first = true;
-        foreach (var tribe in upNext)
+        SectionTitle(UpNextTitle);
+        for (var index = first; index < runList.Count; index++)
         {
+            var tribe = runList[index];
             TribeStateReader.Refresh(tribe);
-            if (!first)
-            {
-                ImGui.SameLine(0, 6f * s);
-                if (ImGui.GetCursorScreenPos().X + QueueChip.Width(tribe) > maxX)
-                    ImGui.NewLine();
-            }
-            QueueChip.Draw(tribe);
-            first = false;
+            DrawQueueRow(tribe, index == first);
+            Styling.VSpace(2f);
         }
+    }
+
+    private static void DrawQueueRow(TribeInfo tribe, bool emphasize)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var size = new Vector2(ImGui.GetContentRegionAvail().X, Layout.QueueRowHeight * scale);
+        var origin = ImGui.GetCursorScreenPos();
+        var end = origin + size;
+        var dl = ImGui.GetWindowDrawList();
+        var midY = origin.Y + size.Y * 0.5f;
+
+        Paint.Glass(dl, origin, end, Styling.CardRounding * scale, Styling.AccentTeal, emphasize ? 0.10f : 0.03f);
+
+        var padX = 13f * scale;
+        var icon = 28f * scale;
+        TribeIcon.Draw(dl, tribe, new Vector2(origin.X + padX, midY - icon * 0.5f), icon);
+
+        var meta = $"{tribe.AcceptSlotsRemaining} dailies · {RankBadge.RankName(tribe)}";
+        float metaWidth;
+        using (Fonts.PushCaption())
+        {
+            var metaSize = TextDraw.Measure(meta);
+            metaWidth = metaSize.X;
+            TextDraw.At(meta, new Vector2(end.X - padX - metaWidth, midY - metaSize.Y * 0.5f), Styling.TextDim);
+        }
+
+        var nameX = origin.X + padX + icon + 12f * scale;
+        var name = TextDraw.Truncate(tribe.Name, end.X - padX - metaWidth - 12f * scale - nameX);
+        var nameSize = TextDraw.Measure(name);
+        TextDraw.At(name, new Vector2(nameX, midY - nameSize.Y * 0.5f), emphasize ? Styling.TextStrong : Styling.TextSecondary);
+
+        ImGui.Dummy(size);
     }
 
     private static void DrawLog(TribeRunProgress progress)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var rowH = Layout.LogRowHeight * s;
-        var maxRows = Math.Min(progress.Log.Count, 5);
-        var height = maxRows * rowH + 4f * s;
+        SectionTitle(ActivityTitle);
 
-        using var child = ImRaii.Child("##runlog", new Vector2(-1, height), false);
+        var scale = ImGuiHelpers.GlobalScale;
+        var rowHeight = Layout.LogRowHeight * scale;
+        var rows = Math.Min(progress.Log.Count, LogRows);
+        var height = rows * rowHeight + 4f * scale;
+
+        using var child = ImRaii.Child("##adt_run_log", new Vector2(-1f, height), false, ImGuiWindowFlags.NoBackground);
         if (!child) return;
 
-        foreach (var entry in progress.Log)
-            DrawLogRow(entry, rowH);
-
-        if (progress.Log.Count > maxRows)
-            ImGui.SetScrollHereY(1f);
+        var log = progress.Log;
+        for (var index = 0; index < log.Count; index++) DrawLogRow(log[index], rowHeight);
+        if (log.Count > rows) ImGui.SetScrollHereY(1f);
     }
 
-    private static void DrawLogRow(RunLogEntry entry, float rowH)
+    private static void DrawLogRow(RunLogEntry entry, float rowHeight)
     {
-        var s = ImGuiHelpers.GlobalScale;
+        var scale = ImGuiHelpers.GlobalScale;
         var origin = ImGui.GetCursorScreenPos();
         var width = ImGui.GetContentRegionAvail().X;
-        var midY = origin.Y + rowH * 0.5f;
+        var midY = origin.Y + rowHeight * 0.5f;
         var dl = ImGui.GetWindowDrawList();
 
         var color = entry.Outcome switch
@@ -341,37 +389,39 @@ internal static class RunningPanel
             _                    => Styling.AccentRose,
         };
 
-        var mR = 4f * s;
-        var center = new Vector2(origin.X + mR + 4f * s, midY);
+        var radius = 4.5f * scale;
+        var center = new Vector2(origin.X + radius + 4f * scale, midY);
         if (entry.Outcome == RunOutcome.Completed)
         {
-            dl.AddCircleFilled(center, mR, ImGui.GetColorU32(color));
-            var chk = ImGui.GetColorU32(new Vector4(0.05f, 0.07f, 0.08f, 1f));
-            dl.AddLine(center + new Vector2(-0.34f, 0.02f) * mR, center + new Vector2(-0.08f, 0.30f) * mR, chk, 1.6f * s);
-            dl.AddLine(center + new Vector2(-0.08f, 0.30f) * mR, center + new Vector2(0.40f, -0.30f) * mR, chk, 1.6f * s);
+            dl.AddCircleFilled(center, radius, Paint.Col(color));
+            Paint.Check(dl, center, radius * 1.1f, Styling.WindowBg with { W = 1f }, 1.6f * scale);
         }
         else
         {
-            dl.AddCircle(center, mR, ImGui.GetColorU32(color), 0, 1.6f * s);
+            dl.AddCircle(center, radius, Paint.Col(color), 0, 1.6f * scale);
         }
 
-        var lineH = ImGui.GetTextLineHeight();
-        var textX = center.X + mR + 9f * s;
-        ImGui.SetCursorScreenPos(new Vector2(textX, midY - lineH * 0.5f));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted(entry.Name);
+        var textX = center.X + radius + 10f * scale;
+        var nameSize = TextDraw.Measure(entry.Name);
+        TextDraw.At(entry.Name, new Vector2(textX, midY - nameSize.Y * 0.5f), Styling.TextSecondary);
 
-        ImGui.SameLine(0, 6f * s);
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-            ImGui.TextUnformatted($"· {entry.Detail}");
+        using (Fonts.PushCaption())
+        {
+            var detailX = textX + nameSize.X + 8f * scale;
+            var detail = TextDraw.Truncate(entry.Detail, origin.X + width - detailX);
+            var detailSize = TextDraw.Measure(detail);
+            TextDraw.At(detail, new Vector2(detailX, midY - detailSize.Y * 0.5f), color);
+        }
 
-        ImGui.SetCursorScreenPos(origin);
-        ImGui.Dummy(new Vector2(width, rowH));
+        ImGui.Dummy(new Vector2(width, rowHeight));
     }
 
-    private static string Clock(long ms)
+    private static void SectionTitle(string text)
     {
-        var total = (int)(ms / 1000);
-        return $"{total / 60:D2}:{total % 60:D2}";
+        var scale = ImGuiHelpers.GlobalScale;
+        var origin = ImGui.GetCursorScreenPos();
+        var size = TextDraw.SectionTitleSize(text);
+        TextDraw.SectionTitle(text, origin, Styling.TextStrong);
+        ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, size.Y + 8f * scale));
     }
 }

@@ -5,339 +5,266 @@ using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
-using System.Text;
 
 namespace AutoDailyTribes.Windows.Sections;
 
-internal static class TribeList
+// Every tribe as a card, one expansion at a time behind a segmented picker. Kind chips in the header
+// hide whole tribe types from both the grid and the run.
+internal static class TribeLibrary
 {
-    private static readonly TribeEra[] ErasOldestFirst = Enum.GetValues<TribeEra>();
-    private static readonly TribeEra[] ErasNewestFirst = BuildNewestFirst();
-    private static readonly string[] EraHeaders = BuildEraHeaders();
-    private static readonly string[] EraHeaderIds = BuildIds("##era_");
-    private static readonly string[] EraGridIds = BuildIds("##grid_");
+    private const float Gap = 8f;
+    private const float SummaryRowHeight = 32f;
+    private const float ListSlide = 8f;
+    private const float ChipGap = 6f;
+    private const float ChipHeight = 26f;
 
-    private static readonly List<TribeInfo> Cards = [];
-    private static readonly List<TribeInfo> UnderRank = [];
-    private static readonly List<TribeEra> LockedEras = [];
+    private const string Title = "Tribes";
+    private const string EmptyFiltered = "Every tribe here is hidden by the filters above.";
+    private const string NotMaxedLabel = "Not maxed";
+    private const string NotMaxedId = "##adt_filter_not_maxed";
+    private const string NotMaxedOnHint = "Showing only tribes below max rank. Click to bring maxed tribes back into the list and the run.";
+    private const string NotMaxedOffHint = "Hide tribes already at max rank from the list and the run.";
+    private const float FilterGroupGap = 14f;
 
-    private static int lockedEraSignature = -1;
-    private static string lockedEraNames = string.Empty;
+    private static readonly TribeEra[] ErasNewestFirst = [TribeEra.DT, TribeEra.EW, TribeEra.ShB, TribeEra.SB, TribeEra.HW, TribeEra.ARR];
+    private static readonly TribeEra[] ErasOldestFirst = [TribeEra.ARR, TribeEra.HW, TribeEra.SB, TribeEra.ShB, TribeEra.EW, TribeEra.DT];
+    private static readonly TribeKind[] Kinds = Enum.GetValues<TribeKind>();
+    private static readonly string[] KindLabels = BuildKindStrings(static kind => kind.ToString());
+    private static readonly string[] KindIds = BuildKindStrings(static kind => $"##adt_kind_{kind}");
+    private static readonly string[] KindHideHints = BuildKindStrings(static kind => $"Hide {kind} tribes from the list and the run.");
+    private static readonly string[] KindShowHints = BuildKindStrings(static kind => $"Show {kind} tribes again.");
+    private static readonly string[] EraNames = BuildEraNames();
+    private static readonly Segmented.Item[] segments = new Segmented.Item[ErasNewestFirst.Length];
+    private static readonly List<TribeInfo> visible = [];
 
-    public static bool IsRunnable(TribeInfo tribe)
-        => tribe.Unlocked && tribe.MeetsRankRequirement && (tribe.AcceptSlotsRemaining > 0 || tribe.HasInProgressQuests);
+    private static TribeEra? selectedEra;
 
-    public static void Draw(AutoTribeController controller, Configuration cfg)
+    public static void Draw(Configuration cfg, AutoTribeController ctrl)
     {
         var eras = cfg.ExpansionOrder == ExpansionOrder.OldestFirst ? ErasOldestFirst : ErasNewestFirst;
-        LockedEras.Clear();
+        var era = selectedEra ??= DefaultEra(eras);
 
-        var populatedEras = 0;
-        var drawnEras = 0;
+        DrawHeader(cfg);
+        Styling.VSpace(10f);
+        era = DrawPicker(eras, era);
+        Styling.VSpace(8f);
 
-        for (var eraIndex = 0; eraIndex < eras.Length; eraIndex++)
-        {
-            var era = eras[eraIndex];
-            var tribes = TribeRegistry.ByEra(era);
-            if (tribes.Length == 0) continue;
-
-            populatedEras++;
-
-            if (IsFullyLocked(tribes))
-            {
-                LockedEras.Add(era);
-                if (cfg.HideLockedExpansions) continue;
-            }
-
-            if (DrawEra(era, tribes, controller, cfg)) drawnEras++;
-        }
-
-        if (drawnEras == 0) DrawEmptyState(LockedEras.Count == populatedEras);
-        if (LockedEras.Count > 0) DrawLockedExpansions(cfg);
+        using var reveal = Motion.PushSwitch("##adt_tribe_list", (int)era, slide: ListSlide);
+        Collect(cfg, era);
+        DrawSummary(cfg, era);
+        DrawGrid(cfg, ctrl);
     }
 
-    private static bool IsFullyLocked(TribeInfo[] tribes)
+    // The first expansion with something to run today, then the first with anything unlocked, so a
+    // fresh session opens on the tribes that matter instead of always on the newest expansion.
+    private static TribeEra DefaultEra(TribeEra[] eras)
     {
-        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        for (var index = 0; index < eras.Length; index++)
         {
-            if (tribes[tribeIndex].Unlocked) return false;
+            if (Count(eras[index], static tribe => RunPlan.IsRunnable(tribe)) > 0) return eras[index];
         }
-        return true;
+
+        for (var index = 0; index < eras.Length; index++)
+        {
+            if (Count(eras[index], static tribe => tribe.Unlocked) > 0) return eras[index];
+        }
+
+        return eras[0];
     }
 
-    private static bool DrawEra(TribeEra era, TribeInfo[] tribes, AutoTribeController controller, Configuration cfg)
+    private static void DrawHeader(Configuration cfg)
     {
-        Cards.Clear();
-        UnderRank.Clear();
+        var scale = ImGuiHelpers.GlobalScale;
+        var origin = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var height = Layout.LibraryHeaderHeight * scale;
+        var midY = origin.Y + height * 0.5f;
 
-        var readyCount = 0;
-        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        var titleSize = TextDraw.SectionTitleSize(Title);
+        TextDraw.SectionTitle(Title, new Vector2(origin.X, midY - titleSize.Y * 0.5f), Styling.TextStrong);
+
+        var x = origin.X + width;
+        var chipTop = midY - ChipHeight * scale * 0.5f;
+        for (var kindIndex = Kinds.Length - 1; kindIndex >= 0; kindIndex--)
         {
-            var tribe = tribes[tribeIndex];
-            if (!FilterBar.PassesKindFilter(cfg, tribe)) continue;
-            if (!IsRunnable(tribe)) continue;
-            Cards.Add(tribe);
-            readyCount++;
+            var kind = Kinds[kindIndex];
+            if (!IsKindInPlay(cfg, kind)) continue;
+
+            var chipWidth = PillButton.Width(KindLabels[kindIndex]);
+            x -= chipWidth;
+            ImGui.SetCursorScreenPos(new Vector2(x, chipTop));
+
+            var shown = !cfg.HiddenKinds.Contains(kind);
+            var emphasis = shown ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost;
+            var hint = shown ? KindHideHints[kindIndex] : KindShowHints[kindIndex];
+            if (PillButton.Draw(KindIds[kindIndex], KindLabels[kindIndex], Styling.KindColor(kind), emphasis, height: ChipHeight, tooltip: hint))
+            {
+                if (shown) cfg.HiddenKinds.Add(kind);
+                else cfg.HiddenKinds.Remove(kind);
+                cfg.SaveDebounced();
+            }
+
+            x -= ChipGap * scale;
         }
 
-        if (!cfg.ShowReadyOnly)
+        x -= FilterGroupGap * scale - ChipGap * scale;
+        x -= PillButton.Width(NotMaxedLabel);
+        ImGui.SetCursorScreenPos(new Vector2(x, chipTop));
+        var hideMaxed = cfg.HideMaxedTribes;
+        if (PillButton.Draw(NotMaxedId, NotMaxedLabel, Styling.AccentTeal, hideMaxed ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost,
+                height: ChipHeight, tooltip: hideMaxed ? NotMaxedOnHint : NotMaxedOffHint))
         {
-            for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
-            {
-                var tribe = tribes[tribeIndex];
-                if (!FilterBar.PassesKindFilter(cfg, tribe)) continue;
-                if (tribe.Unlocked && tribe.MeetsRankRequirement && !IsRunnable(tribe)) Cards.Add(tribe);
-            }
-
-            for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
-            {
-                var tribe = tribes[tribeIndex];
-                if (!FilterBar.PassesKindFilter(cfg, tribe)) continue;
-                if (!tribe.Unlocked) Cards.Add(tribe);
-            }
-
-            for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
-            {
-                var tribe = tribes[tribeIndex];
-                if (!FilterBar.PassesKindFilter(cfg, tribe)) continue;
-                if (tribe.Unlocked && !tribe.MeetsRankRequirement) UnderRank.Add(tribe);
-            }
-        }
-
-        if (Cards.Count == 0 && UnderRank.Count == 0) return false;
-
-        var collapsed = cfg.CollapsedEras.Contains(era);
-        if (SectionHeader(era, readyCount, Cards.Count + UnderRank.Count, collapsed))
-        {
-            if (collapsed) cfg.CollapsedEras.Remove(era);
-            else cfg.CollapsedEras.Add(era);
+            cfg.HideMaxedTribes = !hideMaxed;
             cfg.SaveDebounced();
-            collapsed = !collapsed;
         }
 
-        if (collapsed)
-        {
-            Styling.VSpace(7);
-            return true;
-        }
-
-        Styling.VSpace(2);
-        if (Cards.Count > 0) DrawGrid(era, controller, cfg);
-
-        if (UnderRank.Count > 0)
-        {
-            if (Cards.Count > 0) Styling.VSpace(3);
-            DrawChipFlow();
-        }
-
-        Styling.VSpace(9);
-        return true;
+        ImGui.SetCursorScreenPos(origin);
+        ImGui.Dummy(new Vector2(width, height));
     }
 
-    private static bool SectionHeader(TribeEra era, int readyCount, int totalCount, bool collapsed)
+    private static bool IsKindInPlay(Configuration cfg, TribeKind kind)
+    {
+        if (cfg.HiddenKinds.Contains(kind)) return true;
+
+        var tribes = TribeRegistry.Tribes;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            if (tribes[index].Kind == kind && tribes[index].Unlocked) return true;
+        }
+
+        return false;
+    }
+
+    private static TribeEra DrawPicker(TribeEra[] eras, TribeEra current)
+    {
+        var selected = 0;
+        for (var index = 0; index < eras.Length; index++)
+        {
+            segments[index] = new Segmented.Item(null, EraNames[(int)eras[index]]);
+            if (eras[index] == current) selected = index;
+        }
+
+        if (!Segmented.Draw("##adt_expansions", segments, ref selected)) return current;
+
+        selectedEra = eras[selected];
+        return eras[selected];
+    }
+
+    private static void Collect(Configuration cfg, TribeEra era)
+    {
+        visible.Clear();
+        var tribes = TribeRegistry.ByEra(era);
+        AddWhere(cfg, tribes, static tribe => RunPlan.IsRunnable(tribe));
+        AddWhere(cfg, tribes, static tribe => tribe.Unlocked && tribe.MeetsRankRequirement && !RunPlan.IsRunnable(tribe));
+        AddWhere(cfg, tribes, static tribe => tribe.Unlocked && !tribe.MeetsRankRequirement);
+        AddWhere(cfg, tribes, static tribe => !tribe.Unlocked);
+    }
+
+    private static void AddWhere(Configuration cfg, TribeInfo[] tribes, Func<TribeInfo, bool> predicate)
+    {
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            var tribe = tribes[index];
+            if (predicate(tribe) && RunPlan.PassesFilters(cfg, tribe)) visible.Add(tribe);
+        }
+    }
+
+    private static void DrawSummary(Configuration cfg, TribeEra era)
     {
         var scale = ImGuiHelpers.GlobalScale;
-        var lineHeight = ImGui.GetTextLineHeight();
         var origin = ImGui.GetCursorScreenPos();
-        var width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
+        var avail = ImGui.GetContentRegionAvail().X;
+        var rowHeight = SummaryRowHeight * scale;
 
-        var toggled = ImGui.InvisibleButton(EraHeaderIds[(int)era], new Vector2(width, lineHeight));
-        var hovered = ImGui.IsItemHovered();
-        if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-        DrawChevron(new Vector2(origin.X + 4f * scale, origin.Y + lineHeight * 0.5f), 4f * scale,
-            collapsed, hovered ? Styling.TextSecondary : Styling.TextMuted);
-
-        ImGui.SetCursorScreenPos(new Vector2(origin.X + 15f * scale, origin.Y));
-        using (ImRaii.PushColor(ImGuiCol.Text, hovered ? Styling.TextStrong : Styling.TextSecondary))
-            ImGui.TextUnformatted(EraHeaders[(int)era]);
-        var textEnd = ImGui.GetItemRectMax().X;
-
-        if (readyCount > 0)
+        using (Fonts.PushCaption())
         {
-            ImGui.SameLine(0, 7f * scale);
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTeal))
-                ImGui.TextUnformatted($"{readyCount} ready");
-            textEnd = ImGui.GetItemRectMax().X;
+            var summary = EraSummary(cfg, era);
+            var summarySize = TextDraw.Measure(summary);
+            TextDraw.At(summary, new Vector2(origin.X + 2f * scale, origin.Y + (rowHeight - summarySize.Y) * 0.5f), Styling.TextDim);
         }
 
-        if (collapsed)
-        {
-            ImGui.SameLine(0, 7f * scale);
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted($"· {totalCount} hidden");
-            textEnd = ImGui.GetItemRectMax().X;
-        }
+        ImGui.Dummy(new Vector2(avail, rowHeight));
+        if (visible.Count > 0) return;
 
-        var lineY = origin.Y + lineHeight * 0.5f;
-        var lineStart = textEnd + 8f * scale;
-        var lineEnd = origin.X + width;
-        if (lineEnd > lineStart)
-            ImGui.GetWindowDrawList().AddLine(new Vector2(lineStart, lineY), new Vector2(lineEnd, lineY),
-                ImGui.GetColorU32(Styling.Hairline), 1f);
-
-        ImGui.SetCursorScreenPos(new Vector2(origin.X, origin.Y + lineHeight));
-        return toggled;
+        Styling.VSpace(10f);
+        Styling.TextCentered(EmptyFiltered, Styling.TextMuted);
+        Styling.VSpace(10f);
     }
 
-    private static void DrawLockedExpansions(Configuration cfg)
+    private static string EraSummary(Configuration cfg, TribeEra era)
     {
+        var tribes = TribeRegistry.ByEra(era);
+        var unlocked = 0;
+        var ready = 0;
+        var picked = 0;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            var tribe = tribes[index];
+            if (tribe.Unlocked) unlocked++;
+            if (RunPlan.IsRunnable(tribe)) ready++;
+            if (cfg.SelectedTribes.Contains(tribe.BeastTribeId)) picked++;
+        }
+
+        return $"{unlocked} of {tribes.Length} unlocked · {ready} ready · {picked} in your list";
+    }
+
+    private static int Count(TribeEra era, Func<TribeInfo, bool> predicate)
+    {
+        var tribes = TribeRegistry.ByEra(era);
+        var count = 0;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            if (predicate(tribes[index])) count++;
+        }
+
+        return count;
+    }
+
+    private static void DrawGrid(Configuration cfg, AutoTribeController ctrl)
+    {
+        if (visible.Count == 0) return;
+
         var scale = ImGuiHelpers.GlobalScale;
-        var lineHeight = ImGui.GetTextLineHeight();
-        var origin = ImGui.GetCursorScreenPos();
-        var width = MathF.Max(1f, ImGui.GetContentRegionAvail().X);
-        var hidden = cfg.HideLockedExpansions;
+        var gap = Gap * scale;
+        var avail = ImGui.GetContentRegionAvail().X;
+        var columns = Math.Max(1, (int)MathF.Floor((avail + gap) / (Layout.TribeCardMinWidth * scale + gap)));
+        var cardWidth = (avail - gap * (columns - 1)) / columns;
 
-        var clicked = ImGui.InvisibleButton("##lockederas", new Vector2(width, lineHeight));
-        var hovered = ImGui.IsItemHovered();
-        if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-        DrawChevron(new Vector2(origin.X + 4f * scale, origin.Y + lineHeight * 0.5f), 4f * scale,
-            hidden, hovered ? Styling.TextSecondary : Styling.TextMuted);
-
-        var plural = LockedEras.Count == 1 ? "" : "s";
-        var headline = hidden
-            ? $"{LockedEras.Count} expansion{plural} not unlocked yet"
-            : $"Hide {LockedEras.Count} expansion{plural} you have not unlocked";
-
-        ImGui.SetCursorScreenPos(new Vector2(origin.X + 15f * scale, origin.Y));
-        using (ImRaii.PushColor(ImGuiCol.Text, hovered ? Styling.TextSecondary : Styling.TextMuted))
-            ImGui.TextUnformatted(headline);
-
-        if (hidden)
+        using var itemSpacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(gap, gap));
+        for (var index = 0; index < visible.Count; index++)
         {
-            RefreshLockedEraNames(cfg);
-            var namesX = ImGui.GetItemRectMax().X + 9f * scale;
-            if (namesX + ImGui.CalcTextSize(lockedEraNames).X < origin.X + width)
-            {
-                ImGui.SameLine(0, 9f * scale);
-                using (ImRaii.PushColor(ImGuiCol.Text, Styling.WithAlpha(Styling.TextMuted, 0.75f)))
-                    ImGui.TextUnformatted(lockedEraNames);
-            }
-        }
-
-        ImGui.SetCursorScreenPos(new Vector2(origin.X, origin.Y + lineHeight));
-        Styling.VSpace(6);
-
-        if (hovered)
-        {
-            using var tooltip = ImRaii.Tooltip();
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-                ImGui.TextUnformatted(hidden
-                    ? "Show these expansions anyway, locked tribes and all."
-                    : "Collapse the expansions where you have not unlocked a single tribe.");
-        }
-
-        if (!clicked) return;
-        cfg.HideLockedExpansions = !hidden;
-        cfg.SaveDebounced();
-    }
-
-    private static void RefreshLockedEraNames(Configuration cfg)
-    {
-        var mask = 0;
-        for (var eraIndex = 0; eraIndex < LockedEras.Count; eraIndex++)
-        {
-            mask |= 1 << (int)LockedEras[eraIndex];
-        }
-
-        var signature = (mask << 1) | (cfg.ExpansionOrder == ExpansionOrder.OldestFirst ? 1 : 0);
-        if (signature == lockedEraSignature) return;
-        lockedEraSignature = signature;
-
-        var builder = new StringBuilder();
-        for (var eraIndex = 0; eraIndex < LockedEras.Count; eraIndex++)
-        {
-            if (eraIndex > 0) builder.Append(" · ");
-            builder.Append(LockedEras[eraIndex].ShortName());
-        }
-        lockedEraNames = builder.ToString();
-    }
-
-    private static void DrawEmptyState(bool nothingUnlocked)
-    {
-        Styling.VSpace(14);
-        Styling.TextCentered(nothingUnlocked
-            ? "No tribes unlocked yet — finish a tribe's intro quest in game to get started."
-            : "Nothing matches the filters above.", Styling.TextDim);
-        Styling.VSpace(14);
-    }
-
-    private static void DrawGrid(TribeEra era, AutoTribeController controller, Configuration cfg)
-    {
-        var available = ImGui.GetContentRegionAvail().X;
-        var minCardWidth = Layout.TribeCardMinWidth * ImGuiHelpers.GlobalScale;
-        var columns = Math.Max(1, Math.Min(Cards.Count, (int)(available / minCardWidth)));
-
-        using var table = ImRaii.Table(EraGridIds[(int)era], columns,
-            ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.NoBordersInBody);
-        if (!table) return;
-
-        for (var cardIndex = 0; cardIndex < Cards.Count; cardIndex++)
-        {
-            var tribe = Cards[cardIndex];
-            ImGui.TableNextColumn();
-            if (!tribe.Unlocked) TribeCard.DrawLocked(tribe);
-            else if (IsRunnable(tribe)) TribeCard.Draw(tribe, controller, cfg);
-            else TribeCard.DrawDone(tribe, controller, cfg);
+            if (index % columns != 0) ImGui.SameLine(0f, gap);
+            var tribe = visible[index];
+            TribeCard.Draw(tribe, cfg, ctrl, cardWidth, QueuePosition(cfg, tribe.BeastTribeId));
         }
     }
 
-    private static void DrawChipFlow()
+    private static int QueuePosition(Configuration cfg, uint beastTribeId)
     {
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-        var rightEdge = ImGui.GetWindowPos().X + ImGui.GetWindowContentRegionMax().X;
-        for (var chipIndex = 0; chipIndex < UnderRank.Count; chipIndex++)
+        var position = 0;
+        var selected = cfg.SelectedTribes;
+        for (var index = 0; index < selected.Count; index++)
         {
-            if (chipIndex > 0 && ImGui.GetItemRectMax().X + spacing + TribeChip.Width(UnderRank[chipIndex]) < rightEdge)
-                ImGui.SameLine();
-            TribeChip.Draw(UnderRank[chipIndex]);
+            if (RunPlan.Find(selected[index]) is null) continue;
+            position++;
+            if (selected[index] == beastTribeId) return position;
         }
+
+        return 0;
     }
 
-    private static void DrawChevron(Vector2 center, float radius, bool collapsed, Vector4 color)
+    private static string[] BuildKindStrings(Func<TribeKind, string> build)
     {
-        var drawList = ImGui.GetWindowDrawList();
-        var packed = ImGui.GetColorU32(color);
-        if (collapsed)
-            drawList.AddTriangleFilled(
-                center + new Vector2(radius * 0.75f, 0f),
-                center + new Vector2(-radius * 0.6f, radius),
-                center + new Vector2(-radius * 0.6f, -radius), packed);
-        else
-            drawList.AddTriangleFilled(
-                center + new Vector2(0f, radius * 0.75f),
-                center + new Vector2(-radius, -radius * 0.6f),
-                center + new Vector2(radius, -radius * 0.6f), packed);
+        var strings = new string[Kinds.Length];
+        for (var index = 0; index < strings.Length; index++) strings[index] = build(Kinds[index]);
+        return strings;
     }
 
-    private static TribeEra[] BuildNewestFirst()
+    private static string[] BuildEraNames()
     {
-        var ordered = new TribeEra[ErasOldestFirst.Length];
-        for (var eraIndex = 0; eraIndex < ordered.Length; eraIndex++)
-        {
-            ordered[eraIndex] = ErasOldestFirst[ordered.Length - 1 - eraIndex];
-        }
-        return ordered;
-    }
-
-    private static string[] BuildEraHeaders()
-    {
-        var headers = new string[ErasOldestFirst.Length];
-        for (var eraIndex = 0; eraIndex < headers.Length; eraIndex++)
-        {
-            headers[eraIndex] = ErasOldestFirst[eraIndex].DisplayName().ToUpperInvariant();
-        }
-        return headers;
-    }
-
-    private static string[] BuildIds(string prefix)
-    {
-        var ids = new string[ErasOldestFirst.Length];
-        for (var eraIndex = 0; eraIndex < ids.Length; eraIndex++)
-        {
-            ids[eraIndex] = prefix + ErasOldestFirst[eraIndex];
-        }
-        return ids;
+        var eras = Enum.GetValues<TribeEra>();
+        var names = new string[eras.Length];
+        for (var index = 0; index < eras.Length; index++) names[(int)eras[index]] = eras[index].ShortName();
+        return names;
     }
 }

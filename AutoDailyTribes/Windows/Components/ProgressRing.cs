@@ -1,7 +1,6 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
@@ -10,198 +9,104 @@ internal static class ProgressRing
 {
     private const float Top = -MathF.PI / 2f;
 
-    private static Vector2 Dir(float a) => new(MathF.Cos(a), MathF.Sin(a));
+    private static Vector2 Dir(float angle) => new(MathF.Cos(angle), MathF.Sin(angle));
 
-    private static void Arc(Vector2 c, float r, float thickness, float a0, float a1, uint col)
+    private static void Arc(Vector2 center, float radius, float thickness, float from, float to, uint color)
     {
         var dl = ImGui.GetWindowDrawList();
-        var span = MathF.Abs(a1 - a0);
-        var seg = Math.Max(2, (int)MathF.Ceiling(span / (MathF.PI / 48f)));
-        var prev = c + Dir(a0) * r;
-        for (var i = 1; i <= seg; i++)
+        var span = MathF.Abs(to - from);
+        var segments = Math.Max(2, (int)MathF.Ceiling(span / (MathF.PI / 48f)));
+        var previous = center + Dir(from) * radius;
+        for (var segment = 1; segment <= segments; segment++)
         {
-            var a = a0 + (a1 - a0) * (i / (float)seg);
-            var cur = c + Dir(a) * r;
-            dl.AddLine(prev, cur, col, thickness);
-            prev = cur;
+            var angle = from + (to - from) * (segment / (float)segments);
+            var current = center + Dir(angle) * radius;
+            dl.AddLine(previous, current, color, thickness);
+            previous = current;
         }
+
         var cap = thickness * 0.5f;
-        dl.AddCircleFilled(c + Dir(a0) * r, cap, col);
-        dl.AddCircleFilled(c + Dir(a1) * r, cap, col);
+        dl.AddCircleFilled(center + Dir(from) * radius, cap, color);
+        dl.AddCircleFilled(center + Dir(to) * radius, cap, color);
     }
 
-    public static void Glow(Vector2 c, float radius, Vector4 color, float intensity)
+    public static void Glow(Vector2 center, float radius, Vector4 color, float intensity)
     {
         var dl = ImGui.GetWindowDrawList();
-        for (var i = 4; i >= 1; i--)
+        for (var layer = 4; layer >= 1; layer--)
         {
-            var r = radius * (0.72f + i * 0.17f);
-            var a = Math.Clamp(intensity * 0.05f * (5 - i), 0f, 0.5f);
-            dl.AddCircleFilled(c, r, ImGui.GetColorU32(Styling.WithAlpha(color, a)));
+            var layerRadius = radius * (0.72f + layer * 0.17f);
+            var alpha = Math.Clamp(intensity * 0.05f * (5 - layer), 0f, 0.5f);
+            dl.AddCircleFilled(center, layerRadius, Paint.Col(Styling.WithAlpha(color, alpha)));
         }
     }
 
-    public static void Disc(Vector2 c, float radius, Vector4 color)
-        => ImGui.GetWindowDrawList().AddCircleFilled(c, radius, ImGui.GetColorU32(color));
+    public static void Disc(Vector2 center, float radius, Vector4 color)
+        => ImGui.GetWindowDrawList().AddCircleFilled(center, radius, Paint.Col(color));
 
-    public static void Track(Vector2 c, float r, float thickness, Vector4 col)
-        => Arc(c, r, thickness, Top, Top + MathF.PI * 2f, ImGui.GetColorU32(col));
+    public static void Track(Vector2 center, float radius, float thickness, Vector4 color)
+        => Arc(center, radius, thickness, Top, Top + MathF.PI * 2f, Paint.Col(color));
 
-    public static void Fill(Vector2 c, float r, float thickness, float fraction, Vector4 col)
+    public static void Fill(Vector2 center, float radius, float thickness, float fraction, Vector4 color)
     {
         fraction = Math.Clamp(fraction, 0f, 1f);
         if (fraction <= 0.0001f) return;
-        Arc(c, r, thickness, Top, Top + fraction * MathF.PI * 2f, ImGui.GetColorU32(col));
+        Arc(center, radius, thickness, Top, Top + fraction * MathF.PI * 2f, Paint.Col(color));
     }
 
-    public static void Sweep(Vector2 c, float r, float thickness, Vector4 col, double periodMs, float arcLen, float headAlpha)
+    public static void Sweep(Vector2 center, float radius, float thickness, Vector4 color, double periodMs, float arcLength, float headAlpha)
     {
         var dl = ImGui.GetWindowDrawList();
         var head = Top + Styling.Phase(periodMs) * MathF.PI * 2f;
-        var tail = head - arcLen;
-        var steps = Math.Max(10, (int)MathF.Ceiling(arcLen / (MathF.PI / 36f)));
-        var prev = c + Dir(tail) * r;
-        for (var i = 1; i <= steps; i++)
+        var tail = head - arcLength;
+        var steps = Math.Max(10, (int)MathF.Ceiling(arcLength / (MathF.PI / 36f)));
+        var previous = center + Dir(tail) * radius;
+        for (var step = 1; step <= steps; step++)
         {
-            var t = i / (float)steps;
-            var a = tail + (head - tail) * t;
-            var cur = c + Dir(a) * r;
-            dl.AddLine(prev, cur, ImGui.GetColorU32(Styling.WithAlpha(col, headAlpha * t * t)), thickness);
-            prev = cur;
+            var t = step / (float)steps;
+            var angle = tail + (head - tail) * t;
+            var current = center + Dir(angle) * radius;
+            dl.AddLine(previous, current, Paint.Col(Styling.WithAlpha(color, headAlpha * t * t)), thickness);
+            previous = current;
         }
-        dl.AddCircleFilled(c + Dir(head) * r, thickness * 0.62f, ImGui.GetColorU32(Styling.WithAlpha(col, headAlpha)));
+
+        dl.AddCircleFilled(center + Dir(head) * radius, thickness * 0.62f, Paint.Col(Styling.WithAlpha(color, headAlpha)));
     }
 
-    public static void CenterValue(Vector2 c, string big, string? small, Vector4 bigCol, Vector4 smallCol, float bigScale)
+    public static void CenterValue(Vector2 center, string big, string? small, Vector4 bigColor, Vector4 smallColor)
     {
-        ImGui.SetWindowFontScale(bigScale);
-        var bs = ImGui.CalcTextSize(big);
-        ImGui.SetWindowFontScale(1f);
+        Vector2 bigSize;
+        using (Fonts.PushTitle())
+            bigSize = TextDraw.Measure(big);
 
         var hasSmall = !string.IsNullOrEmpty(small);
-        var ss = hasSmall ? ImGui.CalcTextSize(small) : Vector2.Zero;
-        var gap = hasSmall ? 1f * ImGuiHelpers.GlobalScale : 0f;
-        var top = c.Y - (bs.Y + gap + ss.Y) * 0.5f;
-
-        ImGui.SetCursorScreenPos(new Vector2(c.X - bs.X * 0.5f, top));
-        ImGui.SetWindowFontScale(bigScale);
-        using (ImRaii.PushColor(ImGuiCol.Text, bigCol))
-            ImGui.TextUnformatted(big);
-        ImGui.SetWindowFontScale(1f);
-
+        var smallSize = Vector2.Zero;
         if (hasSmall)
         {
-            ImGui.SetCursorScreenPos(new Vector2(c.X - ss.X * 0.5f, top + bs.Y + gap));
-            using (ImRaii.PushColor(ImGuiCol.Text, smallCol))
-                ImGui.TextUnformatted(small!);
+            using (Fonts.PushCaption())
+                smallSize = TextDraw.Measure(small!);
         }
+
+        var gap = hasSmall ? 1f * ImGuiHelpers.GlobalScale : 0f;
+        var top = center.Y - (bigSize.Y + gap + smallSize.Y) * 0.5f;
+
+        using (Fonts.PushTitle())
+            TextDraw.At(big, new Vector2(center.X - bigSize.X * 0.5f, top), bigColor);
+
+        if (!hasSmall) return;
+        using (Fonts.PushCaption())
+            TextDraw.At(small!, new Vector2(center.X - smallSize.X * 0.5f, top + bigSize.Y + gap), smallColor);
     }
 
-    public static void CenterIcon(Vector2 c, FontAwesomeIcon icon, Vector4 col, float targetHeight)
+    public static void CenterIcon(Vector2 center, FontAwesomeIcon icon, Vector4 color, float targetHeight)
     {
         var glyph = icon.ToIconString();
-        float baseH;
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-            baseH = ImGui.CalcTextSize(glyph).Y;
-        var scale = baseH > 0 ? targetHeight / baseH : 1f;
-
+        using var font = Fonts.PushIconFor(targetHeight / ImGuiHelpers.GlobalScale);
+        var baseHeight = ImGui.CalcTextSize(glyph).Y;
+        var scale = baseHeight > 0f ? targetHeight / baseHeight : 1f;
         ImGui.SetWindowFontScale(scale);
-        Vector2 sz;
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-            sz = ImGui.CalcTextSize(glyph);
-        ImGui.SetCursorScreenPos(new Vector2(c.X - sz.X * 0.5f, c.Y - sz.Y * 0.5f));
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        using (ImRaii.PushColor(ImGuiCol.Text, col))
-            ImGui.TextUnformatted(glyph);
+        var size = ImGui.CalcTextSize(glyph);
+        ImGui.GetWindowDrawList().AddText(center - size * 0.5f, Paint.Col(color), glyph);
         ImGui.SetWindowFontScale(1f);
-    }
-
-    private static void PlayTriangle(Vector2 c, float size, uint col)
-    {
-        var dl = ImGui.GetWindowDrawList();
-        var p1 = c + new Vector2(-0.52f, -0.72f) * size;
-        var p2 = c + new Vector2(-0.52f, 0.72f) * size;
-        var p3 = c + new Vector2(0.80f, 0.00f) * size;
-        dl.AddTriangleFilled(p1, p2, p3, col);
-    }
-
-    private static void LockGlyph(Vector2 c, float size, uint col)
-    {
-        var dl = ImGui.GetWindowDrawList();
-        var bodyW = size * 1.5f;
-        var bodyH = size * 1.2f;
-        var bodyTop = c.Y - bodyH * 0.10f;
-        dl.AddRectFilled(
-            new Vector2(c.X - bodyW * 0.5f, bodyTop),
-            new Vector2(c.X + bodyW * 0.5f, bodyTop + bodyH),
-            col, size * 0.26f);
-
-        dl.PathArcTo(new Vector2(c.X, bodyTop), bodyW * 0.30f, MathF.PI, MathF.PI * 2f, 24);
-        dl.PathStroke(col, ImDrawFlags.None, size * 0.22f);
-    }
-
-    private static void CheckGlyph(Vector2 c, float size, uint col, float thickness)
-    {
-        var dl = ImGui.GetWindowDrawList();
-        var p1 = c + new Vector2(-0.74f, 0.02f) * size;
-        var p2 = c + new Vector2(-0.20f, 0.56f) * size;
-        var p3 = c + new Vector2(0.80f, -0.54f) * size;
-        dl.AddLine(p1, p2, col, thickness);
-        dl.AddLine(p2, p3, col, thickness);
-        var cap = thickness * 0.5f;
-        dl.AddCircleFilled(p1, cap, col);
-        dl.AddCircleFilled(p2, cap, col);
-        dl.AddCircleFilled(p3, cap, col);
-    }
-
-    // The all-dailies-done hero state: a fully closed mint ring with a check — reads as 100%
-    // complete (a reward), where the lock variant of PlayButton reads as blocked.
-    public static void DoneBadge(Vector2 c, float radius)
-    {
-        var dl = ImGui.GetWindowDrawList();
-        var mint = Styling.AccentMint;
-        var thickness = 4.5f * ImGuiHelpers.GlobalScale;
-
-        Glow(c, radius, mint, 0.50f + 0.25f * Styling.Pulse(Styling.PulseBreath));
-        dl.AddCircleFilled(c, radius - thickness * 0.5f,
-            ImGui.GetColorU32(Vector4.Lerp(Styling.CardBg, mint, 0.10f)));
-        Track(c, radius, thickness, Styling.WithAlpha(mint, 0.92f));
-        CheckGlyph(c, radius * 0.52f, ImGui.GetColorU32(mint), thickness);
-
-        ImGui.SetCursorScreenPos(c - new Vector2(radius));
-        ImGui.Dummy(new Vector2(radius * 2f));
-    }
-
-    public static bool PlayButton(Vector2 c, float radius, bool enabled)
-    {
-        var dl = ImGui.GetWindowDrawList();
-        var min = c - new Vector2(radius, radius);
-        var max = c + new Vector2(radius, radius);
-        var hovered = enabled && ImGui.IsMouseHoveringRect(min, max);
-
-        var accent = Styling.AccentTeal;
-        var thickness = 4.5f * ImGuiHelpers.GlobalScale;
-
-        if (enabled)
-            Glow(c, radius, accent, 0.85f + (hovered ? 1.0f : 0f) + 0.55f * Styling.Pulse(Styling.PulseBreath));
-
-        dl.AddCircleFilled(c, radius - thickness * 0.5f, ImGui.GetColorU32(enabled
-            ? Vector4.Lerp(Styling.CardBg, accent, hovered ? 0.30f : 0.15f)
-            : Styling.CardBgSoft));
-        Track(c, radius, thickness, enabled ? Styling.WithAlpha(accent, hovered ? 1f : 0.78f) : Styling.WithAlpha(Styling.BorderDim, 0.85f));
-
-        var glyphCol = enabled ? (hovered ? Styling.TextStrong : Styling.AccentTealSoft) : Styling.TextMuted;
-        // Vector shapes instead of a scaled-up font glyph — crisp at any ring size.
-        if (enabled)
-            PlayTriangle(c + new Vector2(radius * 0.08f, 0f), radius * 0.62f, ImGui.GetColorU32(glyphCol));
-        else
-            LockGlyph(c, radius * 0.46f, ImGui.GetColorU32(glyphCol));
-
-        ImGui.SetCursorScreenPos(min);
-        ImGui.Dummy(max - min);
-
-        if (!enabled) return false;
-        if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        return hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left);
     }
 }

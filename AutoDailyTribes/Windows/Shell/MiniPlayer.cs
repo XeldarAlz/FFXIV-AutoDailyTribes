@@ -1,36 +1,71 @@
+using AutoDailyTribes.Windows.Components;
+using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
-namespace AutoDailyTribes.Windows.Components;
+namespace AutoDailyTribes.Windows.Shell;
 
-internal static class Chip
+internal static class MiniPlayer
 {
-    private const float PaddingX = 10f;
+    private const float PadX = 18f;
+    private const float ButtonSize = 34f;
+    private const float BarWidth = 160f;
+    private const float BarHeight = 8f;
+    private const string StopHint = "Stop the run";
+    private const string WaitingLabel = "Waiting for the next tribe…";
 
-    public static float Width(string label)
-        => ImGui.CalcTextSize(label).X + PaddingX * 2f * ImGuiHelpers.GlobalScale;
-
-    public static bool Draw(string label, string id, bool active, Vector4 accent)
+    public static bool Draw(Plugin plugin, Vector2 size, float windowRounding)
     {
         var scale = ImGuiHelpers.GlobalScale;
-        var background = active ? Styling.WithAlpha(accent, 0.18f) : Styling.WithAlpha(Styling.TextMuted, 0.08f);
-        var hovered = active ? Styling.WithAlpha(accent, 0.32f) : Styling.WithAlpha(Styling.TextMuted, 0.20f);
-        var pressed = active ? Styling.WithAlpha(accent, 0.45f) : Styling.WithAlpha(Styling.TextMuted, 0.32f);
-        var border = active ? Styling.WithAlpha(accent, 0.75f) : Styling.WithAlpha(Styling.BorderDim, 0.75f);
-        var text = active ? accent : Styling.TextMuted;
+        var origin = ImGui.GetCursorScreenPos();
+        var end = origin + size;
+        var dl = ImGui.GetWindowDrawList();
+        var ctrl = plugin.Controller;
+        var progress = ctrl.Progress;
+        var info = ReadyState.Resolve(plugin.Configuration, ctrl);
 
-        using (ImRaii.PushStyle(ImGuiStyleVar.FrameBorderSize, 1f)
-            .Push(ImGuiStyleVar.FrameRounding, 11f * scale)
-            .Push(ImGuiStyleVar.FramePadding, new Vector2(PaddingX, 3f) * scale))
-        using (ImRaii.PushColor(ImGuiCol.Button, background)
-            .Push(ImGuiCol.ButtonHovered, hovered)
-            .Push(ImGuiCol.ButtonActive, pressed)
-            .Push(ImGuiCol.Border, border)
-            .Push(ImGuiCol.Text, text))
+        Dock.Background(dl, origin, end, windowRounding);
+
+        var padX = PadX * scale;
+        var buttonSize = ButtonSize * scale;
+        ImGui.SetCursorScreenPos(origin);
+        var hit = Hit.Area("##adt_mini_open", new Vector2(size.X - padX - buttonSize - 8f * scale, size.Y));
+        var hover = Motion.Hover(Motion.Key("##adt_mini_open"), hit.Hovered);
+        if (hover > 0.01f)
         {
-            return ImGui.Button($"{label}##{id}");
+            Paint.Fill(dl, origin, end, Styling.WithAlpha(Styling.Surface2, 0.35f * hover), windowRounding, ImDrawFlags.RoundCornersBottom);
         }
+
+        var midY = origin.Y + size.Y * 0.5f;
+        Paint.Dot(dl, new Vector2(origin.X + padX + 4f * scale, midY), 4f * scale, Styling.PulseColor(info.Accent, info.AccentSoft, Styling.PulseMedium));
+
+        var barWidth = BarWidth * scale;
+        var barRight = end.X - padX - buttonSize - 16f * scale;
+        var barX = barRight - barWidth;
+        var barY = midY - BarHeight * scale * 0.5f;
+        Paint.Bar(dl, new Vector2(barX, barY), barWidth, BarHeight * scale, RunningPanel.SmoothFraction(progress), info.Accent);
+
+        var textX = origin.X + padX + 22f * scale;
+        var phase = ReadyState.PhaseLabel(progress.Phase);
+        var phaseSize = TextDraw.SmallCapsSize(phase);
+        var lineHeight = ImGui.GetTextLineHeight();
+        var gap = 2f * scale;
+        var top = midY - (phaseSize.Y + gap + lineHeight) * 0.5f;
+        TextDraw.SmallCaps(phase, new Vector2(textX, top), info.AccentSoft);
+
+        var main = progress.Current is { } tribe ? $"{tribe.Name}   ·   {ctrl.Status}" : WaitingLabel;
+        TextDraw.At(TextDraw.Truncate(main, barX - 16f * scale - textX), new Vector2(textX, top + phaseSize.Y + gap), Styling.TextStrong);
+
+        ImGui.SetCursorScreenPos(new Vector2(end.X - padX - buttonSize, midY - buttonSize * 0.5f));
+        if (IconButton.Draw(FontAwesomeIcon.Stop, "##adt_mini_stop", buttonSize, Styling.AccentRose, StopHint))
+        {
+            ctrl.Stop();
+        }
+
+        ImGui.SetCursorScreenPos(origin);
+        ImGui.Dummy(size);
+        return hit.Clicked;
     }
 }

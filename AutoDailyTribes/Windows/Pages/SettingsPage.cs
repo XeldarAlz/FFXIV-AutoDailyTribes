@@ -1,293 +1,98 @@
 using AutoDailyTribes.Windows.Components;
+using AutoDailyTribes.Windows.Sections.Config;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Interface.Windowing;
 using System.Numerics;
 
-namespace AutoDailyTribes.Windows;
+namespace AutoDailyTribes.Windows.Pages;
 
-public sealed class ConfigWindow : Window, IDisposable
+internal sealed class SettingsPage
 {
-    private static readonly (uint id, string label)[] CrafterJobs =
+    private enum Tab { General, Jobs, AfterRun }
+
+    private readonly record struct Entry(Tab Tab, string Label, FontAwesomeIcon Icon, string Subtitle);
+
+    private const string Title = "Settings";
+
+    private static readonly Entry[] entries =
     [
-        (8,  "Carpenter (CRP)"),
-        (9,  "Blacksmith (BSM)"),
-        (10, "Armorer (ARM)"),
-        (11, "Goldsmith (GSM)"),
-        (12, "Leatherworker (LTW)"),
-        (13, "Weaver (WVR)"),
-        (14, "Alchemist (ALC)"),
-        (15, "Culinarian (CUL)"),
+        new(Tab.General,  "General",       FontAwesomeIcon.Cog,        "How the window behaves and how the tribe list is arranged."),
+        new(Tab.Jobs,     "Jobs",          FontAwesomeIcon.UserShield, "Which job runs each kind of tribe."),
+        new(Tab.AfterRun, "After the run", FontAwesomeIcon.Terminal,   "Chat commands to fire once every queued tribe has finished."),
     ];
 
-    // Fisher (18) is intentionally omitted: Questionable has no fishing support, so fisher
-    // dailies can't be automated. Gatherer tribes are run on Miner/Botanist only.
-    private static readonly (uint id, string label)[] GathererJobs =
-    [
-        (16, "Miner (MIN)"),
-        (17, "Botanist (BTN)"),
-    ];
+    private Tab activeTab = Tab.General;
+    private bool resetScroll;
 
-    private static readonly (uint id, string label)[] CombatJobs =
-    [
-        (19, "Paladin (PLD)"),
-        (20, "Monk (MNK)"),
-        (21, "Warrior (WAR)"),
-        (22, "Dragoon (DRG)"),
-        (23, "Bard (BRD)"),
-        (24, "White Mage (WHM)"),
-        (25, "Black Mage (BLM)"),
-        (27, "Summoner (SMN)"),
-        (28, "Scholar (SCH)"),
-        (30, "Ninja (NIN)"),
-        (31, "Machinist (MCH)"),
-        (32, "Dark Knight (DRK)"),
-        (33, "Astrologian (AST)"),
-        (34, "Samurai (SAM)"),
-        (35, "Red Mage (RDM)"),
-        (36, "Blue Mage (BLU)"),
-        (37, "Gunbreaker (GNB)"),
-        (38, "Dancer (DNC)"),
-        (39, "Reaper (RPR)"),
-        (40, "Sage (SGE)"),
-        (41, "Viper (VPR)"),
-        (42, "Pictomancer (PCT)"),
-        (43, "Beastmaster (BST)"),
-    ];
-
-    private readonly Plugin plugin;
-
-    public ConfigWindow(Plugin plugin) : base("Auto Daily Tribes — Settings###AutoDailyTribesConfig")
-    {
-        this.plugin = plugin;
-        Size = new Vector2(470, 540);
-        SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = new Vector2(420, 300),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
-        };
-    }
-
-    public void Dispose() { }
-
-    public override void Draw()
+    public void Draw(Plugin plugin)
     {
         var cfg = plugin.Configuration;
-        using var style = Styling.PushWindowStyle();
+        var scale = ImGuiHelpers.GlobalScale;
+        var navWidth = Layout.SettingsNavWidth * scale;
 
-        WindowHeader.Draw("Settings", "How the tribe list is organised, which job runs each tribe type, and what happens once a batch finishes.");
-
-        using var tabs = ImRaii.TabBar("##adtsettings");
-        if (!tabs) return;
-
-        using (var general = ImRaii.TabItem("General"))
+        using (ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.Zero))
         {
-            if (general) DrawGeneralTab(cfg);
-        }
-
-        using (var jobs = ImRaii.TabItem("Jobs"))
-        {
-            if (jobs) DrawJobsTab(cfg);
-        }
-
-        using (var postRun = ImRaii.TabItem("After the run"))
-        {
-            if (postRun) DrawPostRunTab(cfg);
-        }
-    }
-
-    private static void DrawGeneralTab(Configuration cfg)
-    {
-        Styling.VSpace(6);
-
-        using (SettingsGroup.Begin("Behavior"))
-            DrawBehaviorSection(cfg);
-
-        using (SettingsGroup.Begin(FontAwesomeIcon.List, "Tribe list", Styling.AccentViolet))
-            DrawTribeListSection(cfg);
-    }
-
-    private static void DrawPostRunTab(Configuration cfg)
-    {
-        Styling.VSpace(6);
-
-        using (SettingsGroup.Begin(FontAwesomeIcon.Terminal, "After the run", Styling.AccentBlue))
-            DrawPostRunSection(cfg);
-    }
-
-    private static void DrawJobsTab(Configuration cfg)
-    {
-        Styling.VSpace(6);
-
-        DrawJobSection(
-            cfg, FontAwesomeIcon.Hammer, Styling.KindCrafter,
-            "Crafter tribes",
-            "Ixal · Moogles · Dwarves · Loporrits · Yok Huy",
-            "DoH",
-            cfg.CrafterJobType,
-            cfg.SelectedCrafterJob,
-            CrafterJobs,
-            type => cfg.CrafterJobType = type,
-            id   => cfg.SelectedCrafterJob = id,
-            footnote: null);
-
-        DrawJobSection(
-            cfg, FontAwesomeIcon.Leaf, Styling.KindGatherer,
-            "Gatherer tribes",
-            "Qitari · Omicron · Mamool Ja",
-            "DoL",
-            cfg.GathererJobType,
-            cfg.SelectedGathererJob,
-            GathererJobs,
-            type => cfg.GathererJobType = type,
-            id   => cfg.SelectedGathererJob = id,
-            footnote: "Fisher is excluded — Questionable can't automate fishing, so gatherer tribes run on Miner/Botanist and any fishing daily is skipped.");
-
-        DrawJobSection(
-            cfg, FontAwesomeIcon.Shield, Styling.KindCombat,
-            "Combat tribes",
-            "Amalj'aa · Sylphs · Kobolds · Sahagin · Vanu Vanu · Vath · Kojin · Ananta · Pixie · Arkasodara · Pelupelu",
-            "DoW/DoM",
-            cfg.CombatJobType,
-            cfg.SelectedCombatJob,
-            CombatJobs,
-            type => cfg.CombatJobType = type,
-            id   => cfg.SelectedCombatJob = id,
-            footnote: null);
-    }
-
-    private static void DrawBehaviorSection(Configuration cfg)
-    {
-        var b = cfg.AutoShowIfDailiesAvailable;
-        if (ImGui.Checkbox("Open this window when dailies are available after login", ref b))
-        {
-            cfg.AutoShowIfDailiesAvailable = b;
-            cfg.SaveDebounced();
-        }
-    }
-
-    private static void DrawTribeListSection(Configuration cfg)
-    {
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextWrapped("The main window groups tribes by expansion. Early on, everything you can actually run sits at the bottom of a long scroll — these two settings fix that.");
-        ImGui.Spacing();
-
-        if (ImGui.RadioButton("Newest expansion first (Dawntrail on top)", cfg.ExpansionOrder == ExpansionOrder.NewestFirst))
-        {
-            cfg.ExpansionOrder = ExpansionOrder.NewestFirst;
-            cfg.SaveDebounced();
-        }
-
-        if (ImGui.RadioButton("Oldest expansion first (A Realm Reborn on top)", cfg.ExpansionOrder == ExpansionOrder.OldestFirst))
-        {
-            cfg.ExpansionOrder = ExpansionOrder.OldestFirst;
-            cfg.SaveDebounced();
-        }
-
-        ImGui.Spacing();
-
-        var hideLocked = cfg.HideLockedExpansions;
-        if (ImGui.Checkbox("Collapse expansions with nothing unlocked", ref hideLocked))
-        {
-            cfg.HideLockedExpansions = hideLocked;
-            cfg.SaveDebounced();
-        }
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextWrapped("Expansions where you haven't unlocked a single tribe fold into one line at the bottom of the list. Their names stay visible, and one click brings the cards back.");
-
-        if (cfg.CollapsedEras.Count == 0) return;
-
-        ImGui.Spacing();
-        if (!ImGui.Button($"Expand {cfg.CollapsedEras.Count} collapsed section(s)")) return;
-        cfg.CollapsedEras.Clear();
-        cfg.SaveDebounced();
-    }
-
-    private static void DrawPostRunSection(Configuration cfg)
-    {
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextWrapped("Chat commands to run when every queued tribe has finished — one per line, e.g. \"/li home\" or \"/ays m\". Lines not starting with '/' are skipped, so nothing is ever said in chat. They do not run when you press Stop.");
-        ImGui.Spacing();
-
-        var commands = cfg.PostRunCommands;
-        var lineCount = 1;
-        for (var charIndex = 0; charIndex < commands.Length; charIndex++)
-        {
-            if (commands[charIndex] == '\n') lineCount++;
-        }
-        var boxHeight = ImGui.GetTextLineHeight() * Math.Clamp(lineCount + 1, 3, 8) + ImGui.GetStyle().FramePadding.Y * 2f;
-        if (ImGui.InputTextMultiline("##postRunCommands", ref commands, 1000, new Vector2(ImGui.GetContentRegionAvail().X, boxHeight)))
-        {
-            cfg.PostRunCommands = commands;
-            cfg.SaveDebounced();
-        }
-    }
-
-    private static void DrawJobSection(
-        Configuration cfg,
-        FontAwesomeIcon icon,
-        Vector4 accent,
-        string title,
-        string scope,
-        string discipline,
-        JobChoice currentType,
-        uint currentJobId,
-        (uint id, string label)[] options,
-        Action<JobChoice> setType,
-        Action<uint> setJob,
-        string? footnote)
-    {
-        using (SettingsGroup.Begin(icon, title, accent))
-        {
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted(scope);
-            ImGui.Spacing();
-
-            DrawJobModeRadio(cfg, $"Use my currently equipped {discipline} job", JobChoice.Current, currentType, setType, discipline);
-            DrawJobModeRadio(cfg, $"Use highest-leveled {discipline} job",       JobChoice.HighestXP, currentType, setType, discipline);
-            DrawJobModeRadio(cfg, $"Use lowest-leveled {discipline} job",        JobChoice.LowestXP, currentType, setType, discipline);
-
-            var specific = currentType == JobChoice.Specific;
-            if (ImGui.RadioButton($"Specific {discipline} job:##{discipline}_specific", specific))
+            using (var nav = ImRaii.Child("##adt_settings_nav", new Vector2(navWidth, -1f), false, ImGuiWindowFlags.NoScrollbar))
             {
-                setType(JobChoice.Specific);
-                cfg.SaveDebounced();
+                if (nav) DrawNav();
             }
-            ImGui.SameLine();
-            DrawJobCombo(discipline, options, currentJobId, setJob, cfg, enabled: specific);
 
-            if (footnote is not null)
+            ImGui.SameLine(0f, 18f * scale);
+
+            using (var content = ImRaii.Child("##adt_settings_content", new Vector2(-1f, -1f), false, ImGuiWindowFlags.None))
             {
-                ImGui.Spacing();
-                using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                    ImGui.TextWrapped(footnote);
+                if (content) DrawContent(cfg);
             }
         }
     }
 
-    private static void DrawJobModeRadio(Configuration cfg, string label, JobChoice mode, JobChoice current, Action<JobChoice> setter, string discipline)
+    private void DrawNav()
     {
-        if (ImGui.RadioButton($"{label}##{discipline}_{mode}", current == mode))
+        var scale = ImGuiHelpers.GlobalScale;
+        var origin = ImGui.GetCursorScreenPos();
+        using (Fonts.PushTitle())
         {
-            setter(mode);
-            cfg.SaveDebounced();
+            TextDraw.At(Title, new Vector2(origin.X + 6f * scale, origin.Y), Styling.TextStrong);
+            ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, TextDraw.Measure(Title).Y + 10f * scale));
+        }
+
+        for (var index = 0; index < entries.Length; index++)
+        {
+            var entry = entries[index];
+            if (SidebarTab.Draw(entry.Label, entry.Icon, Styling.AccentTeal, activeTab == entry.Tab)) Select(entry.Tab);
         }
     }
 
-    private static void DrawJobCombo(string discipline, (uint id, string label)[] options, uint currentId, Action<uint> setter, Configuration cfg, bool enabled)
+    private void Select(Tab tab)
     {
-        var idx = Array.FindIndex(options, o => o.id == currentId);
-        if (idx < 0) idx = 0;
+        if (activeTab == tab) return;
+        activeTab = tab;
+        resetScroll = true;
+    }
 
-        using var disabled = ImRaii.Disabled(!enabled);
-        ImGui.SetNextItemWidth(200);
-        var labels = options.Select(o => o.label).ToArray();
-        if (ImGui.Combo($"##{discipline}_combo", ref idx, labels, labels.Length))
+    private void DrawContent(Configuration cfg)
+    {
+        if (resetScroll)
         {
-            setter(options[idx].id);
-            cfg.SaveDebounced();
+            ImGui.SetScrollY(0f);
+            resetScroll = false;
+        }
+
+        var entry = entries[(int)activeTab];
+        var scale = ImGuiHelpers.GlobalScale;
+
+        using var reveal = Motion.PushSwitch("##adt_settings_tab", (int)activeTab);
+        using var group = ImRaii.Group();
+        ImGui.Dummy(new Vector2(0f, 2f * scale));
+        PageHeader.Draw(entry.Label, entry.Subtitle);
+
+        switch (activeTab)
+        {
+            case Tab.General: GeneralSettings.Draw(cfg); break;
+            case Tab.Jobs: JobSettings.Draw(cfg); break;
+            case Tab.AfterRun: PostRunSettings.Draw(cfg); break;
         }
     }
 }

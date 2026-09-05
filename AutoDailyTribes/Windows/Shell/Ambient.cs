@@ -1,61 +1,34 @@
-using AutoDailyTribes.Core.Tribes;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
-namespace AutoDailyTribes.Windows.Components;
+namespace AutoDailyTribes.Windows.Shell;
 
-// Compact queue entry for the running view: icon + name + remaining count in one pill.
-internal static class QueueChip
+internal static class Ambient
 {
-    private const float PadX = 9f;
-    private const float Gap = 7f;
+    private const int Layers = 5;
 
-    public static float Width(TribeInfo tribe)
+    public static void Draw(ImDrawListPtr dl, Vector2 min, Vector2 max)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var iconSize = Layout.QueueChipHeight * s * 0.6f;
-        return (PadX * 2f + Gap * 2f) * s + iconSize
-            + ImGui.CalcTextSize(tribe.Name).X
-            + ImGui.CalcTextSize(AllowancePill.GetLabel(tribe)).X;
+        var width = max.X - min.X;
+        var height = max.Y - min.Y;
+
+        dl.PushClipRect(min, max, true);
+        Blob(dl, min + new Vector2(width * (0.20f + 0.08f * Motion.Wave(16000)), height * (0.14f + 0.06f * Motion.Wave(21000))),
+            width * 0.45f, Styling.AccentTeal, 0.055f);
+        Blob(dl, min + new Vector2(width * (0.86f + 0.06f * Motion.Wave(19000)), height * (0.32f + 0.08f * Motion.Wave(14000))),
+            width * 0.40f, Styling.AccentMint, 0.040f);
+        Blob(dl, min + new Vector2(width * (0.55f + 0.10f * Motion.Wave(23000)), height * (0.96f + 0.05f * Motion.Wave(17000))),
+            width * 0.42f, Styling.AccentViolet, 0.035f);
+        dl.PopClipRect();
     }
 
-    public static void Draw(TribeInfo tribe)
+    private static void Blob(ImDrawListPtr dl, Vector2 center, float radius, Vector4 color, float peak)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var height = Layout.QueueChipHeight * s;
-        var padX = PadX * s;
-        var gap = Gap * s;
-        var iconSize = height * 0.6f;
-        var count = AllowancePill.GetLabel(tribe);
-
-        var origin = ImGui.GetCursorScreenPos();
-        var width = Width(tribe);
-        var end = origin + new Vector2(width, height);
-
-        var dl = ImGui.GetWindowDrawList();
-        dl.AddRectFilled(origin, end, ImGui.GetColorU32(Styling.CardBgSoft), 6f * s);
-        dl.AddRect(origin, end, ImGui.GetColorU32(Styling.WithAlpha(Styling.BorderDim, 0.55f)), 6f * s);
-
-        var midY = origin.Y + height * 0.5f;
-        ImGui.SetCursorScreenPos(new Vector2(origin.X + padX, midY - iconSize * 0.5f));
-        TribeIcon.Draw(tribe, iconSize);
-
-        var lineH = ImGui.GetTextLineHeight();
-        ImGui.SetCursorScreenPos(new Vector2(origin.X + padX + iconSize + gap, midY - lineH * 0.5f));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted(tribe.Name);
-
-        var countW = ImGui.CalcTextSize(count).X;
-        ImGui.SetCursorScreenPos(new Vector2(end.X - padX - countW, midY - lineH * 0.5f));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted(count);
-
-        ImGui.SetCursorScreenPos(origin);
-        ImGui.Dummy(new Vector2(width, height));
-
-        if (ImGui.IsItemHovered())
-            Tooltip.For(RankBadge.RankLabel(tribe));
+        for (var layer = Layers; layer >= 1; layer--)
+        {
+            var layerRadius = radius * layer / Layers;
+            var alpha = peak * (1f - (layer - 1f) / Layers);
+            dl.AddCircleFilled(center, layerRadius, Paint.Col(Styling.WithAlpha(color, alpha)), 48);
+        }
     }
 }

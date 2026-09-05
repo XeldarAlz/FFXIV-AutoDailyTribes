@@ -5,6 +5,9 @@ namespace AutoDailyTribes.Windows.Components;
 
 internal static class RankBadge
 {
+    private const string LockedLabel = "Locked";
+    private const string AlliedName = "Allied";
+
     private static readonly string[] RankNames =
     [
         "Neutral",
@@ -20,22 +23,22 @@ internal static class RankBadge
     // ARR-era societies finish at "Allied"; later eras use "Bloodsworn".
     private static string RankName(int rank, TribeEra era)
     {
-        if (era == TribeEra.ARR && rank >= AdtConstants.MaxTribeRank) return "Allied";
-        var idx = rank - 1;
-        return idx >= 0 && idx < RankNames.Length ? RankNames[idx] : "";
+        if (era == TribeEra.ARR && rank >= AdtConstants.MaxTribeRank) return AlliedName;
+        var index = rank - 1;
+        return index >= 0 && index < RankNames.Length ? RankNames[index] : string.Empty;
     }
 
     public static string RankLabel(TribeInfo tribe)
     {
-        if (!tribe.Unlocked) return "Locked";
+        if (!tribe.Unlocked) return LockedLabel;
         var name = RankName(tribe.Rank, tribe.Era);
         return name.Length > 0 ? $"Rank {tribe.Rank} · {name}" : $"Rank {tribe.Rank}";
     }
 
     public static string RankName(TribeInfo tribe)
-        => tribe.Unlocked ? RankName(tribe.Rank, tribe.Era) : "Locked";
+        => tribe.Unlocked ? RankName(tribe.Rank, tribe.Era) : LockedLabel;
 
-    public static (float fraction, bool maxed) Rep(TribeInfo tribe)
+    public static (float Fraction, bool Maxed) Rep(TribeInfo tribe)
     {
         var maxed = tribe.Unlocked && tribe.Rank >= AdtConstants.MaxTribeRank;
         var fraction = maxed

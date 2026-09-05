@@ -1,187 +1,215 @@
 using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Core.Tribes;
+using AutoDailyTribes.Windows.Sections;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Components;
 
 internal static class TribeCard
 {
-    private const float PadX = 13f;
+    private const float PadX = 14f;
+    private const float PadTop = 12f;
+    private const float PlateRounding = 11f;
+    private const float PlateGlowRadius = 0.46f;
+    private const float StripeWidth = 3f;
+    private const float StripeInset = 10f;
+    private const float StripeOffset = 2.5f;
+    private const float SelectorRadius = 10f;
+    private const float RowGap = 7f;
+    private const float RowPadBottom = 12f;
+    private const float SegmentHeight = 8f;
+    private const float SegmentGap = 5f;
+    private const float RepBarHeight = 6f;
+    private const float ColumnGap = 10f;
+    private const float TextGap = 12f;
+    private const float StatusIconGap = 5f;
 
-    public static void Draw(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
-        => DrawSelectable(tribe, controller, cfg, done: false);
+    private const string DailiesLabel = "Dailies";
+    private const string RankLabelLocked = "Rank";
+    private const string RepLocked = "–";
+    private const string RepMaxed = "MAX";
+    private const string StatusDone = "Done today";
+    private const string StatusLocked = "Locked";
 
-    public static void DrawDone(TribeInfo tribe, AutoTribeController controller, Configuration cfg)
-        => DrawSelectable(tribe, controller, cfg, done: true);
+    private static readonly string[] SlotLabels = BuildSlotLabels();
+    private static readonly string[] QueueLabels = BuildQueueLabels();
+    private static readonly string[] RankNeeded = BuildRankNeeded();
 
-    private static void DrawSelectable(TribeInfo tribe, AutoTribeController controller, Configuration cfg, bool done)
+    public static void Draw(TribeInfo tribe, Configuration cfg, AutoTribeController controller, float width, int queuePosition)
     {
-        var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
-        var selectable = tribe.Unlocked && tribe.MeetsRankRequirement && !controller.Running;
+        var scale = ImGuiHelpers.GlobalScale;
+        var size = new Vector2(width, Layout.TribeCardHeight * scale);
+        var origin = ImGui.GetCursorScreenPos();
+        var end = origin + size;
 
-        var s = ImGuiHelpers.GlobalScale;
-        var startScreen = ImGui.GetCursorScreenPos();
-        var width = ImGui.GetContentRegionAvail().X;
-        var height = Layout.TribeCardHeight * s;
-        var hovered = ImGui.IsMouseHoveringRect(startScreen, startScreen + new Vector2(width, height));
-        var alpha = done ? selected ? 0.72f : 0.55f : 1f;
+        var locked = !tribe.Unlocked;
+        var underRank = tribe.Unlocked && !tribe.MeetsRankRequirement;
+        var runnable = RunPlan.IsRunnable(tribe);
+        var done = tribe.Unlocked && tribe.MeetsRankRequirement && !runnable;
+        var selected = queuePosition > 0;
+        var interactive = !locked && !underRank && !controller.Running;
 
-        using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, alpha))
-        using (Card.Begin(tribe.CardId, new Vector2(-1, height),
-            ResolveBg(selected, hovered, done), ResolveBorder(selected, hovered, done), selected ? 2f : 1f))
+        ImGui.PushID((nint)tribe.BeastTribeId);
+        var hit = Hit.Area("##tribe", size, interactive);
+        var hover = Motion.Hover(Motion.Key("##tribe"), hit.Hovered);
+        var active = Motion.Approach(Motion.Key("##tribe", 1), selected ? 1f : 0f, 14f);
+        ImGui.PopID();
+
+        if (hit.Clicked) Toggle(cfg, tribe.BeastTribeId, !selected);
+
+        var alpha = locked ? 0.55f : underRank ? 0.72f : done ? 0.82f : 1f;
+        using (Motion.PushAlpha(alpha))
         {
-            DrawBody(tribe, selected, hovered, selectable, locked: false, done: done);
+            var dl = ImGui.GetWindowDrawList();
+            var kind = Styling.KindColor(tribe.Kind);
+            var rounding = Styling.CardRounding * scale;
+            if (active > 0.01f) Paint.Glow(dl, origin, end, rounding, Styling.AccentTeal, 0.45f * active);
+            Paint.Glass(dl, origin, end, rounding, Styling.AccentTeal, 0.02f + 0.16f * active, hover);
+            DrawKindStripe(dl, origin, end, kind);
+            var plateMax = DrawPlate(dl, tribe, origin, kind);
+            var cornerLeft = DrawCorner(dl, origin, end, locked, underRank, selected, queuePosition, active, hover);
+            DrawIdentity(dl, tribe, origin, end, plateMax, cornerLeft, kind, done, locked, underRank, active, hover);
+            DrawDataRows(dl, tribe, origin, end, locked);
         }
 
-        DrawKindStripe(tribe, startScreen, height, alpha);
+        if (hit.Hovered || (!interactive && Hit.HoveringRect(origin, end)))
+        {
+            DrawTooltip(tribe, selected, done, locked, underRank);
+        }
+    }
 
-        if (!hovered) return;
-        DrawTooltip(tribe, selected, done);
-        if (!selectable) return;
-
-        ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        if (!ImGui.IsMouseClicked(ImGuiMouseButton.Left)) return;
-
-        if (selected) cfg.SelectedTribes.Remove(tribe.BeastTribeId);
-        else cfg.SelectedTribes.Add(tribe.BeastTribeId);
+    private static void Toggle(Configuration cfg, uint beastTribeId, bool selected)
+    {
+        if (selected && !cfg.SelectedTribes.Contains(beastTribeId)) cfg.SelectedTribes.Add(beastTribeId);
+        else if (!selected) cfg.SelectedTribes.Remove(beastTribeId);
         cfg.SaveDebounced();
     }
 
-    // Same card shape as Draw, but greyed out and non-interactive: a tribe the player hasn't unlocked
-    // yet still occupies the grid so they can see what's coming and why it isn't selectable.
-    public static void DrawLocked(TribeInfo tribe)
+    private static void DrawKindStripe(ImDrawListPtr dl, Vector2 origin, Vector2 end, Vector4 kind)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var startScreen = ImGui.GetCursorScreenPos();
-        var width = ImGui.GetContentRegionAvail().X;
-        var height = Layout.TribeCardHeight * s;
-        var hovered = ImGui.IsMouseHoveringRect(startScreen, startScreen + new Vector2(width, height));
-
-        using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.45f))
-        using (Card.Begin(tribe.CardId, new Vector2(-1, height),
-            Styling.CardBgSoft, Styling.BorderLocked))
-        {
-            DrawBody(tribe, selected: false, hovered: false, selectable: false, locked: true);
-        }
-
-        DrawKindStripe(tribe, startScreen, height, 0.45f);
-
-        if (!hovered) return;
-        using var tt = ImRaii.Tooltip();
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted("Complete the intro quest in-game to unlock this tribe.");
+        var scale = ImGuiHelpers.GlobalScale;
+        var x = origin.X + StripeOffset * scale;
+        var inset = StripeInset * scale;
+        Paint.Fill(dl, new Vector2(x, origin.Y + inset), new Vector2(x + StripeWidth * scale, end.Y - inset),
+            Styling.WithAlpha(kind, 0.85f), StripeWidth * scale * 0.5f);
     }
 
-    private static void DrawBody(TribeInfo tribe, bool selected, bool hovered, bool selectable, bool locked, bool done = false)
+    // A gradient plate tinted by the tribe kind with a soft bloom behind the emblem, so the icon
+    // reads as sitting on a lit surface rather than pasted flat onto the card.
+    private static Vector2 DrawPlate(ImDrawListPtr dl, TribeInfo tribe, Vector2 origin, Vector4 kind)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var origin = ImGui.GetWindowPos();
-        var size = ImGui.GetWindowSize();
-        var dl = ImGui.GetWindowDrawList();
-        var pad = PadX * s;
-        var kind = Styling.KindColor(tribe.Kind);
-
-        var plate = 40f * s;
-        var plateMin = new Vector2(origin.X + pad, origin.Y + 11f * s);
+        var scale = ImGuiHelpers.GlobalScale;
+        var plate = Layout.TribeIconPlate * scale;
+        var plateMin = new Vector2(origin.X + PadX * scale, origin.Y + PadTop * scale);
         var plateMax = plateMin + new Vector2(plate, plate);
-        var plateRound = 9f * s;
-        dl.AddRectFilled(plateMin, plateMax, ImGui.GetColorU32(Styling.WithAlpha(kind, 0.13f)), plateRound);
-        dl.AddRect(plateMin, plateMax, ImGui.GetColorU32(Styling.WithAlpha(kind, 0.32f)), plateRound);
+        var rounding = PlateRounding * scale;
+        var center = (plateMin + plateMax) * 0.5f;
 
-        var icon = 32f * s;
-        ImGui.SetCursorScreenPos(plateMin + new Vector2((plate - icon) * 0.5f));
-        TribeIcon.Draw(tribe, icon);
+        Paint.Gradient(dl, plateMin, plateMax,
+            Styling.WithAlpha(Styling.Tint(Styling.Surface2, kind, 0.38f), 0.96f),
+            Styling.WithAlpha(Styling.Tint(Styling.Surface0, kind, 0.18f), 0.96f), rounding);
+        dl.AddCircleFilled(center, plate * PlateGlowRadius, Paint.Col(Styling.WithAlpha(kind, 0.22f)));
+        Paint.TopLight(dl, plateMin, plateMax, rounding, 0.12f);
+        Paint.Stroke(dl, plateMin, plateMax, Styling.WithAlpha(kind, 0.42f), rounding);
 
-        var markHalf = 8f * s;
-        var markC = new Vector2(origin.X + size.X - pad - markHalf, plateMin.Y + markHalf);
-        if (locked) DrawLockGlyph(markC);
-        else DrawSelectMark(markC, markHalf, selected, hovered, selectable);
-
-        var textX = plateMax.X + 11f * s;
-        ImGui.SetWindowFontScale(1.18f);
-        ImGui.SetCursorScreenPos(new Vector2(textX, plateMin.Y - 1f * s));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
-            ImGui.TextUnformatted(tribe.Name);
-        ImGui.SetWindowFontScale(1f);
-
-        var kindLineY = plateMax.Y - ImGui.GetTextLineHeight() - 1f * s;
-        ImGui.SetCursorScreenPos(new Vector2(textX, kindLineY));
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        using (ImRaii.PushColor(ImGuiCol.Text, kind))
-            ImGui.TextUnformatted(KindIcon.Icon(tribe.Kind).ToIconString());
-        ImGui.SameLine(0, 5f * s);
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
-            ImGui.TextUnformatted(tribe.KindLabel);
-
-        if (done) DrawDoneTag(origin, size, pad, kindLineY);
-
-        DrawDataRows(tribe, origin, size, locked);
+        var icon = Layout.TribeIconSize * scale;
+        TribeIcon.Draw(dl, tribe, center - new Vector2(icon * 0.5f, icon * 0.5f), icon);
+        return plateMax;
     }
 
-    // Rounded-square checkbox: teal fill + dark check when selected; hollow outline (teal "+" hint
-    // on hover) when it can be added to the run; nothing while a run is active so the card reads
-    // as read-only.
-    private static void DrawSelectMark(Vector2 center, float half, bool selected, bool hovered, bool selectable)
+    // Top-right corner: a lock for locked tribes, an hourglass under the rank floor, and otherwise a
+    // selector disc whose fill carries the run-order number so selection and order read as one glyph.
+    private static float DrawCorner(ImDrawListPtr dl, Vector2 origin, Vector2 end,
+        bool locked, bool underRank, bool selected, int queuePosition, float active, float hover)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var dl = ImGui.GetWindowDrawList();
-        var min = center - new Vector2(half);
-        var max = center + new Vector2(half);
-        var round = 4.5f * s;
-        if (selected)
+        var scale = ImGuiHelpers.GlobalScale;
+        var radius = SelectorRadius * scale;
+        var center = new Vector2(end.X - PadX * scale - radius, origin.Y + PadTop * scale + radius);
+
+        if (locked)
         {
-            dl.AddRectFilled(min, max, ImGui.GetColorU32(Styling.AccentTeal), round);
-            var check = ImGui.GetColorU32(new Vector4(0.05f, 0.07f, 0.08f, 1f));
-            dl.AddLine(center + new Vector2(-0.42f, 0.02f) * half, center + new Vector2(-0.12f, 0.34f) * half, check, 2.2f * s);
-            dl.AddLine(center + new Vector2(-0.12f, 0.34f) * half, center + new Vector2(0.46f, -0.34f) * half, check, 2.2f * s);
-            return;
+            TextDraw.IconCentered(FontAwesomeIcon.Lock, center, Styling.TextMuted);
+            return center.X - radius;
         }
 
-        if (!selectable) return;
-        dl.AddRect(min, max, ImGui.GetColorU32(Styling.WithAlpha(Styling.TextSecondary, hovered ? 0.95f : 0.45f)), round, 0, 1.6f * s);
-        if (hovered)
+        if (underRank)
         {
-            var plus = ImGui.GetColorU32(Styling.AccentTealSoft);
-            dl.AddLine(center - new Vector2(half * 0.45f, 0), center + new Vector2(half * 0.45f, 0), plus, 1.8f * s);
-            dl.AddLine(center - new Vector2(0, half * 0.45f), center + new Vector2(0, half * 0.45f), plus, 1.8f * s);
+            TextDraw.IconCentered(FontAwesomeIcon.Hourglass, center, Styling.WithAlpha(Styling.AccentAmber, 0.7f));
+            return center.X - radius;
         }
-    }
 
-    private static void DrawDoneTag(Vector2 origin, Vector2 size, float pad, float lineY)
-    {
-        const string label = "Done";
-        ImGui.SetCursorScreenPos(new Vector2(origin.X + size.X - pad - ImGui.CalcTextSize(label).X, lineY));
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
-            ImGui.TextUnformatted(label);
-    }
-
-    private static void DrawLockGlyph(Vector2 center)
-    {
-        var icon = FontAwesomeIcon.Lock.ToIconString();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        var ring = Vector4.Lerp(Styling.WithAlpha(Styling.BorderDim, 0.9f), Styling.AccentTealSoft, MathF.Max(active, hover * 0.5f));
+        if (!selected && hover > 0.01f)
         {
-            var size = ImGui.CalcTextSize(icon);
-            ImGui.SetCursorScreenPos(center - size * 0.5f);
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-                ImGui.TextUnformatted(icon);
+            dl.AddCircleFilled(center, radius, Paint.Col(Styling.WithAlpha(Styling.Surface3, hover)));
+        }
+
+        dl.AddCircle(center, radius, Paint.Col(ring), 0, 1.4f * scale);
+        if (active > 0.01f)
+        {
+            dl.AddCircleFilled(center, radius * active, Paint.Col(Styling.AccentTeal));
+        }
+
+        if (active > 0.5f && queuePosition > 0)
+        {
+            using (Fonts.PushCaption())
+            {
+                var label = queuePosition < QueueLabels.Length ? QueueLabels[queuePosition] : queuePosition.ToString();
+                TextDraw.Middle(label, center - new Vector2(radius, radius), center + new Vector2(radius, radius),
+                    Styling.WithAlpha(Styling.WindowBg with { W = 1f }, (active - 0.5f) * 2f));
+            }
+        }
+
+        return center.X - radius;
+    }
+
+    private static void DrawIdentity(ImDrawListPtr dl, TribeInfo tribe, Vector2 origin, Vector2 end, Vector2 plateMax, float cornerLeft,
+        Vector4 kind, bool done, bool locked, bool underRank, float active, float hover)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var textX = plateMax.X + TextGap * scale;
+        var nameY = origin.Y + PadTop * scale + 1f * scale;
+        var nameColor = locked ? Styling.TextMuted : Vector4.Lerp(Styling.TextSecondary, Styling.TextStrong, MathF.Max(active, hover));
+        var name = TextDraw.Truncate(tribe.Name, cornerLeft - 10f * scale - textX);
+        TextDraw.At(name, new Vector2(textX, nameY), nameColor);
+
+        using (Fonts.PushCaption())
+        {
+            var lineHeight = ImGui.GetTextLineHeight();
+            var lineY = plateMax.Y - lineHeight - 1f * scale;
+            var kindIcon = KindIcon.Icon(tribe.Kind);
+            var kindIconSize = TextDraw.IconSize(kindIcon);
+            TextDraw.Icon(kindIcon, new Vector2(textX, lineY + (lineHeight - kindIconSize.Y) * 0.5f), kind);
+            TextDraw.At(tribe.KindLabel, new Vector2(textX + kindIconSize.X + 6f * scale, lineY), Styling.TextDim);
+
+            var status = done ? StatusDone
+                : locked ? StatusLocked
+                : underRank ? RankNeeded[Math.Clamp(tribe.MinRankForDailies, 0, RankNeeded.Length - 1)]
+                : null;
+            if (status is null) return;
+
+            var color = done ? Styling.AccentMint : underRank ? Styling.AccentAmberSoft : Styling.TextMuted;
+            var rightX = end.X - PadX * scale;
+            TextDraw.Right(status, rightX, lineY, color);
+            if (!done) return;
+
+            var statusWidth = TextDraw.Measure(status).X;
+            var checkSize = TextDraw.IconSize(FontAwesomeIcon.Check);
+            TextDraw.Icon(FontAwesomeIcon.Check, new Vector2(rightX - statusWidth - StatusIconGap * scale - checkSize.X, lineY + (lineHeight - checkSize.Y) * 0.5f), color);
         }
     }
 
     // Two aligned label · bar · value rows anchored to the card bottom: daily quest slots on top,
-    // reputation toward the next rank below. Labels and values share fixed columns so both bars
-    // start and end on the same edges.
-    // Slot segments encode delivery, not acceptance: solid mint = turned in, hollow amber = accepted
-    // but still in the journal, faint = unused. The value counts only turned-in quests so "3/3"
+    // reputation toward the next rank below. The slot value counts only turned-in quests so "3/3"
     // always means the dailies are actually finished.
-    private static void DrawDataRows(TribeInfo tribe, Vector2 origin, Vector2 size, bool locked)
+    private static void DrawDataRows(ImDrawListPtr dl, TribeInfo tribe, Vector2 origin, Vector2 end, bool locked)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var pad = PadX * s;
+        var scale = ImGuiHelpers.GlobalScale;
+        var pad = PadX * scale;
         var max = AdtConstants.MaxAcceptsPerTribe;
         var accepted = Math.Clamp(tribe.AcceptedTodayCount, 0, max);
         var done = Math.Clamp(accepted - tribe.InProgressQuestIds.Length, 0, max);
@@ -192,157 +220,96 @@ internal static class TribeCard
             : done > 0 || journal > 0 ? Styling.AccentAmber
             : Styling.TextDim;
 
-        const string dailyLabel = "Dailies";
         var rankName = RankBadge.RankName(tribe);
-        var rankLabel = locked ? "Rank" : rankName.Length > 0 ? rankName : $"Rank {tribe.Rank}";
-        var dailyValue = $"{done}/{max}";
-        var repValue = locked ? "–" : maxed ? "MAX" : $"{(int)MathF.Round(fraction * 100f)}%";
+        var rankLabel = locked ? RankLabelLocked : rankName.Length > 0 ? rankName : $"Rank {tribe.Rank}";
+        var dailyValue = SlotLabels[done];
+        var repValue = locked ? RepLocked : maxed ? RepMaxed : $"{(int)MathF.Round(fraction * 100f)}%";
 
-        var labelW = MathF.Max(ImGui.CalcTextSize(dailyLabel).X, ImGui.CalcTextSize(rankLabel).X);
-        var valueW = MathF.Max(ImGui.CalcTextSize(dailyValue).X, ImGui.CalcTextSize(repValue).X);
+        using var caption = Fonts.PushCaption();
+        var labelWidth = MathF.Max(TextDraw.Measure(DailiesLabel).X, TextDraw.Measure(rankLabel).X);
+        var valueWidth = MathF.Max(TextDraw.Measure(dailyValue).X, TextDraw.Measure(repValue).X);
 
-        var lineH = ImGui.GetTextLineHeight();
-        var row2Y = origin.Y + size.Y - 11f * s - lineH;
-        var row1Y = row2Y - 6f * s - lineH;
-        var colGap = 9f * s;
-        var barX0 = origin.X + pad + labelW + colGap;
-        var barX1 = origin.X + size.X - pad - valueW - colGap;
-        var valueX = origin.X + size.X - pad;
+        var lineHeight = ImGui.GetTextLineHeight();
+        var row2Y = end.Y - RowPadBottom * scale - lineHeight;
+        var row1Y = row2Y - RowGap * scale - lineHeight;
+        var columnGap = ColumnGap * scale;
+        var barX0 = origin.X + pad + labelWidth + columnGap;
+        var barX1 = end.X - pad - valueWidth - columnGap;
+        var valueX = end.X - pad;
         if (barX1 <= barX0) return;
 
-        var dl = ImGui.GetWindowDrawList();
-        var track = Styling.WithAlpha(Styling.TextSecondary, 0.13f);
+        TextDraw.At(DailiesLabel, new Vector2(origin.X + pad, row1Y), journal > 0 ? Styling.AccentAmber : Styling.TextDim);
+        TextDraw.Right(dailyValue, valueX, row1Y, stateColor);
 
-        DrawRowText(origin.X + pad, row1Y, dailyLabel, journal > 0 ? Styling.AccentAmber : Styling.TextDim);
-        DrawRowText(valueX - ImGui.CalcTextSize(dailyValue).X, row1Y, dailyValue, stateColor);
+        var segmentHeight = SegmentHeight * scale;
+        Paint.Segments(dl, new Vector2(barX0, row1Y + (lineHeight - segmentHeight) * 0.5f), barX1 - barX0, segmentHeight,
+            max, done, journal, Styling.AccentMint, Styling.AccentAmber, SegmentGap * scale);
 
-        var segH = 7f * s;
-        var segGap = 5f * s;
-        var segY = row1Y + (lineH - segH) * 0.5f;
-        var segW = (barX1 - barX0 - segGap * (max - 1)) / max;
-        for (var i = 0; i < max; i++)
+        TextDraw.At(rankLabel, new Vector2(origin.X + pad, row2Y), Styling.TextDim);
+        TextDraw.Right(repValue, valueX, row2Y, maxed ? Styling.AccentAmber : Styling.TextSecondary);
+
+        var barHeight = RepBarHeight * scale;
+        var barY = row2Y + (lineHeight - barHeight) * 0.5f;
+        Paint.Bar(dl, new Vector2(barX0, barY), barX1 - barX0, barHeight, locked ? 0f : fraction, maxed ? Styling.AccentAmber : Styling.AccentTeal);
+    }
+
+    private static void DrawTooltip(TribeInfo tribe, bool selected, bool done, bool locked, bool underRank)
+    {
+        using var tooltip = Tooltip.Begin();
+
+        if (locked)
         {
-            var sx = barX0 + i * (segW + segGap);
-            var segMin = new Vector2(sx, segY);
-            var segMax = new Vector2(sx + segW, segY + segH);
-            if (i < done)
-            {
-                dl.AddRectFilled(segMin, segMax, ImGui.GetColorU32(Styling.AccentMint), segH * 0.5f);
-            }
-            else if (i < done + journal)
-            {
-                var outline = Styling.PulseColor(Styling.AccentAmber,
-                    Styling.WithAlpha(Styling.AccentAmber, 0.55f), Styling.PulseBreath);
-                dl.AddRectFilled(segMin, segMax, ImGui.GetColorU32(Styling.WithAlpha(Styling.AccentAmber, 0.15f)), segH * 0.5f);
-                dl.AddRect(segMin, segMax, ImGui.GetColorU32(outline), segH * 0.5f, 0, 1.3f * s);
-            }
-            else
-            {
-                dl.AddRectFilled(segMin, segMax, ImGui.GetColorU32(track), segH * 0.5f);
-            }
-        }
-
-        DrawRowText(origin.X + pad, row2Y, rankLabel, Styling.TextDim);
-        DrawRowText(valueX - ImGui.CalcTextSize(repValue).X, row2Y, repValue,
-            maxed ? Styling.AccentAmber : Styling.TextSecondary);
-
-        var barH = 5f * s;
-        var barY = row2Y + (lineH - barH) * 0.5f;
-        dl.AddRectFilled(new Vector2(barX0, barY), new Vector2(barX1, barY + barH),
-            ImGui.GetColorU32(track), barH * 0.5f);
-        var repFill = maxed ? 1f : fraction;
-        if (repFill > 0f && !locked)
-            dl.AddRectFilled(new Vector2(barX0, barY), new Vector2(barX0 + (barX1 - barX0) * repFill, barY + barH),
-                ImGui.GetColorU32(maxed ? Styling.AccentAmber : Styling.AccentTeal), barH * 0.5f);
-    }
-
-    private static void DrawRowText(float x, float y, string text, Vector4 color)
-    {
-        ImGui.SetCursorScreenPos(new Vector2(x, y));
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-            ImGui.TextUnformatted(text);
-    }
-
-    // Slim kind-coloured pill hugging the left edge — lets the eye sort the grid by tribe type
-    // without reading the chips.
-    private static void DrawKindStripe(TribeInfo tribe, Vector2 cardOrigin, float height, float alphaMul)
-    {
-        var s = ImGuiHelpers.GlobalScale;
-        var w = 3.5f * s;
-        var insetY = 9f * s;
-        var x = cardOrigin.X + 2.5f * s;
-        ImGui.GetWindowDrawList().AddRectFilled(
-            new Vector2(x, cardOrigin.Y + insetY),
-            new Vector2(x + w, cardOrigin.Y + height - insetY),
-            ImGui.GetColorU32(Styling.WithAlpha(Styling.KindColor(tribe.Kind), 0.85f * alphaMul)), w * 0.5f);
-    }
-
-    // The card shows the rank name; the hover carries the numeric rank, says what a click will do,
-    // plus the gatherer class-binding caveat (the one kind where behavior differs).
-    private static void DrawTooltip(TribeInfo tribe, bool selected, bool done)
-    {
-        using var tt = ImRaii.Tooltip();
-        using var wrap = ImRaii.TextWrapPos(ImGui.GetCursorPosX() + 280f * ImGuiHelpers.GlobalScale);
-
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-            ImGui.TextUnformatted(RankBadge.RankLabel(tribe));
-
-        if (done)
-        {
-            DrawDoneTooltipBody(tribe, selected);
+            Tooltip.Text("Complete the intro quest in game to unlock this tribe.");
             return;
         }
 
-        if (tribe.HasInProgressQuests)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentAmber))
-                ImGui.TextUnformatted($"{tribe.InProgressQuestIds.Length} accepted quest(s) still in journal — click to run them.");
-        else if (selected)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTeal))
-                ImGui.TextUnformatted("Selected — click to remove from the run");
-        else
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentTealSoft))
-                ImGui.TextUnformatted("Click to add to the run");
+        Tooltip.Text(RankBadge.RankLabel(tribe), Styling.TextDim);
 
-        if (tribe.DailiesRefreshedByRankUp)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
-                ImGui.TextUnformatted("Ranked up today — 3 fresh dailies are available.");
-
-        if (tribe.Kind == TribeKind.Gatherer)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
-                ImGui.TextUnformatted("Gathering dailies bind to the class you accept them with.");
-    }
-
-    private static void DrawDoneTooltipBody(TribeInfo tribe, bool selected)
-    {
-        using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentMint))
-            ImGui.TextUnformatted("All daily slots used for this tribe today.");
-
-        if (tribe.CanRankUp)
-            using (ImRaii.PushColor(ImGuiCol.Text, Styling.AccentAmber))
-                ImGui.TextUnformatted("Daily rep is full — finish the rank-up quest in-game to refresh 3 more dailies today.");
-
-        using (ImRaii.PushColor(ImGuiCol.Text, selected ? Styling.AccentTeal : Styling.AccentTealSoft))
-            ImGui.TextUnformatted(selected
-                ? "Still in your list — it runs again after the reset. Click to drop it."
-                : "Click to keep it in your list for after the reset.");
-    }
-
-    private static Vector4 ResolveBg(bool selected, bool hovered, bool done)
-    {
-        if (done)
+        if (underRank)
         {
-            var quiet = hovered ? Styling.CardBgHover : Styling.CardBgSoft;
-            return selected ? Vector4.Lerp(quiet, Styling.AccentTeal, 0.18f) : quiet;
+            Tooltip.Text($"Reach rank {tribe.MinRankForDailies} to run dailies.", Styling.AccentAmberSoft);
+            return;
         }
 
-        if (selected && hovered) return Vector4.Lerp(Styling.CardBgHover, Styling.AccentTeal, 0.30f);
-        if (selected) return Vector4.Lerp(Styling.CardBg, Styling.AccentTeal, 0.20f);
-        if (hovered) return Styling.CardBgHover;
-        return Styling.CardBg;
+        Tooltip.Text($"{tribe.AcceptedTodayCount} / {AdtConstants.MaxAcceptsPerTribe} daily slots used · "
+                   + $"{AdtConstants.DailyAllowanceCap} allowances shared across all tribes.", Styling.TextDim);
+
+        if (done)
+        {
+            Tooltip.Text("All daily slots used for this tribe today.", Styling.AccentMint);
+            if (tribe.CanRankUp) Tooltip.Text("Daily rep is full. Finish the rank-up quest in game to refresh 3 more dailies today.", Styling.AccentAmberSoft);
+            Tooltip.Text(selected
+                ? "Still in your list, so it runs again after the reset. Click to drop it."
+                : "Click to keep it in your list for after the reset.", Styling.AccentTealSoft);
+            return;
+        }
+
+        if (tribe.HasInProgressQuests) Tooltip.Text($"{tribe.InProgressQuestIds.Length} accepted quest(s) still in the journal. Click to run them.", Styling.AccentAmberSoft);
+        else if (selected) Tooltip.Text("In your list. Click to remove it from the run.", Styling.AccentTealSoft);
+        else Tooltip.Text("Click to add it to the run.", Styling.AccentTealSoft);
+
+        if (tribe.DailiesRefreshedByRankUp) Tooltip.Text("Ranked up today, so 3 fresh dailies are available.", Styling.AccentMint);
+        if (tribe.Kind == TribeKind.Gatherer) Tooltip.Text("Gathering dailies bind to the class you accept them with.", Styling.TextDim);
     }
 
-    private static Vector4 ResolveBorder(bool selected, bool hovered, bool done)
-        => selected ? Styling.AccentTeal
-            : hovered ? Styling.WithAlpha(Styling.BorderActive, 0.70f)
-            : Styling.BorderActive * (done ? 0.35f : 0.45f);
+    private static string[] BuildSlotLabels()
+    {
+        var labels = new string[AdtConstants.MaxAcceptsPerTribe + 1];
+        for (var index = 0; index < labels.Length; index++) labels[index] = $"{index}/{AdtConstants.MaxAcceptsPerTribe}";
+        return labels;
+    }
+
+    private static string[] BuildQueueLabels()
+    {
+        var labels = new string[TribeRegistry.Tribes.Length + 1];
+        for (var index = 0; index < labels.Length; index++) labels[index] = index.ToString();
+        return labels;
+    }
+
+    private static string[] BuildRankNeeded()
+    {
+        var labels = new string[AdtConstants.MaxTribeRank + 1];
+        for (var index = 0; index < labels.Length; index++) labels[index] = $"Rank {index} needed";
+        return labels;
+    }
 }

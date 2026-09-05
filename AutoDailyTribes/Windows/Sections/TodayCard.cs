@@ -1,176 +1,135 @@
 using AutoDailyTribes.Core;
-using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Tasks;
-using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Sections;
 
-internal static class SetupPanel
+// The plan for today: an allowance ring, a one-line summary, the pick buttons and the run-order
+// strip. The card grows with the strip, so the background is painted on a lower draw channel once
+// the content height is known.
+internal static class TodayCard
 {
-    private static readonly List<TribeInfo> Selectable = [];
-    private static readonly List<TribeInfo> Runnable = [];
+    private const float PadX = 18f;
+    private const float PadY = 16f;
+    private const float RingThickness = 5f;
+    private const float RingGap = 18f;
+    private const float TitleGap = 6f;
+    private const float StripGap = 14f;
+    private const float ButtonHeight = 28f;
 
-    public static void Draw(AutoTribeController controller, Configuration cfg)
+    private const string Title = "Today";
+    private const string Clear = "Clear";
+    private const string RingCaption = "left";
+    private const string ClearHint = "Empties your standing pick, including tribes hidden by the filters.";
+
+    private static readonly string[] AllowanceLabels = BuildAllowanceLabels();
+
+    public static void Draw(Configuration cfg, AutoTribeController ctrl)
     {
-        var tribes = TribeRegistry.Tribes;
-        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        var scale = ImGuiHelpers.GlobalScale;
+        var plan = RunPlan.Resolve(cfg);
+        var origin = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var padX = PadX * scale;
+        var padY = PadY * scale;
+        var dl = ImGui.GetWindowDrawList();
+
+        dl.ChannelsSplit(2);
+        dl.ChannelsSetCurrent(1);
+
+        var radius = Layout.TodayRingRadius * scale;
+        var ringCenter = new Vector2(origin.X + padX + radius, origin.Y + padY + radius);
+        DrawRing(ringCenter, radius, plan);
+
+        var columnX = ringCenter.X + radius + RingGap * scale;
+        var columnRight = origin.X + width - padX;
+        var y = origin.Y + padY;
+
+        var titleSize = TextDraw.SectionTitleSize(Title);
+        TextDraw.SectionTitle(Title, new Vector2(columnX, y), Styling.TextStrong);
+        DrawClearButton(cfg, ctrl, plan, columnRight, y + titleSize.Y * 0.5f);
+        y += titleSize.Y + TitleGap * scale;
+
+        TextDraw.At(TextDraw.Truncate(Summary(plan), columnRight - columnX), new Vector2(columnX, y), Styling.TextDim);
+        y += ImGui.GetTextLineHeight();
+
+        y = MathF.Max(y, ringCenter.Y + radius) + StripGap * scale;
+        ImGui.SetCursorScreenPos(new Vector2(origin.X + padX, y));
+        using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(6f, 6f) * scale))
         {
-            TribeStateReader.Refresh(tribes[tribeIndex]);
+            ImGui.PushID("##adt_today_strip");
+            ImGui.BeginGroup();
+            QueueStrip.Draw(cfg, ctrl, width - padX * 2f);
+            ImGui.EndGroup();
+            ImGui.PopID();
         }
 
-        var allowanceLeft = TribeStateReader.GlobalAllowanceLeft();
-        var exhausted = allowanceLeft <= 0;
+        var end = new Vector2(origin.X + width, ImGui.GetItemRectMax().Y + padY);
 
-        Selectable.Clear();
-        Runnable.Clear();
-        var selectedCount = 0;
-        var selectedReadyCount = 0;
+        dl.ChannelsSetCurrent(0);
+        Paint.Glass(dl, origin, end, Styling.PanelRounding * scale, Styling.AccentTeal, 0.07f, 0f, elevated: true);
+        dl.ChannelsMerge();
 
-        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
+        ImGui.SetCursorScreenPos(origin);
+        ImGui.Dummy(new Vector2(width, end.Y - origin.Y));
+    }
+
+    private static void DrawRing(Vector2 center, float radius, RunPlan.Snapshot plan)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var thickness = RingThickness * scale;
+        var left = Math.Clamp(plan.AllowanceLeft, 0, AdtConstants.DailyAllowanceCap);
+        var used = AdtConstants.DailyAllowanceCap - left;
+        var fraction = Motion.Approach(Motion.Key("##adt_allowance_ring"), used / (float)AdtConstants.DailyAllowanceCap, 6f);
+        var accent = left == 0 ? Styling.AccentMint : Styling.AccentTeal;
+
+        ProgressRing.Track(center, radius, thickness, Styling.WithAlpha(Styling.BorderDim, 0.7f));
+        ProgressRing.Fill(center, radius, thickness, fraction, accent);
+        ProgressRing.CenterValue(center, AllowanceLabels[left], RingCaption, Styling.TextStrong, Styling.TextDim);
+
+        var extent = new Vector2(radius, radius);
+        if (!Hit.HoveringRect(center - extent, center + extent)) return;
+
+        Tooltip.Show($"{used} of {AdtConstants.DailyAllowanceCap} daily allowances used. Every tribe offers {AdtConstants.MaxAcceptsPerTribe} a day, "
+                   + $"so a full day is {AdtConstants.DailyAllowanceCap / AdtConstants.MaxAcceptsPerTribe} tribes. "
+                   + "The game spends an allowance the moment a quest is accepted, not when it is turned in.");
+    }
+
+    private static string Summary(RunPlan.Snapshot plan)
+    {
+        var countdown = Formatting.ResetCountdown();
+        if (plan.SelectedCount == 0)
         {
-            var tribe = tribes[tribeIndex];
-            var selected = cfg.SelectedTribes.Contains(tribe.BeastTribeId);
-            if (selected) selectedCount++;
-
-            if (!TribeList.IsRunnable(tribe) || !FilterBar.PassesKindFilter(cfg, tribe)) continue;
-            Selectable.Add(tribe);
-            if (!selected) continue;
-
-            selectedReadyCount++;
-            if (tribe.HasInProgressQuests || (tribe.AcceptSlotsRemaining > 0 && !exhausted)) Runnable.Add(tribe);
+            return $"Nothing picked yet · {plan.AllowanceLeft} of {AdtConstants.DailyAllowanceCap} allowances left · reset in {countdown}";
         }
 
-        var depsOk = ExternalPlugins.AllRequiredInstalled();
-        var canRun = Runnable.Count > 0 && depsOk;
-
-        DrawHero(controller, cfg, selectedCount, selectedReadyCount, depsOk, exhausted, allowanceLeft, canRun);
-        FilterBar.Draw(cfg);
-        Styling.VSpace(7);
-        TribeList.Draw(controller, cfg);
+        return $"{Formatting.Plural(plan.SelectedCount, "tribe", "tribes")} picked · {plan.Runnable.Count} runnable now · "
+             + $"needs {plan.AllowancesNeeded} of {plan.AllowanceLeft} allowances · reset in {countdown}";
     }
 
-    private static void DrawHero(
-        AutoTribeController controller, Configuration cfg, int selectedCount, int selectedReadyCount,
-        bool depsOk, bool exhausted, int allowanceLeft, bool canRun)
+    private static void DrawClearButton(Configuration cfg, AutoTribeController ctrl, RunPlan.Snapshot plan, float rightX, float midY)
     {
-        var s = ImGuiHelpers.GlobalScale;
-        var radius = Layout.HeroRingRadius * s;
-
-        Styling.VSpace(6);
-        var start = ImGui.GetCursorScreenPos();
-        var availX = ImGui.GetContentRegionAvail().X;
-        var center = new Vector2(start.X + availX * 0.5f, start.Y + radius);
-
-        var allDone = depsOk && Runnable.Count == 0 && (exhausted || selectedCount > 0);
-        var clicked = false;
-        if (allDone) ProgressRing.DoneBadge(center, radius);
-        else clicked = ProgressRing.PlayButton(center, radius, canRun);
-        var hovered = ImGui.IsMouseHoveringRect(center - new Vector2(radius), center + new Vector2(radius));
-
-        ImGui.SetCursorScreenPos(start);
-        ImGui.Dummy(new Vector2(availX, radius * 2f));
-
-        if (clicked) controller.RunAll(Runnable.ToArray());
-        if (hovered) DrawHeroTooltip(depsOk, exhausted, selectedCount, Runnable.Count);
-
-        Styling.VSpace(8);
-        var (caption, captionColor) = Caption(depsOk, exhausted, selectedCount, Runnable.Count);
-        Styling.TextCentered(caption, captionColor, 1.15f);
-
-        Styling.VSpace(2);
-        var used = AdtConstants.DailyAllowanceCap - allowanceLeft;
-        Styling.TextCentered($"Allowance {used} / {AdtConstants.DailyAllowanceCap}   ·   Reset {ResetCountdown()}", Styling.TextDim);
-
-        DrawSelectionButtons(cfg, selectedCount, selectedReadyCount);
-
-        Styling.VSpace(10);
-        ImGui.Separator();
-        Styling.VSpace(6);
-    }
-
-    private static void DrawSelectionButtons(Configuration cfg, int selectedCount, int selectedReadyCount)
-    {
-        var canSelectAll = Selectable.Count > selectedReadyCount;
-        var canClear = selectedCount > 0;
-        if (!canSelectAll && !canClear) return;
-
-        const string selectAll = "Select all available";
-        const string clear = "Clear";
-        var pad = ImGui.GetStyle().FramePadding.X * 2f;
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-
-        var wSelect = canSelectAll ? ImGui.CalcTextSize(selectAll).X + pad : 0f;
-        var wClear = canClear ? ImGui.CalcTextSize(clear).X + pad : 0f;
-        var total = wSelect + wClear + (canSelectAll && canClear ? spacing : 0f);
-
-        Styling.VSpace(6);
-        Styling.CenterNextItem(total);
-
-        if (canSelectAll)
+        var scale = ImGuiHelpers.GlobalScale;
+        var canClear = !ctrl.Running && plan.SelectedCount > 0;
+        var width = PillButton.Width(Clear);
+        ImGui.SetCursorScreenPos(new Vector2(rightX - width, midY - ButtonHeight * scale * 0.5f));
+        if (!PillButton.Draw("##adt_clear_picks", Clear, Styling.AccentRose, PillButton.Emphasis.Ghost, enabled: canClear, height: ButtonHeight, tooltip: ClearHint))
         {
-            if (ImGui.Button(selectAll))
-            {
-                for (var tribeIndex = 0; tribeIndex < Selectable.Count; tribeIndex++)
-                {
-                    var id = Selectable[tribeIndex].BeastTribeId;
-                    if (!cfg.SelectedTribes.Contains(id)) cfg.SelectedTribes.Add(id);
-                }
-                cfg.SaveDebounced();
-            }
-            Tooltip.For("Adds every tribe currently shown as ready. Tribes hidden by the filters are left alone.");
-            if (canClear) ImGui.SameLine();
+            return;
         }
 
-        if (!canClear) return;
-        if (ImGui.Button(clear))
-        {
-            cfg.SelectedTribes.Clear();
-            cfg.SaveDebounced();
-        }
-        Tooltip.For("Empties your standing pick, including tribes hidden by the filters.");
+        cfg.SelectedTribes.Clear();
+        cfg.SaveDebounced();
     }
 
-    private static (string text, Vector4 color) Caption(bool depsOk, bool exhausted, int selectedCount, int runnableCount)
+    private static string[] BuildAllowanceLabels()
     {
-        if (!depsOk) return ("Install required plugins first", Styling.AccentRose);
-        if (exhausted && runnableCount == 0) return ("All done today — back after reset", Styling.AccentMint);
-        if (selectedCount == 0) return ("Pick tribes below to begin", Styling.TextSecondary);
-        if (runnableCount == 0) return ("Your tribes are done — back after reset", Styling.AccentMint);
-        if (runnableCount < selectedCount)
-            return ($"Run {runnableCount} of {selectedCount} selected", Styling.TextStrong);
-        return ($"Run {runnableCount} selected tribe{(runnableCount == 1 ? "" : "s")}", Styling.TextStrong);
-    }
-
-    private static void DrawHeroTooltip(bool depsOk, bool exhausted, int selectedCount, int runnableCount)
-    {
-        var text = !depsOk
-            ? "Install all required plugins first (see the plug icon)."
-            : exhausted && runnableCount == 0
-                ? $"All {AdtConstants.DailyAllowanceCap} daily quests done — try again after reset."
-                : selectedCount == 0
-                    ? "Tick the tribe cards below to build your list, then press play. The list is remembered, so tomorrow is one click."
-                    : runnableCount == 0
-                        ? "Every tribe in your list is finished for today. The list is kept, so it runs again after the reset."
-                        : runnableCount < selectedCount
-                            ? $"{selectedCount} in your list, {runnableCount} runnable right now — finished and locked tribes are skipped."
-                            : $"Run {runnableCount} tribe(s) back-to-back. The daily allowance cap stops the queue early.";
-        Tooltip.For(text);
-    }
-
-    private static string ResetCountdown()
-    {
-        var now = DateTime.UtcNow;
-        var nextReset = new DateTime(now.Year, now.Month, now.Day, 15, 0, 0, DateTimeKind.Utc);
-        if (nextReset <= now) nextReset = nextReset.AddDays(1);
-        var r = nextReset - now;
-        return r.TotalHours >= 1
-            ? $"{(int)r.TotalHours}h {r.Minutes:D2}m"
-            : r.TotalMinutes >= 1
-                ? $"{r.Minutes}m {r.Seconds:D2}s"
-                : $"{r.Seconds}s";
+        var labels = new string[AdtConstants.DailyAllowanceCap + 1];
+        for (var index = 0; index < labels.Length; index++) labels[index] = index.ToString();
+        return labels;
     }
 }

@@ -23,17 +23,19 @@
 
 ## What it does
 
-Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawntrail in one window. Tick the tribes you want, press **Run selected**, and the plugin teleports to each issuer, accepts the day's quests, plays them out, and turns them in.
+Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawntrail in one window. Tick the tribes you want, press **Start**, and the plugin teleports to each issuer, accepts the day's quests, plays them out, and turns them in.
 
 ## Features
 
-- One window listing every Allied Tribe from ARR through DT.
-- Click cards to select; **Run selected** automates them back-to-back.
-- Per-tribe progress: rank, reputation bar, allowance pill.
-- Tribe-specific icons; era-grouped sections (newest first).
-- Locked tribes greyed out with hover tooltips explaining why.
+- A single app window with Tribes, Settings, Plugins and About pages, plus a compact header-bar mode.
+- A **Today** card with your allowance ring, a one-line plan and the run order as draggable chips.
+- Tribe cards behind an expansion picker, opening on the expansion that has something to run.
+- Per-tribe progress on every card: daily slots, rank name, reputation bar and run-order number.
+- Filter chips for Combat, Crafter, Gatherer, Mixed and **Not maxed**, hiding tribes from the list and the run.
+- Locked and under-rank tribes stay visible, dimmed, with tooltips explaining why.
+- A live run view with a progress ring, phase stepper, stat tiles, up-next queue and activity log.
 - Cancellable mid-run; selection persists across reloads.
-- Per-discipline job preference for crafter / gatherer tribes.
+- Per-discipline job preference for crafter, gatherer and combat tribes.
 
 ## Install
 
@@ -51,9 +53,9 @@ Tick **Enabled**, click **+**, then **Save and Close**. Open `/xlplugins` → **
 |---|---|
 | `/adt` | Toggle the main window |
 | `/dailytribes` | Alias for `/adt` |
-| `/adt config` | Open settings |
-| `/adt deps` | Open dependencies window |
-| `/adt about` | Open credits / links |
+| `/adt config` | Open the Settings page |
+| `/adt deps` | Open the Plugins page |
+| `/adt about` | Open the About page |
 | `/adt target` | Log targeted NPC's BaseId (debug helper) |
 
 ## More from me
