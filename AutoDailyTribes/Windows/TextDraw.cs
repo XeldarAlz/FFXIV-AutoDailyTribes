@@ -68,8 +68,22 @@ internal static class TextDraw
 
     public static string Truncate(string text, float maxWidth)
     {
-        if (Measure(text).X <= maxWidth) return text;
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0f)
+        {
+            return string.Empty;
+        }
+
+        if (Measure(text).X <= maxWidth)
+        {
+            return text;
+        }
+
         var budget = maxWidth - Measure(Ellipsis).X;
+        if (budget <= 0f)
+        {
+            return Ellipsis;
+        }
+
         var low = 1;
         var high = text.Length - 1;
         while (low < high)
