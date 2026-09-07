@@ -44,6 +44,7 @@ internal static class JobSettings
             new(15, "Culinarian (CUL)"),
         ],
         JobLabels = [],
+        Footnote = L.Settings.CrafterFootnote,
     };
 
     // Fisher is intentionally omitted: Questionable has no fishing support, so fisher dailies
@@ -100,6 +101,7 @@ internal static class JobSettings
             new(43, "Beastmaster (BST)"),
         ],
         JobLabels = [],
+        Footnote = L.Settings.CombatFootnote,
     };
 
     static JobSettings()

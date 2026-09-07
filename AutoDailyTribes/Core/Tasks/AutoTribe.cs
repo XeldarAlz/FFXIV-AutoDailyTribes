@@ -32,7 +32,8 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private bool jobResolved;
     private bool arrivedAtIssuer;
     private bool delegated;
-    private int  acceptFailPasses;
+    private int  issuerIndex;
+    private int[] issuerFailPasses = [];
     private int  consecutiveStuckRetries;
 
     private RunOutcome runOutcome = RunOutcome.Completed;
@@ -44,11 +45,11 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
 
     protected override async Task Execute()
     {
-        Svc.Log.Info($"[ADT] Starting {tribe.Name}");
+        RunLog.Info($"Starting {tribe.Name}");
         try
         {
             await RunSupervised();
-            Svc.Log.Info($"[ADT] {tribe.Name}: done.");
+            RunLog.Info($"{tribe.Name}: done.");
             progress?.LogOutcome(tribe, runOutcome, runDetail);
         }
         catch (Exception ex)
@@ -56,7 +57,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             var msg = ex.Message;
             var lastBracket = msg.LastIndexOf("] ");
             if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
-            Svc.Log.Error($"[ADT] {tribe.Name} stopped: {msg}");
+            RunLog.Error($"{tribe.Name} stopped: {msg}");
             if (!CancelToken.IsCancellationRequested)
                 progress?.LogOutcome(tribe, RunOutcome.Stopped, msg);
             throw;
@@ -68,6 +69,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         TribeStateReader.Refresh(tribe);
         IssuerResolver.Resolve(tribe);
         Validate();
+        issuerFailPasses = new int[tribe.Issuers.Length];
 
         lastStateChangedAtMs = Environment.TickCount64;
         var consecutiveErrors = 0;
@@ -113,7 +115,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
                         break;
 
                     case TribeState.TravelToIssuer:
-                        exit = await TravelToIssuerWithRecovery();
+                        exit = ChooseIssuer() ? await TravelToIssuerWithRecovery() : ExitReason.Quit;
                         break;
 
                     case TribeState.AcceptDailies:
@@ -154,8 +156,8 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     {
         ErrorIf(!tribe.Unlocked, $"{tribe.Name}: not unlocked — complete the intro quest in-game first");
         ErrorIf(!tribe.MeetsRankRequirement, $"{tribe.Name}: need rank {tribe.MinRankForDailies} (have {tribe.Rank})");
-        ErrorIf(tribe.IssuerInstanceId == 0,
-            $"{tribe.Name}: issuer ENpc {tribe.IssuerENpcBaseId} not found in territory {tribe.IssuerTerritoryId} — run /adt target next to the issuer and report both numbers");
+        ErrorIf(!tribe.HasResolvedIssuers,
+            $"{tribe.Name}: none of the issuer ENpcs ({string.Join(", ", tribe.IssuerENpcBaseIds)}) were found in territory {tribe.IssuerTerritoryId} — run /adt target next to the issuer and report both numbers");
         ErrorIf(!questionable.IsAvailable, "Questionable plugin not installed/enabled");
         ErrorIf(!NavmeshIPC.Instance.IsAvailable, "vnavmesh plugin not installed/enabled");
     }
@@ -178,7 +180,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             Diag($"{tribe.Name}: accept slots reopened after delegation (rank-up refresh) — continuing");
             delegated = false;
             arrivedAtIssuer = false;
-            acceptFailPasses = 0;
+            Array.Clear(issuerFailPasses);
             jobResolved = false;   // the new rank can ask a higher level than the equipped job clears
         }
 
@@ -234,7 +236,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         var nav = NavmeshIPC.Instance;
         Diag($"HEARTBEAT {tribe.Name} state={state} ({inState}s) terr={Svc.ClientState.TerritoryType} issuerTerr={tribe.IssuerTerritoryId} " +
              $"pos={posStr} nav=run={nav.IsRunning()},busy={nav.IsBusy()} rank={tribe.Rank} allowance={tribe.DailyAllowanceLeft} " +
-             $"accepted={tribe.AcceptedTodayCount} inProgress={tribe.InProgressQuestIds.Length}");
+             $"accepted={tribe.AcceptedTodayCount} inProgress={tribe.InProgressQuestIds.Length} issuer={issuerIndex + 1}/{tribe.Issuers.Length}");
 
         if (inState >= StallWarningMs / 1000)
             Diag($"STALL WARNING: {tribe.Name} state {state} held {inState}s — see prior heartbeats for context.");

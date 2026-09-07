@@ -53,6 +53,7 @@ internal static class L
         public static readonly LocString NavSettings = new("shell.nav.settings", "Settings");
         public static readonly LocString NavPlugins = new("shell.nav.plugins", "Plugins");
         public static readonly LocString NavAbout = new("shell.nav.about", "About");
+        public static readonly LocString NavLog = new("shell.nav.log", "Log");
         public static readonly LocString StatusRunning = new("shell.status.running", "Running");
         public static readonly LocString StatusReady = new("shell.status.ready", "Ready");
         public static readonly LocString StatusPickTribes = new("shell.status.pickTribes", "Pick tribes");
@@ -218,6 +219,7 @@ internal static class L
         public static readonly LocString CrafterTitle = new("settings.crafter.title", "Crafter tribes");
         public static readonly LocString CrafterHelp = new("settings.crafter.help", "Which Disciple of the Hand job runs crafter tribe dailies.");
         public static readonly LocString CrafterScope = new("settings.crafter.scope", "Ixal · Moogles · Dwarves · Loporrits · Yok Huy");
+        public static readonly LocString CrafterFootnote = new("settings.crafter.footnote", "This choice only picks the job that accepts and turns in the dailies. Ixal dailies also contain combat, gathering and fishing steps that Questionable runs on its own: combat on its Preferred Combat Job (your highest-level job unless you change it in Questionable's settings), gathering on Miner or Botanist, fishing on Fisher through AutoHook.");
         public static readonly LocString GathererTitle = new("settings.gatherer.title", "Gatherer tribes");
         public static readonly LocString GathererHelp = new("settings.gatherer.help", "Which Disciple of the Land job runs gatherer tribe dailies.");
         public static readonly LocString GathererScope = new("settings.gatherer.scope", "Qitari · Omicron · Mamool Ja");
@@ -225,6 +227,7 @@ internal static class L
         public static readonly LocString CombatTitle = new("settings.combat.title", "Combat tribes");
         public static readonly LocString CombatHelp = new("settings.combat.help", "Which combat job runs battle tribe dailies.");
         public static readonly LocString CombatScope = new("settings.combat.scope", "Amalj'aa · Sylphs · Kobolds · Sahagin · Vanu Vanu · Vath · Kojin · Ananta · Pixies · Arkasodara · Pelupelu");
+        public static readonly LocString CombatFootnote = new("settings.combat.footnote", "Applies to combat tribes only. Combat steps inside Ixal dailies use Questionable's Preferred Combat Job, not this choice.");
 
         public static readonly LocString PostRunGroup = new("settings.postRun.group", "Chat commands");
         public static readonly LocString PostRunLabel = new("settings.postRun.label", "Run when the batch finishes");
@@ -249,7 +252,18 @@ internal static class L
         public static readonly LocString PurposeVnavmesh = new("plugins.purpose.vnavmesh", "Pathfinding and walking to NPCs.");
         public static readonly LocString PurposeQuestionable = new("plugins.purpose.questionable", "Plays out each daily quest after the plugin accepts it.");
         public static readonly LocString PurposeTextAdvance = new("plugins.purpose.textAdvance", "Auto-advances quest dialogue and cutscenes so Questionable can complete each daily.");
-        public static readonly LocString PurposeArtisan = new("plugins.purpose.artisan", "Crafter tribes, invoked by Questionable's internal pipeline.");
+        public static readonly LocString PurposeArtisan = new("plugins.purpose.artisan", "Crafter tribes. Questionable crafts every crafter daily through it, so those tribes are skipped without it.");
+        public static readonly LocString PurposeAutoHook = new("plugins.purpose.autoHook", "Ixal fishing dailies. Questionable fishes through it; without it those three dailies are skipped.");
+    }
+
+    internal static class Log
+    {
+        public static readonly LocString Title = new("log.title", "Run log");
+        public static readonly LocPlural Entries = new("log.entries", "{0} line", "{0} lines");
+        public static readonly LocString Empty = new("log.empty", "Nothing logged yet. Start a run and every step the plugin takes shows up here.");
+        public static readonly LocString Copy = new("log.copy", "Copy");
+        public static readonly LocString Copied = new("log.copied", "Copied to the clipboard");
+        public static readonly LocString Footer = new("log.footer", "The same lines go to the Dalamud log (/xllog) with the [ADT] prefix. When reporting a bug, copy this log and paste it into the issue.");
     }
 
     internal static class About
@@ -335,7 +349,7 @@ internal static class L
 
     internal static class Plugin
     {
-        public static readonly LocString CommandHelp = new("plugin.commandHelp", "Toggle the Auto Daily Tribes window. /adt config | deps | about | target (dump current target's BaseId).");
+        public static readonly LocString CommandHelp = new("plugin.commandHelp", "Toggle the Auto Daily Tribes window. /adt config | deps | log | about | target (dump current target's BaseId).");
         public static readonly LocString CommandHelpAlias = new("plugin.commandHelpAlias", "Alias for /adt.");
     }
 }

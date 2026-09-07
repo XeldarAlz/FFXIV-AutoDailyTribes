@@ -9,7 +9,7 @@ namespace AutoDailyTribes.Windows.Shell;
 
 public sealed class AppWindow : Window, IDisposable
 {
-    public enum Page { Tribes, Settings, Plugins, About }
+    public enum Page { Tribes, Settings, Plugins, Log, About }
 
     private const float PageRevealMs = 260f;
     private const float PageSlide = 12f;
@@ -37,6 +37,7 @@ public sealed class AppWindow : Window, IDisposable
     private readonly TribesPage tribesPage = new();
     private readonly SettingsPage settingsPage = new();
     private readonly PluginsPage pluginsPage = new();
+    private readonly LogPage logPage = new();
     private readonly AboutPage aboutPage = new();
 
     private Page page = Page.Tribes;
@@ -245,6 +246,7 @@ public sealed class AppWindow : Window, IDisposable
             case Page.Tribes: tribesPage.Draw(plugin, this); break;
             case Page.Settings: settingsPage.Draw(plugin); break;
             case Page.Plugins: pluginsPage.Draw(); break;
+            case Page.Log: logPage.Draw(); break;
             case Page.About: aboutPage.Draw(pageShownTick); break;
         }
     }

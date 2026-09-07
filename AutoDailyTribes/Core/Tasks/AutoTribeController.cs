@@ -15,7 +15,7 @@ internal sealed class AutoTribeController
     public string Status => Svc.Automation.CurrentTask?.Status ?? "Idle";
     public TribeRunProgress Progress => progress;
 
-    private static void Diag(string message) => ECommons.DalamudServices.Svc.Log.Info($"[ADT] {message}");
+    private static void Diag(string message) => RunLog.Info(message);
 
     private static bool RequiredPluginsReady()
     {

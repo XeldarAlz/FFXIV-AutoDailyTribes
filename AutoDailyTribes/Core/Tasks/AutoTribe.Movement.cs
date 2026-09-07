@@ -15,7 +15,7 @@ public sealed partial class AutoTribe
         arrivedAtIssuer = false;
         Status = $"Teleporting to {tribe.Name}";
         Diag($"{tribe.Name}: off-zone (in {Svc.ClientState.TerritoryType}); teleporting to {tribe.IssuerTerritoryId}");
-        await TeleportToTerritory(tribe.IssuerTerritoryId, tribe.IssuerLocation, $"teleport-to-zone-{tribe.BeastTribeId}", TeleportWatchdogMs);
+        await TeleportToTerritory(tribe.IssuerTerritoryId, tribe.CampLocation, $"teleport-to-zone-{tribe.BeastTribeId}", TeleportWatchdogMs);
     }
 
     private async Task<ExitReason> TravelToIssuerWithRecovery()
@@ -42,7 +42,7 @@ public sealed partial class AutoTribe
                         consecutiveStuckRetries = 0;
                         return ExitReason.Continue;
                     }
-                    Warning($"{tribe.Name}: cannot reach the issuer (stuck after retry + teleport recovery); skipping");
+                    Warn($"{tribe.Name}: cannot reach the issuer (stuck after retry + teleport recovery); skipping");
                     return ExitReason.Quit;
                 }
                 Diag($"{tribe.Name}: stuck en route to issuer; retrying ({consecutiveStuckRetries}/{MaxTravelStuckRetries})");
@@ -54,7 +54,7 @@ public sealed partial class AutoTribe
     {
         await WaitForNavmeshReady();
 
-        var dest = tribe.IssuerLocation;
+        var dest = CurrentIssuer.Location;
         var config = MovementConfig.Everything.WithTolerance(3f);
         var label = $"Travelling to {tribe.Name}";
         var deadline = Environment.TickCount64 + MoveToIssuerWatchdogMs;
@@ -138,9 +138,9 @@ public sealed partial class AutoTribe
     {
         var before = Svc.Objects.LocalPlayer?.Position;
         Status = $"Teleporting closer to {tribe.Name}";
-        Diag($"{tribe.Name}: teleport recovery toward issuer at {tribe.IssuerLocation}");
+        Diag($"{tribe.Name}: teleport recovery toward {CurrentIssuerName} at {CurrentIssuer.Location}");
 
-        var tp = new MoveOp(o => o.Teleport(tribe.IssuerTerritoryId, tribe.IssuerLocation, allowSameZoneTeleport: true));
+        var tp = new MoveOp(o => o.Teleport(tribe.IssuerTerritoryId, CurrentIssuer.Location, allowSameZoneTeleport: true));
         if (!await RunCancellable(tp, TeleportWatchdogMs, $"teleport-recovery-{tribe.BeastTribeId}", IdleStallAbort(IdleStallTimeoutMs)))
             return false;
 

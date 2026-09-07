@@ -47,6 +47,7 @@ internal sealed class PluginsPage
         ExternalPlugin.Questionable => Loc.T(L.Plugins.PurposeQuestionable),
         ExternalPlugin.TextAdvance  => Loc.T(L.Plugins.PurposeTextAdvance),
         ExternalPlugin.Artisan      => Loc.T(L.Plugins.PurposeArtisan),
+        ExternalPlugin.AutoHook     => Loc.T(L.Plugins.PurposeAutoHook),
         _                           => ExternalPlugins.Catalog[plugin].Purpose,
     };
 

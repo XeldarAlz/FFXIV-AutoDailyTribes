@@ -12,7 +12,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 146,                // Southern Thanalan
-            IssuerENpcBaseId = 1005550,             // Fibubb Gah
+            IssuerENpcBaseIds = [1005552, 1005551, 1005550], // Yadovv Gah (Friendly), Narujj Boh (Recognized), Fibubb Gah (Neutral)
             IconFile = "Amalj'aa_Relations.png",
         },
         new()
@@ -23,7 +23,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 152,                // East Shroud
-            IssuerENpcBaseId = 1005561,             // Tonaxia
+            IssuerENpcBaseIds = [1005563, 1005562, 1005561], // Moxia (Friendly), Ponnixia (Recognized), Tonaxia (Neutral)
             IconFile = "Sylphic_Relations.png",
         },
         new()
@@ -34,7 +34,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 180,                // Outer La Noscea
-            IssuerENpcBaseId = 1005928,             // 789th Order Dustman Bo Zu
+            IssuerENpcBaseIds = [1005930, 1005929, 1005928], // 789th Order Dustman Bo Bu (Friendly), Craftsman Bo Gu (Recognized), Dustman Bo Zu (Neutral)
             IconFile = "Kobold_Relations.png",
         },
         new()
@@ -45,7 +45,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 138,                // Western La Noscea
-            IssuerENpcBaseId = 1005938,             // Fyuu
+            IssuerENpcBaseIds = [1005940, 1005939, 1005938], // Seww (Friendly), Houu (Recognized), Fyuu (Neutral)
             IconFile = "Sahagin_Relations.png",
         },
         new()
@@ -56,8 +56,9 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 154,                // North Shroud
-            IssuerENpcBaseId = 1009211,             // Yazel Ahuatan the Able
-            AltIssuerENpcBaseIds = [1009214],       // Tazel Meyean the Lettered
+            IssuerENpcBaseIds = [1009216, 1009215, 1009214, 1009213, 1009212, 1009211],
+            // Jezul Ahuatan the Second (Honored), Duzal Meyean the Steady (Respected), Tazel Meyean the Lettered (Trusted),
+            // Rozol Cattlan the Prudent (Friendly), Methuli Cattlan the Hard (Recognized), Yazel Ahuatan the Able (Neutral)
             IconFile = "Ixali_Relations.png",
         },
         new()
@@ -68,7 +69,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 401,                // Sea of Clouds
-            IssuerENpcBaseId = 1016089,             // Muna Vanu
+            IssuerENpcBaseIds = [1016089],           // Muna Vanu
             IconFile = "Vanu_Relations.png",
         },
         new()
@@ -79,7 +80,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 398,                // The Dravanian Forelands
-            IssuerENpcBaseId = 1016803,             // Vath keeneye
+            IssuerENpcBaseIds = [1016803],           // Vath keeneye
             IconFile = "Vath_Relations.png",
         },
         new()
@@ -90,7 +91,7 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 400,                // The Churning Mists
-            IssuerENpcBaseId = 1017171,             // Mogek the Marvelous
+            IssuerENpcBaseIds = [1017171],           // Mogek the Marvelous
             IconFile = "Moogle_Relations.png",
         },
         new()
@@ -101,7 +102,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 613,                // The Ruby Sea
-            IssuerENpcBaseId = 1024217,             // Zukin
+            IssuerENpcBaseIds = [1024217],           // Zukin
             IconFile = "Kojin_Relations.png",
         },
         new()
@@ -112,7 +113,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 612,                // The Fringes
-            IssuerENpcBaseId = 1024773,             // Eshana
+            IssuerENpcBaseIds = [1024773],           // Eshana
             IconFile = "Ananta_Relations.png",
         },
         new()
@@ -123,7 +124,7 @@ public static class TribeRegistry
             Kind = TribeKind.Mixed,
             MinRankForDailies = 1,
             IssuerTerritoryId = 622,                // The Azim Steppe
-            IssuerENpcBaseId = 1025602,             // Seigetsu the Enlightened
+            IssuerENpcBaseIds = [1025602],           // Seigetsu the Enlightened
             IconFile = "Namazu_Relations.png",
         },
         new()
@@ -134,7 +135,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 816,                // Il Mheg
-            IssuerENpcBaseId = 1031809,             // Uin Nee
+            IssuerENpcBaseIds = [1031809],           // Uin Nee
             IconFile = "Dreamspinners_Relations.png",
         },
         new()
@@ -145,7 +146,7 @@ public static class TribeRegistry
             Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
             IssuerTerritoryId = 817,                // The Rak'tika Greatwood
-            IssuerENpcBaseId = 1032643,             // Qhoterl Pasol
+            IssuerENpcBaseIds = [1032643],           // Qhoterl Pasol
             IconFile = "Stewards_Relations.png",
         },
         new()
@@ -156,7 +157,7 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 813,                // Lakeland
-            IssuerENpcBaseId = 1033712,             // Regitt
+            IssuerENpcBaseIds = [1033712],           // Regitt
             IconFile = "Dwarf_Relations.png",
         },
         new()
@@ -167,7 +168,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 957,                // Thavnair
-            IssuerENpcBaseId = 1042301,             // Maru
+            IssuerENpcBaseIds = [1042301],           // Maru
             IconFile = "Arkasodara_Relations.png",
         },
         new()
@@ -178,7 +179,7 @@ public static class TribeRegistry
             Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
             IssuerTerritoryId = 960,                // Ultima Thule
-            IssuerENpcBaseId = 1043417,             // Stigma-4
+            IssuerENpcBaseIds = [1043417],           // Stigma-4
             IconFile = "Omicron_Relations.png",
         },
         new()
@@ -189,7 +190,7 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 959,                // Mare Lamentorum
-            IssuerENpcBaseId = 1044403,             // Managingway
+            IssuerENpcBaseIds = [1044403],           // Managingway
             IconFile = "Loporrit_Relations.png",
         },
         new()
@@ -200,7 +201,7 @@ public static class TribeRegistry
             Kind = TribeKind.Combat,
             MinRankForDailies = 1,
             IssuerTerritoryId = 1188,               // Kozama'uka
-            IssuerENpcBaseId = 1051711,             // Yubli
+            IssuerENpcBaseIds = [1051711],           // Yubli
             IconFile = "Pelupelu_Relations.png",
         },
         new()
@@ -211,7 +212,7 @@ public static class TribeRegistry
             Kind = TribeKind.Gatherer,
             MinRankForDailies = 1,
             IssuerTerritoryId = 1189,               // Yak T'el
-            IssuerENpcBaseId = 1052560,             // Kageel Ja
+            IssuerENpcBaseIds = [1052560],           // Kageel Ja
             IconFile = "Mamool_Ja_Relations.png",
         },
         new()
@@ -222,7 +223,7 @@ public static class TribeRegistry
             Kind = TribeKind.Crafter,
             MinRankForDailies = 1,
             IssuerTerritoryId = 1187,               // Urqopacha
-            IssuerENpcBaseId = 1054635,             // Vuyargur
+            IssuerENpcBaseIds = [1054635],           // Vuyargur
             IconFile = "Yok_Huy_Relations.png",
         },
     ];

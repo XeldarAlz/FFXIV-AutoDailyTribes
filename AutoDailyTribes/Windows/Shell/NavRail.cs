@@ -21,6 +21,7 @@ internal static class NavRail
         new(AppWindow.Page.Tribes,   FontAwesomeIcon.Users,      "##adt_nav_tribes",   L.Shell.NavTribes),
         new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", L.Shell.NavSettings),
         new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  L.Shell.NavPlugins),
+        new(AppWindow.Page.Log,      FontAwesomeIcon.FileAlt,    "##adt_nav_log",      L.Shell.NavLog),
         new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    L.Shell.NavAbout),
     ];
 

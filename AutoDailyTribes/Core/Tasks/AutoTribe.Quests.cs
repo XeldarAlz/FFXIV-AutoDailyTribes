@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Game;
 using AutoDailyTribes.Core.Ipc;
 using AutoDailyTribes.Core.Tribes;
@@ -14,10 +15,9 @@ public sealed partial class AutoTribe
 {
     private async Task<bool> EnsureCorrectJob()
     {
-        if (JobSwitcher.CurrentJobSatisfies(tribe, Plugin.Cfg)) return true;
-
-        var gearsetId = JobSwitcher.PickGearset(tribe, Plugin.Cfg);
-        if (gearsetId < 0)
+        var satisfied = JobSwitcher.CurrentJobSatisfies(tribe, Plugin.Cfg);
+        var gearsetId = satisfied ? -1 : JobSwitcher.PickGearset(tribe, Plugin.Cfg);
+        if (!satisfied && gearsetId < 0)
         {
             var hint = tribe.Kind switch
             {
@@ -27,17 +27,27 @@ public sealed partial class AutoTribe
                 TribeKind.Combat   => "a combat job gearset",
                 _                  => "a suitable gearset",
             };
-            Warning($"{tribe.Name}: no usable gearset — create {hint} in-game, then run again — skipping");
+            Warn($"{tribe.Name}: no usable gearset — create {hint} in-game, then run again — skipping");
             runOutcome = RunOutcome.Skipped;
             runDetail = "no usable gearset";
             return false;
         }
 
-        var targetJob = JobSwitcher.GearsetClassJob(gearsetId);
+        var targetJob = satisfied ? JobSwitcher.CurrentClassJob() : JobSwitcher.GearsetClassJob(gearsetId);
+        if (JobSwitcher.IsCrafter(targetJob) && !ExternalPlugins.IsInstalled(ExternalPlugin.Artisan))
+        {
+            Warn($"{tribe.Name}: crafter dailies are crafted through Artisan, which is not installed — install it from the Plugins page, then run again — skipping");
+            runOutcome = RunOutcome.Skipped;
+            runDetail = "needs Artisan";
+            return false;
+        }
+
+        if (satisfied) return true;
+
         var targetLevel = JobSwitcher.JobLevel(targetJob);
         if (targetLevel < tribe.RequiredLevel)
         {
-            Warning($"{tribe.Name}: dailies need level {tribe.RequiredLevel}, but the {tribe.Kind} job it would use is " +
+            Warn($"{tribe.Name}: dailies need level {tribe.RequiredLevel}, but the {tribe.Kind} job it would use is " +
                     $"{JobSwitcher.JobName(targetJob)} at level {targetLevel} — level it up or pick another job in Settings — skipping");
             runOutcome = RunOutcome.Skipped;
             runDetail = $"needs level {tribe.RequiredLevel}";
@@ -67,7 +77,7 @@ public sealed partial class AutoTribe
             await NextFrame();
         }
 
-        Warning($"{tribe.Name}: job did not switch to {targetJob} within time limit — skipping");
+        Warn($"{tribe.Name}: job did not switch to {targetJob} within time limit — skipping");
         runOutcome = RunOutcome.Skipped;
         runDetail = "job didn't switch";
         return false;
@@ -92,26 +102,10 @@ public sealed partial class AutoTribe
         var before = tribe.AcceptedTodayCount;
         var remaining = Math.Min(tribe.AcceptSlotsRemaining, tribe.DailyAllowanceLeft);
 
-        Status = $"Talking to {tribe.Name} issuer";
+        Status = $"Talking to {CurrentIssuerName}";
         await AcceptDailies(remaining);
         TribeStateReader.Refresh(tribe);
-
-        if (tribe.AcceptedTodayCount <= before)
-        {
-            acceptFailPasses++;
-            if (acceptFailPasses >= MaxAcceptFailPasses)
-            {
-                Warning($"{tribe.Name}: could not accept dailies at the issuer (two passes made no progress); skipping");
-                runOutcome = RunOutcome.Skipped;
-                runDetail = "couldn't accept at issuer";
-                return ExitReason.Quit;
-            }
-            arrivedAtIssuer = false;
-        }
-        else
-        {
-            acceptFailPasses = 0;
-        }
+        RecordAcceptPass(before);
         return ExitReason.Continue;
     }
 
@@ -119,15 +113,17 @@ public sealed partial class AutoTribe
     {
         var startCount = tribe.AcceptedTodayCount;
         var targetCount = Math.Min(startCount + slotsToFill, AdtConstants.MaxAcceptsPerTribe);
-        Diag($"{tribe.Name}: AcceptDailies {startCount} -> {targetCount} (+{slotsToFill})");
+        Diag($"{tribe.Name}: AcceptDailies {startCount} -> {targetCount} (+{slotsToFill}) at {CurrentIssuerName}");
 
         const int maxFrames = 3600;                // ~60s @ ~60fps
         const int stateRefreshIntervalFrames = 20;
         const int reInteractGapFrames = 180;       // 3s @ ~60fps
         const int addonSettleFrames = 10;
         const int talkAdvanceFrames = 3;
+        const int noOfferGraceFrames = 240;        // 4s @ ~60fps
         var frame = 0;
         var lastInteractFrame = -100;
+        var noOfferFrames = 0;
 
         while (frame < maxFrames)
         {
@@ -180,19 +176,29 @@ public sealed partial class AutoTribe
             var inConversation = Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
                               || Svc.Condition[ConditionFlag.OccupiedInEvent];
 
+            if (!inConversation && lastInteractFrame >= 0)
+            {
+                noOfferFrames = IssuerProbe.Offer(CurrentIssuer.InstanceId) == IssuerOffer.NotOffering ? noOfferFrames + 1 : 0;
+                if (noOfferFrames >= noOfferGraceFrames)
+                {
+                    Diag($"{tribe.Name}: {CurrentIssuerName} shows no daily on offer at {tribe.AcceptedTodayCount}/{targetCount}; ending the pass");
+                    return;
+                }
+            }
+
             if (!inConversation
                 && frame - lastInteractFrame >= reInteractGapFrames
                 && !Svc.Condition[ConditionFlag.Jumping]
                 && !Svc.Condition[ConditionFlag.Jumping61]
                 && !Svc.Condition[ConditionFlag.Casting])
             {
-                var ok = AddonInteractions.InteractWith(tribe.IssuerInstanceId);
+                var ok = AddonInteractions.InteractWith(CurrentIssuer.InstanceId);
                 Diag($"{tribe.Name}: frame {frame} re-interacting -> triggered={ok}");
                 lastInteractFrame = frame;
             }
         }
 
-        Warning($"{tribe.Name}: AcceptDailies timed out at {tribe.AcceptedTodayCount}/{targetCount} after {maxFrames} frames");
+        Warn($"{tribe.Name}: AcceptDailies timed out at {tribe.AcceptedTodayCount}/{targetCount} after {maxFrames} frames");
         if (AddonProbes.SelectIconStringActive()) AddonInteractions.SelectIconStringCancel();
     }
 
@@ -209,6 +215,9 @@ public sealed partial class AutoTribe
         return string.Join(", ", parts);
     }
 
+    private static bool NeedsManualFishing(uint questId, bool autoHookInstalled)
+        => TribeStateReader.RequiresFisher(questId) || (!autoHookInstalled && TribeStateReader.RequiresAutoHook(questId));
+
     private static string? CurrentDelegateName(string? compactId, List<uint> active)
     {
         if (compactId is null) return null;
@@ -222,14 +231,17 @@ public sealed partial class AutoTribe
     {
         if (accepted.Length == 0) return;
 
-        // Fisher dailies can't be automated (Questionable has no fishing support), so never
-        // delegate them — flag them for manual completion instead of stalling on them.
-        var fishing     = Array.FindAll(accepted, TribeStateReader.RequiresFisher);
-        var deliverable = Array.FindAll(accepted, q => !TribeStateReader.RequiresFisher(q));
+        // Fisher-only dailies can't be automated, and the Ixal fishing dailies only can with
+        // AutoHook present, so never delegate those — flag them for manual completion instead
+        // of stalling on them.
+        var autoHook    = ExternalPlugins.IsInstalled(ExternalPlugin.AutoHook);
+        var fishing     = Array.FindAll(accepted, q => NeedsManualFishing(q, autoHook));
+        var deliverable = Array.FindAll(accepted, q => !NeedsManualFishing(q, autoHook));
 
         if (fishing.Length > 0)
-            Warning($"{tribe.Name}: {fishing.Length} fishing daily(ies) can't be automated — complete manually: " +
-                    string.Join(", ", Array.ConvertAll(fishing, QuestName)));
+            Warn($"{tribe.Name}: {fishing.Length} fishing daily(ies) can't be automated" +
+                 (autoHook ? "" : " (Ixal fishing dailies need AutoHook, see the Plugins page)") +
+                 " — complete manually: " + string.Join(", ", Array.ConvertAll(fishing, QuestName)));
 
         if (deliverable.Length == 0)
         {
@@ -248,7 +260,7 @@ public sealed partial class AutoTribe
             foreach (var quest in active)
                 questionable.AddQuestPriority(quest);
             if (!questionable.StartQuest(first))
-                Warning($"{tribe.Name}: Questionable.StartQuest was rejected");
+                Warn($"{tribe.Name}: Questionable.StartQuest was rejected");
         }
 
         Diag($"{tribe.Name}: handing {active.Count} quest(s) to Questionable: " +
@@ -282,7 +294,7 @@ public sealed partial class AutoTribe
                     {
                         runOutcome = RunOutcome.Partial;
                         runDetail = PartialDetail(doneAll, skipped.Count, fishing.Length);
-                        Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                        Warn($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
                     }
                     return;
                 }
@@ -311,7 +323,7 @@ public sealed partial class AutoTribe
                     var stuck = currentId is null ? 0u : pending.Find(q => QuestionableIPC.Compact(q) == currentId);
                     if (stuck == 0u) stuck = pending[0];
 
-                    Warning($"{tribe.Name}: Questionable made no progress on {stuck:X} ({QuestName(stuck)}) for {AdtConstants.QuestStuckMs / 1000}s — skipping it");
+                    Warn($"{tribe.Name}: Questionable made no progress on {stuck:X} ({QuestName(stuck)}) for {AdtConstants.QuestStuckMs / 1000}s — skipping it");
                     active.Remove(stuck);
                     skipped.Add(stuck);
 
@@ -320,7 +332,7 @@ public sealed partial class AutoTribe
                     {
                         runOutcome = RunOutcome.Partial;
                         runDetail = PartialDetail(deliverable.Length - skipped.Count, skipped.Count, fishing.Length);
-                        Warning($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                        Warn($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
                         return;
                     }
 
@@ -359,7 +371,7 @@ public sealed partial class AutoTribe
             var leftover = active.FindAll(questionable.IsQuestAccepted).Count;
             runOutcome = RunOutcome.Partial;
             runDetail = $"timed out, {leftover} left";
-            Warning($"{tribe.Name}: Questionable did not finish all quests within time limit — moving on");
+            Warn($"{tribe.Name}: Questionable did not finish all quests within time limit — moving on");
         }
         finally
         {

@@ -9,6 +9,7 @@ public enum ExternalPlugin
     Questionable,
     TextAdvance,
     Artisan,
+    AutoHook,
 }
 
 public sealed record ExternalPluginInfo(
@@ -45,7 +46,13 @@ public static class ExternalPlugins
             InternalName: "Artisan",
             DisplayName: "Artisan",
             RepoUrl: "https://puni.sh/api/plugins",
-            Purpose: "Crafter tribes — invoked by Questionable's internal pipeline.",
+            Purpose: "Crafter tribes. Questionable crafts every crafter daily through it, so those tribes are skipped without it.",
+            Required: false),
+        [ExternalPlugin.AutoHook] = new(
+            InternalName: "AutoHook",
+            DisplayName: "AutoHook",
+            RepoUrl: "https://puni.sh/api/plugins",
+            Purpose: "Ixal fishing dailies. Questionable fishes through it; without it those three dailies are skipped.",
             Required: false),
     };
 

@@ -28,6 +28,6 @@ internal static unsafe class TargetDumper
         var residentName = Svc.Data.GetExcelSheet<ENpcResident>()
             ?.GetRowOrDefault(baseId)?.Singular.ToString() ?? name;
 
-        Svc.Log.Info($"[TargetDumper] territory={territoryId} BaseId={baseId} name='{residentName}'");
+        Svc.Log.Info($"[TargetDumper] territory={territoryId} BaseId={baseId} name='{residentName}' namePlateIcon={target->NamePlateIconId}");
     }
 }

@@ -10,15 +10,16 @@ public sealed class TribeInfo
     public required TribeKind Kind { get; init; }
     public required int MinRankForDailies { get; init; }
     public required uint IssuerTerritoryId { get; init; }
-    public required uint IssuerENpcBaseId { get; init; }
-    public uint[] AltIssuerENpcBaseIds { get; init; } = [];
+
+    // Every NPC that hands out this tribe's dailies, best-paying first. The ARR tribes have one
+    // giver per reputation rank and each offers its own three quests a day; later tribes have one.
+    public required uint[] IssuerENpcBaseIds { get; init; }
 
     public string? IconFile { get; init; }
 
     public int IssuerSelectStringIndex { get; init; }
 
-    public ulong IssuerInstanceId;
-    public Vector3 IssuerLocation;
+    public TribeIssuer[] Issuers = [];
 
     public bool Unlocked;
     public int Rank;
@@ -47,6 +48,12 @@ public sealed class TribeInfo
     public bool AllSlotsDone => AcceptSlotsRemaining <= 0 && !HasInProgressQuests;
 
     public bool CanRankUp => Unlocked && Rank < AdtConstants.MaxTribeRank && RepMax > 0 && RepCur >= RepMax;
+
+    public bool HasResolvedIssuers => Issuers.Length > 0;
+
+    public Vector3 CampLocation => Issuers.Length > 0 ? Issuers[0].Location : Vector3.Zero;
+
+    public bool IssuesDaily(uint issuerBaseId) => Array.IndexOf(IssuerENpcBaseIds, issuerBaseId) >= 0;
 
     private string? cardId;
     private string? kindLabel;

@@ -37,7 +37,7 @@ internal static unsafe class TribeStateReader
         tribe.Unlocked = tribe.Rank >= 1;
 
         var questSheet = Svc.Data.GetExcelSheet<Quest>();
-        tribe.InProgressQuestIds = ScanInProgress(tribe.BeastTribeId, qm, questSheet);
+        tribe.InProgressQuestIds = ScanInProgress(tribe, qm, questSheet);
         var slotEntries = CountDailySlotEntries(tribe.BeastTribeId, qm, questSheet);
         tribe.DailyAllowanceLeft = (int)qm->GetBeastTribeAllowance();
 
@@ -115,10 +115,18 @@ internal static unsafe class TribeStateReader
         return quest.ClassJobCategory0.ValueNullable is { } cat && cat.FSH && !cat.MIN && !cat.BTN;
     }
 
+    // Ixal dailies whose Questionable path fishes. Their class category is Disciple of the Hand,
+    // so the check above never sees them, and Questionable can only run them through AutoHook.
+    private static readonly uint[] IxalFishingDailies = [67045, 67050, 67056];
+
+    public static bool RequiresAutoHook(uint fullQuestId) => Array.IndexOf(IxalFishingDailies, fullQuestId) >= 0;
+
     // Rank-up and story quests carry the tribe's BeastTribe id too, but only dailies are
     // repeatable — without this filter an accepted rank-up quest counts as an in-progress
-    // daily (skewing the card math) and gets delegated to Questionable.
-    private static uint[] ScanInProgress(uint beastTribeId, QuestManager* qm, Lumina.Excel.ExcelSheet<Quest>? questSheet)
+    // daily (skewing the card math) and gets delegated to Questionable. The issuer filter
+    // keeps out repeatable side quests such as the Ixal delivery quest, which no daily giver
+    // hands out and Questionable has no path for.
+    private static uint[] ScanInProgress(TribeInfo tribe, QuestManager* qm, Lumina.Excel.ExcelSheet<Quest>? questSheet)
     {
         if (questSheet == null) return [];
 
@@ -129,8 +137,9 @@ internal static unsafe class TribeStateReader
             if (q.QuestId == 0) continue;
             uint fullId = ToFullQuestId(q.QuestId);
             if (questSheet.GetRowOrDefault(fullId) is { } row
-                && row.BeastTribe.RowId == beastTribeId
-                && row.IsRepeatable)
+                && row.BeastTribe.RowId == tribe.BeastTribeId
+                && row.IsRepeatable
+                && tribe.IssuesDaily(row.IssuerStart.RowId))
             {
                 matched.Add(fullId);
             }

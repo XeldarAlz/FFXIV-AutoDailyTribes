@@ -146,7 +146,13 @@ public abstract class AutoCommon : TaskBase
         return false;
     }
 
-    protected void Diag(string message) => Svc.Log.Info($"[ADT] {message}");
+    protected void Diag(string message) => RunLog.Info(message);
+
+    protected void Warn(string message)
+    {
+        Warning(message);
+        RunLog.Record(RunLogLevel.Warning, message);
+    }
 
     internal enum StallKind { None, NavWedge, Idle }
 
