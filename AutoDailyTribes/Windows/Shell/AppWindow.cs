@@ -59,6 +59,8 @@ public sealed class AppWindow : Window, IDisposable
         Size = DefaultSize;
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = ExpandedConstraints;
+        AllowPinning = false;
+        AllowClickthrough = false;
     }
 
     public Page Current => page;
