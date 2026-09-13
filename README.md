@@ -73,4 +73,6 @@ If you liked this plugin, take a look at my other Dalamud work. You might find s
 
 ## License
 
-AGPL-3.0-or-later. See [LICENSE.md](LICENSE.md).
+AGPL-3.0-or-later. See [LICENSE.md](LICENSE.md). [NOTICE](NOTICE) adds the attribution terms the AGPL allows: a fork, or any project that reuses this code, must credit the original author and must not pass itself off as the original. The license covers the code, not the name or the icon: read the [trademark and naming policy](TRADEMARK.md) before you publish a fork.
+
+How AI is used to build this plugin is written down in [AI usage](AI-USAGE.md). The tribe emblems are Square Enix's own art from the game.

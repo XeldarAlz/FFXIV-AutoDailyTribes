@@ -7,5 +7,23 @@ See the LICENSE.md file for the full license text.
 Redistributions and derivative works must preserve existing copyright
 notices and license information as required by the AGPL.
 
-If you create modified versions, please clearly indicate that your
-version is derived from this project and document the changes made.
+The AGPL covers the source code. It does not license the project's name or
+its identity: "Auto Daily Tribes", the plugin's internal name
+"AutoDailyTribes" and the plugin icon are not part of the grant. A modified
+version must carry its own name, its own internal name and its own icon, and
+must state what it changed. See TRADEMARK.md.
+
+Additional terms under section 7(b) and 7(c) of the AGPL: any work that
+contains this project's code, in whole or in part, must credit the original
+author with the line
+
+    Based on Auto Daily Tribes by XeldarAlz
+    https://github.com/XeldarAlz/FFXIV-AutoDailyTribes
+
+in its README or project page, and on its About or credits screen if it has
+one. It must not present itself as the original work, or as written,
+maintained or endorsed by the original author.
+
+The allied tribe emblems under AutoDailyTribes/Images/Tribes/ are artwork from
+FINAL FANTASY XIV, copyright SQUARE ENIX. They remain Square Enix's property
+and are not covered by this license.
