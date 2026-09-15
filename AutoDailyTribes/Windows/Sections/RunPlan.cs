@@ -56,6 +56,26 @@ internal static class RunPlan
         for (var index = 0; index < tribes.Length; index++) TribeStateReader.Refresh(tribes[index]);
     }
 
+    public static bool AnyDailiesAvailable(Configuration configuration)
+    {
+        RefreshAll();
+
+        var exhausted = TribeStateReader.GlobalAllowanceLeft() <= 0;
+        var tribes = TribeRegistry.Tribes;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            if (HasWorkToday(configuration, tribes[index], exhausted))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasWorkToday(Configuration configuration, TribeInfo tribe, bool exhausted)
+        => IsRunnable(tribe) && PassesFilters(configuration, tribe) && (tribe.HasInProgressQuests || !exhausted);
+
     private static void Compute(Configuration cfg)
     {
         RefreshAll();
@@ -75,8 +95,10 @@ internal static class RunPlan
             if (tribe is null) continue;
 
             snapshot.SelectedCount++;
-            if (!IsRunnable(tribe) || !PassesFilters(cfg, tribe)) continue;
-            if (!tribe.HasInProgressQuests && (tribe.AcceptSlotsRemaining <= 0 || snapshot.Exhausted)) continue;
+            if (!HasWorkToday(cfg, tribe, snapshot.Exhausted))
+            {
+                continue;
+            }
 
             snapshot.Runnable.Add(tribe);
             var needed = Math.Min(tribe.AcceptSlotsRemaining, budget);

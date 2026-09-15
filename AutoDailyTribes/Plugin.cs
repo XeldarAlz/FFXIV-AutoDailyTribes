@@ -4,6 +4,7 @@ using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Core.Tasks;
 using AutoDailyTribes.Windows;
+using AutoDailyTribes.Windows.Sections;
 using AutoDailyTribes.Windows.Shell;
 using clib;
 using Dalamud.Game.Command;
@@ -13,6 +14,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using ECommons;
 using ECommons.DalamudServices;
+using ECommons.Events;
 using System.Globalization;
 using System.IO;
 
@@ -59,10 +61,14 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi += ToggleMainUi;
+
+        ProperOnLogin.RegisterInteractable(OnLogin, fireImmediately: true);
     }
 
     public void Dispose()
     {
+        ProperOnLogin.Unregister(OnLogin);
+
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
         PluginInterface.UiBuilder.OpenMainUi -= ToggleMainUi;
@@ -133,6 +139,16 @@ public sealed class Plugin : IDalamudPlugin
             TargetDumper.Dump();
         else
             ToggleMainUi();
+    }
+
+    private void OnLogin()
+    {
+        if (!Configuration.AutoShowIfDailiesAvailable || !RunPlan.AnyDailiesAvailable(Configuration))
+        {
+            return;
+        }
+
+        appWindow.Show(AppWindow.Page.Tribes);
     }
 
     public void ToggleMainUi() => appWindow.Toggle();
