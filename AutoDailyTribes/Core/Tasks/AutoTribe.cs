@@ -27,7 +27,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
 
     private enum TribeState { Idle, Done, Unconscious, SwitchingJob, WrongZone, TravelToIssuer, AcceptDailies, Delegate }
     private enum ExitReason { Continue, Quit }
-    private enum IssuerMoveResult { Arrived, StuckRetry, StuckInCombat }
+    private enum IssuerMoveResult { Arrived, StuckRetry, StuckInCombat, OutOfReach }
 
     private bool jobResolved;
     private bool arrivedAtIssuer;

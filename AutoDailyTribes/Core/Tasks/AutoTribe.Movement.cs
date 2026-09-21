@@ -32,6 +32,11 @@ public sealed partial class AutoTribe
                 await ClearBlockingCombat();
                 return ExitReason.Continue;
 
+            case IssuerMoveResult.OutOfReach:
+                issuerFailPasses[issuerIndex]++;
+                Diag($"{tribe.Name}: travel ended next to {CurrentIssuerName} but outside interact range, likely on another level (pass {issuerFailPasses[issuerIndex]}/{MaxAcceptFailPasses})");
+                return ExitReason.Continue;
+
             case IssuerMoveResult.StuckRetry:
             default:
                 consecutiveStuckRetries++;
@@ -66,8 +71,7 @@ public sealed partial class AutoTribe
         {
             Status = label;
             if (Environment.TickCount64 >= deadline) return true;
-            var p = Svc.Objects.LocalPlayer;
-            if (p is not null && Vector3.Distance(p.Position, dest) <= IssuerArrivalMeters) { arrived = true; return true; }
+            if (IsAtIssuer()) { arrived = true; return true; }
             return false;
         }
 
@@ -100,17 +104,40 @@ public sealed partial class AutoTribe
         await RunCancellable(op, MoveToIssuerWatchdogMs + MoveOpUnwindSlackMs, "move-to-issuer", AbortIfFrozen);
         if (CancelToken.IsCancellationRequested) return IssuerMoveResult.StuckRetry;
 
-        var player = Svc.Objects.LocalPlayer;
-        if (player is not null && Vector3.Distance(player.Position, dest) <= IssuerArrivalMeters)
+        if (IsNearIssuer() && Svc.Condition[ConditionFlag.Mounted])
         {
-            if (Svc.Condition[ConditionFlag.Mounted])
-                await RunCancellable(new MoveOp(o => o.DismountNow()), DismountWatchdogMs, $"dismount-{tribe.BeastTribeId}");
+            await RunCancellable(new MoveOp(o => o.DismountNow()), DismountWatchdogMs, $"dismount-{tribe.BeastTribeId}");
+        }
+
+        if (IsAtIssuer())
+        {
             return IssuerMoveResult.Arrived;
         }
 
         if (stuckInCombat) return IssuerMoveResult.StuckInCombat;
         if (op.Fault is { } fault) Diag($"{tribe.Name}: move to issuer faulted: {fault.Message}; retrying");
-        return IssuerMoveResult.StuckRetry;
+        return IsNearIssuer() ? IssuerMoveResult.OutOfReach : IssuerMoveResult.StuckRetry;
+    }
+
+    private bool IsNearIssuer()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        return player is not null && Vector3.Distance(player.Position, CurrentIssuer.Location) <= IssuerArrivalMeters;
+    }
+
+    private bool IsAtIssuer()
+    {
+        if (!IsNearIssuer() || Svc.Condition[ConditionFlag.InFlight])
+        {
+            return false;
+        }
+
+        if (Svc.Objects.SearchById(CurrentIssuer.InstanceId) is not { } spawnedIssuer)
+        {
+            return true;
+        }
+
+        return spawnedIssuer.IsInInteractRange();
     }
 
     private async Task ClearBlockingCombat()
