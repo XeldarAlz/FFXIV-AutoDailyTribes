@@ -207,12 +207,18 @@ public sealed partial class AutoTribe
         for (var i = 0; i < n; i++) await NextFrame();
     }
 
-    private static string PartialDetail(int done, int stuck, int fishing)
+    private static string PartialDetail(int done, int stuck, int fishing, int unsupported)
     {
         var parts = new List<string> { $"{done} done" };
         if (stuck > 0) parts.Add($"{stuck} stuck");
-        if (fishing > 0) parts.Add($"{fishing} fisher-only");
+        AddManualParts(parts, fishing, unsupported);
         return string.Join(", ", parts);
+    }
+
+    private static void AddManualParts(List<string> parts, int fishing, int unsupported)
+    {
+        if (fishing > 0) parts.Add($"{fishing} fisher-only");
+        if (unsupported > 0) parts.Add($"{unsupported} unsupported");
     }
 
     private static bool NeedsManualFishing(uint questId, bool autoHookInstalled)
@@ -236,18 +242,32 @@ public sealed partial class AutoTribe
         // of stalling on them.
         var autoHook    = ExternalPlugins.IsInstalled(ExternalPlugin.AutoHook);
         var fishing     = Array.FindAll(accepted, q => NeedsManualFishing(q, autoHook));
-        var deliverable = Array.FindAll(accepted, q => !NeedsManualFishing(q, autoHook));
+        var fishable    = Array.FindAll(accepted, q => !NeedsManualFishing(q, autoHook));
+
+        // Questionable flags some paths Disabled (FATE dailies and the like) and then waits on
+        // them forever; its priority list always runs the first accepted entry, so one of those
+        // blocks every sibling behind it. Keep them off the hand-off entirely.
+        var unsupported = QuestionableQuestPaths.DisabledAmong(fishable);
+        var deliverable = Array.FindAll(fishable, q => Array.IndexOf(unsupported, q) < 0);
 
         if (fishing.Length > 0)
             Warn($"{tribe.Name}: {fishing.Length} fishing daily(ies) can't be automated" +
                  (autoHook ? "" : " (Ixal fishing dailies need AutoHook, see the Plugins page)") +
                  " — complete manually: " + string.Join(", ", Array.ConvertAll(fishing, QuestName)));
 
+        if (unsupported.Length > 0)
+        {
+            Warn($"{tribe.Name}: {unsupported.Length} daily(ies) have no working Questionable path (FATE quests and the like)" +
+                 " — complete manually: " + string.Join(", ", Array.ConvertAll(unsupported, QuestName)));
+        }
+
         if (deliverable.Length == 0)
         {
-            Diag($"{tribe.Name}: only fishing dailies in journal — nothing to delegate");
+            Diag($"{tribe.Name}: no automatable dailies in journal — nothing to delegate");
+            var manualParts = new List<string>();
+            AddManualParts(manualParts, fishing.Length, unsupported.Length);
             runOutcome = RunOutcome.Partial;
-            runDetail = $"{fishing.Length} fisher-only — do manually";
+            runDetail = $"{string.Join(", ", manualParts)} — do manually";
             return;
         }
 
@@ -284,7 +304,7 @@ public sealed partial class AutoTribe
                 if (pending.Count == 0)
                 {
                     var doneAll = deliverable.Length - skipped.Count;
-                    if (skipped.Count == 0 && fishing.Length == 0)
+                    if (skipped.Count == 0 && fishing.Length == 0 && unsupported.Length == 0)
                     {
                         runOutcome = RunOutcome.Completed;
                         runDetail = $"{doneAll} quest(s) done";
@@ -293,8 +313,15 @@ public sealed partial class AutoTribe
                     else
                     {
                         runOutcome = RunOutcome.Partial;
-                        runDetail = PartialDetail(doneAll, skipped.Count, fishing.Length);
-                        Warn($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                        runDetail = PartialDetail(doneAll, skipped.Count, fishing.Length, unsupported.Length);
+                        if (skipped.Count > 0)
+                        {
+                            Warn($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
+                        }
+                        else
+                        {
+                            Diag($"{tribe.Name}: all {deliverable.Length} delegated quest(s) turned in; the rest are manual");
+                        }
                     }
                     return;
                 }
@@ -318,6 +345,13 @@ public sealed partial class AutoTribe
                     progressSinceMs = now;
                 }
 
+                if (now - lastHeartbeatAtMs >= HeartbeatMs)
+                {
+                    lastHeartbeatAtMs = now;
+                    Diag($"HEARTBEAT {tribe.Name} delegating: questionable running={questionable.IsRunning()} " +
+                         $"current={currentId ?? "none"} pending={pending.Count} noProgressFor={(now - progressSinceMs) / 1000}s");
+                }
+
                 if (now - progressSinceMs >= AdtConstants.QuestStuckMs)
                 {
                     var stuck = currentId is null ? 0u : pending.Find(q => QuestionableIPC.Compact(q) == currentId);
@@ -331,7 +365,7 @@ public sealed partial class AutoTribe
                     if (remaining.Count == 0)
                     {
                         runOutcome = RunOutcome.Partial;
-                        runDetail = PartialDetail(deliverable.Length - skipped.Count, skipped.Count, fishing.Length);
+                        runDetail = PartialDetail(deliverable.Length - skipped.Count, skipped.Count, fishing.Length, unsupported.Length);
                         Warn($"{tribe.Name}: {skipped.Count} quest(s) couldn't be completed (stuck or unsupported step) — moving on");
                         return;
                     }

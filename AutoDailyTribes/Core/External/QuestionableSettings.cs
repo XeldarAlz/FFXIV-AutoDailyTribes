@@ -8,9 +8,7 @@ namespace AutoDailyTribes.Core.External;
 // Configuration singleton is reached through Questionable's service provider instead.
 internal static class QuestionableSettings
 {
-    private const string PluginInternalName = "Questionable";
     private const string ConfigurationTypeName = "Questionable.Configuration";
-    private const string ServiceProviderFieldName = "_serviceProvider";
     private const string AdvancedPropertyName = "Advanced";
     private const string PreventQuestCompletionPropertyName = "PreventQuestCompletion";
 
@@ -72,32 +70,7 @@ internal static class QuestionableSettings
     {
         advancedConfiguration = null!;
 
-        // ignoreCache avoids ECommons' DalamudReflector module (and its per-frame plugin monitor),
-        // which ADT does not initialise; this runs once per run, so the lookup cost is irrelevant.
-        if (!DalamudReflector.TryGetDalamudPlugin(PluginInternalName, out var plugin, suppressErrors: true, ignoreCache: true))
-        {
-            failure = "Questionable's plugin instance is not reachable";
-            return false;
-        }
-
-        if (plugin.GetFoP(ServiceProviderFieldName) is not IServiceProvider serviceProvider)
-        {
-            failure = $"Questionable's {ServiceProviderFieldName} was not found";
-            return false;
-        }
-
-        var configurationType = plugin.GetType().Assembly.GetType(ConfigurationTypeName);
-        if (configurationType is null)
-        {
-            failure = $"{ConfigurationTypeName} was not found";
-            return false;
-        }
-
-        if (serviceProvider.GetService(configurationType) is not { } configuration)
-        {
-            failure = $"{ConfigurationTypeName} is not registered in Questionable's service provider";
-            return false;
-        }
+        if (!QuestionableServices.TryResolve(ConfigurationTypeName, out var configuration, out failure)) return false;
 
         if (configuration.GetFoP(AdvancedPropertyName) is not { } advanced)
         {
