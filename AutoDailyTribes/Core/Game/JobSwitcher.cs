@@ -40,6 +40,8 @@ internal static unsafe class JobSwitcher
     private const byte BotanistId = 17;
     private const byte MaxClassJobId = 43; // Beastmaster — highest ClassJob id (incl. limited jobs)
 
+    private readonly record struct GearsetCandidate(int Level, bool IsBaseClass, bool IsLimitedJob, bool MeetsRequirement);
+
     public static bool IsCrafter(byte job) => job >= DohFirst && job <= DohLast;
     public static bool IsGatherer(byte job) => job >= DolFirst && job <= DolLast;
 
@@ -47,6 +49,9 @@ internal static unsafe class JobSwitcher
     public static bool IsAutoGatherer(byte job) => job == MinerId || job == BotanistId;
 
     public static bool IsCombat(byte job) => job > 0 && !IsCrafter(job) && !IsGatherer(job) && job <= MaxClassJobId;
+
+    public static bool IsLimitedJob(byte job)
+        => Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.ClassJob>()?.GetRowOrDefault(job)?.IsLimitedJob ?? false;
 
     // A gearset stores the ClassJob it resolves to, so a job gearset saved without its soul
     // crystal reads as the base class and equipping it takes the crystal off. A class and its
@@ -215,10 +220,8 @@ internal static unsafe class JobSwitcher
             return -1;
         }
 
-        var best = -1;
-        var bestLevel = 0;
-        var bestIsBaseClass = false;
-        var bestMeetsRequirement = false;
+        var bestGearset = -1;
+        var best = default(GearsetCandidate);
         for (var gearsetIndex = 0; gearsetIndex < MaxGearsets; gearsetIndex++)
         {
             if (!gearsetModule->IsValidGearset(gearsetIndex))
@@ -239,38 +242,40 @@ internal static unsafe class JobSwitcher
             }
 
             var level = JobLevel(job);
-            var isBaseClass = IsBaseClass(job);
-            var meetsRequirement = level >= requiredLevel;
-            if (best >= 0 && !IsBetterPick(level, isBaseClass, meetsRequirement,
-                                           bestLevel, bestIsBaseClass, bestMeetsRequirement, highest))
+            var candidate = new GearsetCandidate(level, IsBaseClass(job), IsLimitedJob(job), level >= requiredLevel);
+            if (bestGearset >= 0 && !IsBetterPick(candidate, best, highest))
             {
                 continue;
             }
 
-            best = gearsetIndex;
-            bestLevel = level;
-            bestIsBaseClass = isBaseClass;
-            bestMeetsRequirement = meetsRequirement;
+            bestGearset = gearsetIndex;
+            best = candidate;
         }
-        return best;
+        return bestGearset;
     }
 
     // Clearing the tribe's level requirement outranks the XP preference: a job that cannot accept
     // the dailies is worth no XP at all. When nothing clears it the highest job wins either way,
-    // so the run can name the closest one the player has.
-    private static bool IsBetterPick(int level, bool isBaseClass, bool meetsRequirement,
-                                     int bestLevel, bool bestIsBaseClass, bool bestMeetsRequirement, bool highest)
+    // so the run can name the closest one the player has. Limited jobs cap below everyone else
+    // (BLU at 80), so a capped one would win "lowest level" forever and gain nothing; they are a
+    // last resort behind any regular job on the same side of the requirement.
+    private static bool IsBetterPick(in GearsetCandidate candidate, in GearsetCandidate best, bool highest)
     {
-        if (meetsRequirement != bestMeetsRequirement)
+        if (candidate.MeetsRequirement != best.MeetsRequirement)
         {
-            return meetsRequirement;
+            return candidate.MeetsRequirement;
         }
 
-        if (level != bestLevel)
+        if (candidate.IsLimitedJob != best.IsLimitedJob)
         {
-            return highest || !meetsRequirement ? level > bestLevel : level < bestLevel;
+            return !candidate.IsLimitedJob;
         }
-        return bestIsBaseClass && !isBaseClass;
+
+        if (candidate.Level != best.Level)
+        {
+            return highest || !candidate.MeetsRequirement ? candidate.Level > best.Level : candidate.Level < best.Level;
+        }
+        return best.IsBaseClass && !candidate.IsBaseClass;
     }
 
     private static int FindGearsetForJob(byte classJobId)
