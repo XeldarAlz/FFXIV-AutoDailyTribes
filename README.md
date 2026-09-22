@@ -36,6 +36,7 @@ Lists every Allied Tribe (formerly Beast Tribe) from A Realm Reborn through Dawn
 - A live run view with a progress ring, phase stepper, stat tiles, up-next queue and activity log.
 - Cancellable mid-run; selection persists across reloads.
 - Per-discipline job preference for crafter, gatherer and combat tribes.
+- A choice between turning each daily in as soon as it is done and finishing all of a tribe's dailies first, then turning them in together.
 - Nine interface languages, picked automatically on first run and changeable under Settings, General.
 
 ## Languages

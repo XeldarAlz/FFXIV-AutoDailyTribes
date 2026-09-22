@@ -5,14 +5,15 @@ namespace AutoDailyTribes.Windows.Sections.Config;
 
 internal static class GeneralSettings
 {
-    private static readonly LocString[] OrderNames = [L.Settings.OrderNewest, L.Settings.OrderOldest];
-    private static readonly LocString[] OrderDetails = [L.Settings.OrderNewestDetail, L.Settings.OrderOldestDetail];
+    private static readonly TurnInMode[] TurnInOrder = [TurnInMode.EachQuest, TurnInMode.AllAtOnce];
+    private static readonly LocString[] TurnInNames = [L.Settings.TurnInEach, L.Settings.TurnInAll];
+    private static readonly LocString[] TurnInDetails = [L.Settings.TurnInEachDetail, L.Settings.TurnInAllDetail];
 
     public static void Draw(Configuration cfg)
     {
         DrawLanguageGroup(cfg);
         DrawWindowGroup(cfg);
-        DrawListGroup(cfg);
+        DrawDailiesGroup(cfg);
     }
 
     private static void DrawLanguageGroup(Configuration cfg)
@@ -32,18 +33,18 @@ internal static class GeneralSettings
             SettingsRow.ToggleHeight);
     }
 
-    private static void DrawListGroup(Configuration cfg)
+    private static void DrawDailiesGroup(Configuration cfg)
     {
-        using var group = SettingsGroup.Begin(Loc.T(L.Settings.GroupList));
+        using var group = SettingsGroup.Begin(Loc.T(L.Settings.GroupDailies));
 
-        var selected = cfg.ExpansionOrder == ExpansionOrder.OldestFirst ? 1 : 0;
-        SettingsRow.Draw(Loc.T(L.Settings.ExpansionOrder), Loc.T(L.Settings.ExpansionOrderHelp), SettingsControls.RowComboWidth,
-            () => SettingsControls.DrawChoices("##adt_order", OrderNames, OrderDetails, selected, choice =>
+        var selected = Math.Max(0, Array.IndexOf(TurnInOrder, cfg.TurnInMode));
+        SettingsRow.Draw(Loc.T(L.Settings.TurnInMode), Loc.T(L.Settings.TurnInModeHelp), SettingsControls.RowComboWidth,
+            () => SettingsControls.DrawChoices("##adt_turn_in", TurnInNames, TurnInDetails, selected, choice =>
             {
-                cfg.ExpansionOrder = choice == 1 ? ExpansionOrder.OldestFirst : ExpansionOrder.NewestFirst;
+                cfg.TurnInMode = TurnInOrder[choice];
                 cfg.SaveDebounced();
             }));
 
-        SettingsRow.Caption(Loc.T(OrderDetails[selected]));
+        SettingsRow.Caption(Loc.T(TurnInDetails[selected]));
     }
 }

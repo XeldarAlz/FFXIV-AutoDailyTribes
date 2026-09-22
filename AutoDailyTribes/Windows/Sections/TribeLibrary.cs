@@ -19,23 +19,21 @@ internal static class TribeLibrary
     private const float ChipGap = 6f;
     private const float FilterGroupGap = 14f;
 
-    private static readonly TribeEra[] ErasNewestFirst = [TribeEra.DT, TribeEra.EW, TribeEra.ShB, TribeEra.SB, TribeEra.HW, TribeEra.ARR];
-    private static readonly TribeEra[] ErasOldestFirst = [TribeEra.ARR, TribeEra.HW, TribeEra.SB, TribeEra.ShB, TribeEra.EW, TribeEra.DT];
+    private static readonly TribeEra[] Eras = [TribeEra.DT, TribeEra.EW, TribeEra.ShB, TribeEra.SB, TribeEra.HW, TribeEra.ARR];
     private static readonly TribeKind[] Kinds = Enum.GetValues<TribeKind>();
     private static readonly string[] KindIds = BuildKindIds();
-    private static readonly Segmented.Item[] segments = new Segmented.Item[ErasNewestFirst.Length];
+    private static readonly Segmented.Item[] segments = new Segmented.Item[Eras.Length];
     private static readonly List<TribeInfo> visible = [];
 
     private static TribeEra? selectedEra;
 
     public static void Draw(Configuration cfg, AutoTribeController ctrl)
     {
-        var eras = cfg.ExpansionOrder == ExpansionOrder.OldestFirst ? ErasOldestFirst : ErasNewestFirst;
-        var era = selectedEra ??= DefaultEra(eras);
+        var era = selectedEra ??= DefaultEra();
 
         DrawHeader(cfg);
         Styling.VSpace(10f);
-        era = DrawPicker(eras, era);
+        era = DrawPicker(era);
         Styling.VSpace(8f);
 
         using var reveal = Motion.PushSwitch("##adt_tribe_list", (int)era, slide: ListSlide);
@@ -46,19 +44,19 @@ internal static class TribeLibrary
 
     // The first expansion with something to run today, then the first with anything unlocked, so a
     // fresh session opens on the tribes that matter instead of always on the newest expansion.
-    private static TribeEra DefaultEra(TribeEra[] eras)
+    private static TribeEra DefaultEra()
     {
-        for (var index = 0; index < eras.Length; index++)
+        for (var index = 0; index < Eras.Length; index++)
         {
-            if (Count(eras[index], static tribe => RunPlan.IsRunnable(tribe)) > 0) return eras[index];
+            if (Count(Eras[index], static tribe => RunPlan.IsRunnable(tribe)) > 0) return Eras[index];
         }
 
-        for (var index = 0; index < eras.Length; index++)
+        for (var index = 0; index < Eras.Length; index++)
         {
-            if (Count(eras[index], static tribe => tribe.Unlocked) > 0) return eras[index];
+            if (Count(Eras[index], static tribe => tribe.Unlocked) > 0) return Eras[index];
         }
 
-        return eras[0];
+        return Eras[0];
     }
 
     private static void DrawHeader(Configuration cfg)
@@ -127,19 +125,19 @@ internal static class TribeLibrary
         return false;
     }
 
-    private static TribeEra DrawPicker(TribeEra[] eras, TribeEra current)
+    private static TribeEra DrawPicker(TribeEra current)
     {
         var selected = 0;
-        for (var index = 0; index < eras.Length; index++)
+        for (var index = 0; index < Eras.Length; index++)
         {
-            segments[index] = new Segmented.Item(null, Labels.Era(eras[index]));
-            if (eras[index] == current) selected = index;
+            segments[index] = new Segmented.Item(null, Labels.Era(Eras[index]));
+            if (Eras[index] == current) selected = index;
         }
 
         if (!Segmented.Draw("##adt_expansions", segments, ref selected)) return current;
 
-        selectedEra = eras[selected];
-        return eras[selected];
+        selectedEra = Eras[selected];
+        return Eras[selected];
     }
 
     private static void Collect(Configuration cfg, TribeEra era)

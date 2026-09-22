@@ -26,11 +26,11 @@ public sealed class Configuration : IPluginConfiguration
 
     public List<uint> SelectedTribes { get; set; } = [];
 
-    public ExpansionOrder ExpansionOrder { get; set; } = ExpansionOrder.NewestFirst;
-
     public List<TribeKind> HiddenKinds { get; set; } = [];
 
     public bool HideMaxedTribes { get; set; }
+
+    public TurnInMode TurnInMode { get; set; } = TurnInMode.EachQuest;
 
     // Chat commands (one per line, each starting with '/') dispatched after a batch run
     // finishes naturally — e.g. "/ays m" to hand off to AutoRetainer. See issue #17.
@@ -57,10 +57,12 @@ public sealed class TribeCycleState
     public DateTime SavedUtc { get; set; }
 }
 
-public enum ExpansionOrder
+// How a tribe's accepted dailies reach their hand-in: one at a time as each finishes, or every
+// objective first and then all the hand-ins in a row, the way Questionable runs them on its own.
+public enum TurnInMode
 {
-    NewestFirst,
-    OldestFirst,
+    EachQuest,
+    AllAtOnce,
 }
 
 public enum JobChoice

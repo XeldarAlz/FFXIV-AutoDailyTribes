@@ -271,21 +271,91 @@ public sealed partial class AutoTribe
             return;
         }
 
-        var active  = new List<uint>(deliverable); // quests still worth delegating
-        var skipped = new List<uint>();            // quests Questionable couldn't finish
+        var holdTurnIns = Plugin.Cfg.TurnInMode == TurnInMode.AllAtOnce;
+        var active    = new List<uint>(deliverable);        // quests still worth delegating
+        var skipped   = new List<uint>();                   // quests Questionable couldn't finish
+        var queued    = new List<uint>(deliverable.Length); // what Questionable's priority list holds right now
+        var inJournal = new List<uint>(deliverable.Length);
+        var plan      = new List<uint>(deliverable.Length);
+        var readyCount = 0;
 
-        void PushPriority(uint first)
+        void Queue(List<uint> quests, bool start)
         {
             questionable.ClearQuestPriority();
-            foreach (var quest in active)
-                questionable.AddQuestPriority(quest);
-            if (!questionable.StartQuest(first))
+            queued.Clear();
+            for (var index = 0; index < quests.Count; index++)
+            {
+                questionable.AddQuestPriority(quests[index]);
+                queued.Add(quests[index]);
+            }
+            if (start && !questionable.StartQuest(quests[0]))
                 Warn($"{tribe.Name}: Questionable.StartQuest was rejected");
         }
 
-        Diag($"{tribe.Name}: handing {active.Count} quest(s) to Questionable: " +
+        // Questionable works the first accepted entry of its priority list through to the hand-in,
+        // so holding the hand-ins back means listing only the dailies that still have objectives,
+        // and listing the finished ones once nothing else is left.
+        void PlanQueue()
+        {
+            inJournal.Clear();
+            plan.Clear();
+            readyCount = 0;
+            for (var index = 0; index < active.Count; index++)
+            {
+                var sequence = TribeStateReader.QuestSequence(active[index]);
+                if (sequence == TribeStateReader.NotInJournal) continue;
+                inJournal.Add(active[index]);
+                if (sequence == TribeStateReader.ReadyToTurnIn) readyCount++;
+                else plan.Add(active[index]);
+            }
+            if (holdTurnIns && plan.Count > 0) return;
+            plan.Clear();
+            plan.AddRange(inJournal);
+        }
+
+        // Questionable moves past a daily it has turned in by itself, so the list only counts as
+        // stale when the dailies still in the journal no longer match the plan.
+        bool QueueStale()
+        {
+            var live = 0;
+            for (var index = 0; index < queued.Count; index++)
+            {
+                if (!inJournal.Contains(queued[index])) continue;
+                if (live >= plan.Count || plan[live] != queued[index]) return true;
+                live++;
+            }
+            return live != plan.Count;
+        }
+
+        // Runs every frame so a daily is pulled off the list before Questionable can walk it to
+        // the hand-in. A list change alone makes a running Questionable switch quests.
+        void SyncQueue()
+        {
+            if (!holdTurnIns) return;
+            PlanQueue();
+            if (plan.Count == 0 || !QueueStale()) return;
+
+            if (readyCount == inJournal.Count)
+                Diag($"{tribe.Name}: all {inJournal.Count} dailies have their objectives done; turning them in");
+            else
+                Diag($"{tribe.Name}: {readyCount}/{inJournal.Count} dailies ready to turn in; holding them and continuing with {QuestName(plan[0])}");
+            Queue(plan, start: !questionable.IsRunning());
+        }
+
+        async Task WatchFrames(int frames)
+        {
+            for (var frame = 0; frame < frames; frame++)
+            {
+                SyncQueue();
+                await NextFrame();
+            }
+        }
+
+        PlanQueue();
+        Diag($"{tribe.Name}: handing {active.Count} quest(s) to Questionable" +
+             (holdTurnIns ? " (turn-ins held until every objective is done): " : ": ") +
              string.Join(", ", active.ConvertAll(q => $"{q:X} ({QuestName(q)})")));
-        PushPriority(active[0]);
+        Queue(plan.Count > 0 ? plan : active, start: true);
 
         var deadline = Environment.TickCount64 + AdtConstants.QuestCompleteTimeoutMs;
         long? idleSinceMs = null;
@@ -329,10 +399,11 @@ public sealed partial class AutoTribe
                 var now = Environment.TickCount64;
                 var currentId = questionable.CurrentQuestId();
                 var done = deliverable.Length - pending.Count - skipped.Count;
+                var turningIn = holdTurnIns && readyCount > 0 && readyCount == inJournal.Count;
                 var curName = CurrentDelegateName(currentId, active);
-                Status = curName is null
-                    ? $"Questionable: {done}/{deliverable.Length} done"
-                    : $"{curName} ({done}/{deliverable.Length})";
+                Status = curName is null ? $"Questionable: {done}/{deliverable.Length} done"
+                       : turningIn      ? $"Turning in {curName} ({done}/{deliverable.Length})"
+                       : $"{curName} ({done + (holdTurnIns ? readyCount : 0)}/{deliverable.Length})";
                 var playerPos = Svc.Objects.LocalPlayer?.Position;
                 var moved = playerPos is { } pos
                          && (moveAnchor is null || Vector3.Distance(moveAnchor.Value, pos) > StuckMoveThresholdMeters);
@@ -349,7 +420,8 @@ public sealed partial class AutoTribe
                 {
                     lastHeartbeatAtMs = now;
                     Diag($"HEARTBEAT {tribe.Name} delegating: questionable running={questionable.IsRunning()} " +
-                         $"current={currentId ?? "none"} pending={pending.Count} noProgressFor={(now - progressSinceMs) / 1000}s");
+                         $"current={currentId ?? "none"} pending={pending.Count}" + (holdTurnIns ? $" ready={readyCount}" : "") +
+                         $" noProgressFor={(now - progressSinceMs) / 1000}s");
                 }
 
                 if (now - progressSinceMs >= AdtConstants.QuestStuckMs)
@@ -371,13 +443,14 @@ public sealed partial class AutoTribe
                     }
 
                     Diag($"{tribe.Name}: re-prioritising {remaining.Count} remaining quest(s)");
-                    PushPriority(remaining[0]);
+                    PlanQueue();
+                    Queue(plan.Count > 0 ? plan : remaining, start: true);
                     lastPending = remaining.Count;
                     lastCurrentId = null;
                     progressSinceMs = now;
                     idleSinceMs = null;
                     restarts = 0;
-                    await NextFrame(100);
+                    await WatchFrames(DelegatePollFrames);
                     continue;
                 }
 
@@ -394,12 +467,13 @@ public sealed partial class AutoTribe
                     {
                         restarts++;
                         Diag($"{tribe.Name}: Questionable went idle ({pending.Count} left) — restarting [{restarts}/{AdtConstants.MaxQuestRestarts}]");
-                        PushPriority(pending[0]);
+                        PlanQueue();
+                        Queue(plan.Count > 0 ? plan : pending, start: true);
                         idleSinceMs = null;
                     }
                 }
 
-                await NextFrame(100);
+                await WatchFrames(DelegatePollFrames);
             }
 
             var leftover = active.FindAll(questionable.IsQuestAccepted).Count;

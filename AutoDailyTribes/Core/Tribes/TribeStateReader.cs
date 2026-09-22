@@ -105,6 +105,25 @@ internal static unsafe class TribeStateReader
         return qm != null ? (int)qm->GetBeastTribeAllowance() : AdtConstants.DailyAllowanceCap;
     }
 
+    public const int NotInJournal = -1;
+    public const int ReadyToTurnIn = byte.MaxValue;
+
+    // The journal sequence of an accepted quest. The game parks a quest at 255 once every
+    // objective is done and only the hand-in is left, which is what the batched turn-in keys on.
+    public static int QuestSequence(uint fullQuestId)
+    {
+        var qm = QuestManager.Instance();
+        if (qm == null) return NotInJournal;
+
+        var compactId = (ushort)(fullQuestId & 0xFFFF);
+        for (var slotIndex = 0; slotIndex < JournalQuestSlots; slotIndex++)
+        {
+            var slot = qm->NormalQuests[slotIndex];
+            if (slot.QuestId == compactId) return slot.Sequence;
+        }
+        return NotInJournal;
+    }
+
     // A daily that can only be undertaken as Fisher. Questionable has no fishing support, so
     // these are never delegated — flagged for manual completion instead. Only flags FSH-exclusive
     // quests (FSH allowed, Miner/Botanist not), so a MIN/BTN-doable daily is never wrongly skipped.

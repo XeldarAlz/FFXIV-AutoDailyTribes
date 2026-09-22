@@ -21,6 +21,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private const int   NavmeshReadyWaitMs = 60_000;
     private const int   MoveProgressLogMs = 15_000;
     private const int   CombatClearTimeoutMs = 15_000;
+    private const int   DelegatePollFrames = 100;
     private const float IssuerArrivalMeters = 6f;
     private const float TeleportRetryProgressMeters = 3.0f;
     private const int   MaxTravelStuckRetries = 2;

@@ -182,7 +182,7 @@ internal static class L
     {
         public static readonly LocString Title = new("settings.title", "Settings");
         public static readonly LocString CatGeneral = new("settings.cat.general", "General");
-        public static readonly LocString CatGeneralSub = new("settings.cat.generalSub", "How the window behaves and how the tribe list is arranged.");
+        public static readonly LocString CatGeneralSub = new("settings.cat.generalSub", "How the window behaves and how dailies are turned in.");
         public static readonly LocString CatJobs = new("settings.cat.jobs", "Jobs");
         public static readonly LocString CatJobsSub = new("settings.cat.jobsSub", "Which job runs each kind of tribe.");
         public static readonly LocString CatAfterRun = new("settings.cat.afterRun", "After the run");
@@ -195,13 +195,13 @@ internal static class L
         public static readonly LocString OpenOnLogin = new("settings.openOnLogin", "Open on login when dailies are available");
         public static readonly LocString OpenOnLoginHelp = new("settings.openOnLoginHelp", "Shows this window after logging in whenever you still have daily allowances to spend.");
 
-        public static readonly LocString GroupList = new("settings.group.list", "Tribe list");
-        public static readonly LocString ExpansionOrder = new("settings.expansionOrder", "Expansion order");
-        public static readonly LocString ExpansionOrderHelp = new("settings.expansionOrderHelp", "Which end of the expansion picker the newest content sits on.");
-        public static readonly LocString OrderNewest = new("settings.order.newest", "Newest first");
-        public static readonly LocString OrderNewestDetail = new("settings.order.newestDetail", "Dawntrail leads the expansion picker, A Realm Reborn closes it.");
-        public static readonly LocString OrderOldest = new("settings.order.oldest", "Oldest first");
-        public static readonly LocString OrderOldestDetail = new("settings.order.oldestDetail", "A Realm Reborn leads the expansion picker, Dawntrail closes it.");
+        public static readonly LocString GroupDailies = new("settings.group.dailies", "Dailies");
+        public static readonly LocString TurnInMode = new("settings.turnInMode", "Turn-in order");
+        public static readonly LocString TurnInModeHelp = new("settings.turnInModeHelp", "Whether each daily is turned in as soon as it is done, or all of a tribe's dailies are completed first and turned in together.");
+        public static readonly LocString TurnInEach = new("settings.turnIn.each", "One at a time");
+        public static readonly LocString TurnInEachDetail = new("settings.turnIn.eachDetail", "Each daily is turned in as soon as its objectives are done, then the next one starts.");
+        public static readonly LocString TurnInAll = new("settings.turnIn.all", "All together");
+        public static readonly LocString TurnInAllDetail = new("settings.turnIn.allDetail", "All of the tribe's dailies are completed first, then turned in one after another, the way Questionable runs them on its own.");
 
         public static readonly LocString JobRow = new("settings.jobRow", "Job to use");
         public static readonly LocString JobSpecificRow = new("settings.jobSpecificRow", "Which job");
