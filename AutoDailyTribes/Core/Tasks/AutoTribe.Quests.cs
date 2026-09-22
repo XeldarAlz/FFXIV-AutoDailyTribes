@@ -59,7 +59,7 @@ public sealed partial class AutoTribe
         Status = $"Switching to gearset {gearsetId}";
         Diag($"{tribe.Name}: equipping gearset {gearsetId} (target ClassJob {targetJob})");
 
-        if (!await WaitUntilTimed(JobSwitchAllowed, AdtConstants.JobSwitchReadyMs, $"{tribe.Name} job-switch window"))
+        if (!await WaitUntilTimed(IsFreeToAct, AdtConstants.JobSwitchReadyMs, $"{tribe.Name} job-switch window"))
             Diag($"{tribe.Name}: job-switch window never fully cleared; attempting swap anyway");
 
         var deadline = Environment.TickCount64 + AdtConstants.JobSwitchConfirmMs;
@@ -68,7 +68,7 @@ public sealed partial class AutoTribe
         {
             if (JobSwitcher.CurrentClassJob() == targetJob) return true;
 
-            if (Environment.TickCount64 - lastDispatchMs >= AdtConstants.JobSwitchRedispatchMs && JobSwitchAllowed())
+            if (Environment.TickCount64 - lastDispatchMs >= AdtConstants.JobSwitchRedispatchMs && IsFreeToAct())
             {
                 if (!JobSwitcher.EquipGearset(gearsetId))
                     Diag($"{tribe.Name}: EquipGearset rejected this pass (in combat / occupied / between areas); will retry");
@@ -82,20 +82,6 @@ public sealed partial class AutoTribe
         runDetail = "job didn't switch";
         return false;
     }
-
-    private static bool JobSwitchAllowed()
-        => !Svc.Condition[ConditionFlag.InCombat]
-        && !Svc.Condition[ConditionFlag.Casting]
-        && !Svc.Condition[ConditionFlag.Casting87]
-        && !Svc.Condition[ConditionFlag.BetweenAreas]
-        && !Svc.Condition[ConditionFlag.BetweenAreas51]
-        && !Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
-        && !Svc.Condition[ConditionFlag.OccupiedInEvent]
-        && !Svc.Condition[ConditionFlag.OccupiedInCutSceneEvent]
-        && !Svc.Condition[ConditionFlag.Occupied]
-        && !Svc.Condition[ConditionFlag.Occupied33]
-        && !Svc.Condition[ConditionFlag.Occupied38]
-        && !Svc.Condition[ConditionFlag.Occupied39];
 
     private async Task<ExitReason> DoAcceptPass()
     {

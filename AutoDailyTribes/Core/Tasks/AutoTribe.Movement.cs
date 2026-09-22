@@ -10,12 +10,30 @@ namespace AutoDailyTribes.Core.Tasks;
 
 public sealed partial class AutoTribe
 {
-    private async Task GoToIssuerTerritory()
+    private async Task<ExitReason> GoToIssuerTerritory()
     {
         arrivedAtIssuer = false;
         Status = $"Teleporting to {tribe.Name}";
         Diag($"{tribe.Name}: off-zone (in {Svc.ClientState.TerritoryType}); teleporting to {tribe.IssuerTerritoryId}");
-        await TeleportToTerritory(tribe.IssuerTerritoryId, tribe.CampLocation, $"teleport-to-zone-{tribe.BeastTribeId}", TeleportWatchdogMs);
+        if (await TeleportToTerritory(tribe.IssuerTerritoryId, tribe.CampLocation, $"teleport-to-zone-{tribe.BeastTribeId}", TeleportWatchdogMs))
+        {
+            teleportPasses = 0;
+            return ExitReason.Continue;
+        }
+        if (CancelToken.IsCancellationRequested) return ExitReason.Quit;
+
+        teleportPasses++;
+        if (teleportPasses < MaxTeleportPasses)
+        {
+            Diag($"{tribe.Name}: still in {Svc.ClientState.TerritoryType} after a full teleport pass; trying again ({teleportPasses}/{MaxTeleportPasses})");
+            return ExitReason.Continue;
+        }
+
+        Warn($"{tribe.Name}: could not teleport to zone {tribe.IssuerTerritoryId} after {MaxTeleportPasses} passes; skipping. " +
+             "If the game keeps saying another teleport is already underway, teleport anywhere by hand once and run again.");
+        runOutcome = RunOutcome.Skipped;
+        runDetail = "teleport failed";
+        return ExitReason.Quit;
     }
 
     private async Task<ExitReason> TravelToIssuerWithRecovery()
@@ -163,12 +181,15 @@ public sealed partial class AutoTribe
 
     private async Task<bool> TryTeleportNearIssuer()
     {
-        var before = Svc.Objects.LocalPlayer?.Position;
         Status = $"Teleporting closer to {tribe.Name}";
         Diag($"{tribe.Name}: teleport recovery toward {CurrentIssuerName} at {CurrentIssuer.Location}");
 
+        var label = $"teleport-recovery-{tribe.BeastTribeId}";
+        if (!await WaitForTeleportReady(label)) return false;
+
+        var before = Svc.Objects.LocalPlayer?.Position;
         var tp = new MoveOp(o => o.Teleport(tribe.IssuerTerritoryId, CurrentIssuer.Location, allowSameZoneTeleport: true));
-        if (!await RunCancellable(tp, TeleportWatchdogMs, $"teleport-recovery-{tribe.BeastTribeId}", IdleStallAbort(IdleStallTimeoutMs)))
+        if (!await RunCancellable(tp, TeleportWatchdogMs, label, IdleStallAbort(IdleStallTimeoutMs)))
             return false;
 
         var after = Svc.Objects.LocalPlayer?.Position;

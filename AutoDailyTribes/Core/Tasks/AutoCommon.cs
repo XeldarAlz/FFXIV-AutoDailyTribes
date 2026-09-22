@@ -14,6 +14,10 @@ public abstract class AutoCommon : TaskBase
     internal  const float StuckMoveThresholdMeters = 1.5f;
     internal  const int   HardStuckTimeoutMs = 3_000;
     internal  const int   IdleStallTimeoutMs = 8_000;
+    internal  const int   TeleportReadyTimeoutMs = 30_000;
+    internal  const int   TeleportSettleMs = 1_000;
+    internal  const int   StaleTeleportRequestMs = 5_000;
+    private   const int   TeleportWaitReportMs = 3_000;
 
     protected static string QuestName(uint questId)
         => Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Quest>()?.GetRowOrDefault(questId)?.Name.ToString() ?? questId.ToString();
@@ -63,15 +67,94 @@ public abstract class AutoCommon : TaskBase
         };
     }
 
+    internal static bool IsFreeToAct()
+        => !Svc.Condition[ConditionFlag.InCombat]
+        && !Svc.Condition[ConditionFlag.Casting]
+        && !Svc.Condition[ConditionFlag.Casting87]
+        && !Svc.Condition[ConditionFlag.BetweenAreas]
+        && !Svc.Condition[ConditionFlag.BetweenAreas51]
+        && !Svc.Condition[ConditionFlag.OccupiedInQuestEvent]
+        && !Svc.Condition[ConditionFlag.OccupiedInEvent]
+        && !Svc.Condition[ConditionFlag.OccupiedInCutSceneEvent]
+        && !Svc.Condition[ConditionFlag.Occupied]
+        && !Svc.Condition[ConditionFlag.Occupied33]
+        && !Svc.Condition[ConditionFlag.Occupied38]
+        && !Svc.Condition[ConditionFlag.Occupied39];
+
+    private static bool IsTeleportInTransit()
+        => Svc.Condition[ConditionFlag.Casting]
+        || Svc.Condition[ConditionFlag.Casting87]
+        || Svc.Condition[ConditionFlag.BetweenAreas]
+        || Svc.Condition[ConditionFlag.BetweenAreas51];
+
+    internal async Task<bool> WaitForTeleportReady(string label)
+    {
+        var startedMs = Environment.TickCount64;
+        var deadline = startedMs + TeleportReadyTimeoutMs;
+        long? pendingSinceMs = null;
+        long? readySinceMs = null;
+
+        while (Environment.TickCount64 < deadline)
+        {
+            if (CancelToken.IsCancellationRequested) return false;
+            var now = Environment.TickCount64;
+
+            if (IsTeleportInTransit())
+            {
+                pendingSinceMs = null;
+                readySinceMs = null;
+            }
+            else if (TeleportProbe.RequestPending)
+            {
+                pendingSinceMs ??= now;
+                readySinceMs = null;
+                if (now - pendingSinceMs.Value >= StaleTeleportRequestMs)
+                {
+                    Diag($"{label}: the game still holds a teleport request that never started casting after {StaleTeleportRequestMs / 1000}s " +
+                         "(the source of \"another teleport is already underway\"); dropping it before trying again");
+                    TeleportProbe.DropPendingRequest();
+                    pendingSinceMs = null;
+                }
+            }
+            else if (TeleportProbe.ActionStatus != 0 || TeleportProbe.AnimationLocked || !IsFreeToAct())
+            {
+                pendingSinceMs = null;
+                readySinceMs = null;
+            }
+            else
+            {
+                pendingSinceMs = null;
+                readySinceMs ??= now;
+                if (now - readySinceMs.Value >= TeleportSettleMs)
+                {
+                    var waitedMs = now - startedMs;
+                    if (waitedMs >= TeleportWaitReportMs) Diag($"{label}: teleport usable after waiting {waitedMs / 1000}s");
+                    return true;
+                }
+            }
+
+            await NextFrame(4);
+        }
+
+        Diag($"{label}: teleport never became usable within {TeleportReadyTimeoutMs / 1000}s " +
+             $"(action status {TeleportProbe.ActionStatus}, request pending {TeleportProbe.RequestPending}, " +
+             $"animation locked {TeleportProbe.AnimationLocked}, free to act {IsFreeToAct()})");
+        return false;
+    }
+
     internal async Task<bool> TeleportToTerritory(uint territoryId, Vector3 dest, string label, int perAttemptTimeoutMs, int attempts = 4)
     {
-        for (var i = 1; i <= attempts && !CancelToken.IsCancellationRequested; i++)
+        for (var attempt = 1; attempt <= attempts && !CancelToken.IsCancellationRequested; attempt++)
         {
             if (Svc.ClientState.TerritoryType == territoryId) return true;
-            var op = new MoveOp(o => o.Teleport(territoryId, dest, allowSameZoneTeleport: false));
-            await RunCancellable(op, perAttemptTimeoutMs, $"{label}#{i}", IdleStallAbort(IdleStallTimeoutMs));
+            var attemptLabel = $"{label}#{attempt}";
+            if (!await WaitForTeleportReady(attemptLabel)) continue;
             if (Svc.ClientState.TerritoryType == territoryId) return true;
-            if (op.Fault is not null) Diag($"{label}#{i} teleport faulted: {op.Fault.Message}");
+
+            var op = new MoveOp(o => o.Teleport(territoryId, dest, allowSameZoneTeleport: false));
+            await RunCancellable(op, perAttemptTimeoutMs, attemptLabel, IdleStallAbort(IdleStallTimeoutMs));
+            if (Svc.ClientState.TerritoryType == territoryId) return true;
+            if (op.Fault is not null) Diag($"{attemptLabel} teleport faulted: {op.Fault.Message}");
             await NextFrame(120);
         }
         return Svc.ClientState.TerritoryType == territoryId;

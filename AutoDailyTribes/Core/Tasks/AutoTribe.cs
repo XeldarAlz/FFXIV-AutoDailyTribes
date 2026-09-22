@@ -25,6 +25,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private const float IssuerArrivalMeters = 6f;
     private const float TeleportRetryProgressMeters = 3.0f;
     private const int   MaxTravelStuckRetries = 2;
+    private const int   MaxTeleportPasses = 2;
 
     private enum TribeState { Idle, Done, Unconscious, SwitchingJob, WrongZone, TravelToIssuer, AcceptDailies, Delegate }
     private enum ExitReason { Continue, Quit }
@@ -36,6 +37,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private int  issuerIndex;
     private int[] issuerFailPasses = [];
     private int  consecutiveStuckRetries;
+    private int  teleportPasses;
 
     private RunOutcome runOutcome = RunOutcome.Completed;
     private string     runDetail  = "done";
@@ -112,7 +114,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
                         break;
 
                     case TribeState.WrongZone:
-                        await GoToIssuerTerritory();
+                        exit = await GoToIssuerTerritory();
                         break;
 
                     case TribeState.TravelToIssuer:
