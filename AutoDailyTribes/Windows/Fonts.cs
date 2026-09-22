@@ -3,6 +3,7 @@ using AutoDailyTribes.Core.Localization;
 using Dalamud;
 using Dalamud.Interface;
 using Dalamud.Interface.ManagedFontAtlas;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.DalamudServices;
 using System.IO;
@@ -11,17 +12,25 @@ namespace AutoDailyTribes.Windows;
 
 internal static class Fonts
 {
-    private const float TitlePx = 24f;
-    private const float HeadlinePx = 18f;
-    private const float CaptionPx = 14f;
-    private const float IconLargePx = 24f;
-    private const float IconDisplayPx = 34f;
+    // Every tier is a multiple of the font size chosen in Dalamud settings, so the shell follows that
+    // setting instead of pinning pixels. Caption equals the Dalamud size, so nothing here renders
+    // smaller than any other plugin's body text.
+    private const float CaptionScale = 1.0f;
+    private const float BodyScale = 1.125f;
+    private const float HeadlineScale = 1.25f;
+    private const float TitleScale = 1.625f;
+    private const float IconScale = BodyScale;
+    private const float IconLargeScale = 1.625f;
+    private const float IconDisplayScale = 2.25f;
 
     private const string LatinFontFile = "NotoSans-Medium-Latin.ttf";
-    private const int FirstNonAsciiCodepoint = 0x0080;
     private const int LatinBlocksEnd = 0x036F;
     private const int LatinAdditionalStart = 0x1E00;
     private const int LatinAdditionalEnd = 0x1EFF;
+
+    // Face indices inside Dalamud's NotoSansCJK-Regular.ttc collection.
+    private const int NotoCjkJapaneseFace = 0;
+    private const int NotoCjkSimplifiedChineseFace = 2;
 
     private static readonly ushort[] LatinBlocks =
     [
@@ -34,34 +43,42 @@ internal static class Fonts
     private static readonly ushort[] SymbolBlocks =
     [
         0x2190, 0x21FF,
+        0x2200, 0x22FF,
     ];
 
     private static readonly NoOpScope noOp = new();
 
+    private static IUiBuilder? builder;
     private static IFontAtlas? atlas;
     private static byte[]? latinFont;
     private static ushort[] latinRanges = [0];
     private static ushort[] mergeRanges = [0];
+    private static int cjkFace = NotoCjkJapaneseFace;
+    private static float unitPx = UiBuilder.DefaultFontSizePx;
 
     private static IFontHandle? body;
     private static IFontHandle? title;
     private static IFontHandle? headline;
     private static IFontHandle? caption;
+    private static IFontHandle? icon;
     private static IFontHandle? iconLarge;
     private static IFontHandle? iconDisplay;
 
     public static void Initialize(IUiBuilder uiBuilder, string pluginDirectory)
     {
+        builder = uiBuilder;
         atlas = uiBuilder.FontAtlas;
         latinFont = LoadLatinFont(Path.Combine(pluginDirectory, "Fonts", LatinFontFile));
         RefreshRanges();
 
-        body = TextHandle(UiBuilder.DefaultFontSizePx);
-        title = TextHandle(TitlePx);
-        headline = TextHandle(HeadlinePx);
-        caption = TextHandle(CaptionPx);
-        iconLarge = atlas.NewDelegateFontHandle(e => e.OnPreBuild(tk => tk.AddFontAwesomeIconFont(new SafeFontConfig { SizePx = IconLargePx })));
-        iconDisplay = atlas.NewDelegateFontHandle(e => e.OnPreBuild(tk => tk.AddFontAwesomeIconFont(new SafeFontConfig { SizePx = IconDisplayPx })));
+        body = TextHandle(BodyScale);
+        title = TextHandle(TitleScale);
+        headline = TextHandle(HeadlineScale);
+        caption = TextHandle(CaptionScale);
+        icon = IconHandle(IconScale);
+        iconLarge = IconHandle(IconLargeScale);
+        iconDisplay = IconHandle(IconDisplayScale);
+        uiBuilder.DefaultFontChanged += Rebuild;
 
         if (atlas.AutoRebuildMode == FontAtlasAutoRebuildMode.Disable)
         {
@@ -69,21 +86,24 @@ internal static class Fonts
         }
     }
 
-    public static void OnLanguageChanged()
-    {
-        RefreshRanges();
-        if (atlas is not null) _ = atlas.BuildFontsAsync();
-    }
+    public static void OnLanguageChanged() => Rebuild();
 
     public static void Dispose()
     {
+        if (builder is not null)
+        {
+            builder.DefaultFontChanged -= Rebuild;
+        }
+
         body?.Dispose();
         title?.Dispose();
         headline?.Dispose();
         caption?.Dispose();
+        icon?.Dispose();
         iconLarge?.Dispose();
         iconDisplay?.Dispose();
-        body = title = headline = caption = iconLarge = iconDisplay = null;
+        body = title = headline = caption = icon = iconLarge = iconDisplay = null;
+        builder = null;
         atlas = null;
         latinFont = null;
     }
@@ -96,15 +116,27 @@ internal static class Fonts
 
     public static IDisposable PushCaption() => caption?.Push() ?? noOp;
 
+    public static IDisposable PushIcon() => icon?.Push() ?? ImRaii.PushFont(UiBuilder.IconFont);
+
     public static IDisposable PushIconLarge() => iconLarge?.Push() ?? ImRaii.PushFont(UiBuilder.IconFont);
 
     public static IDisposable PushIconDisplay() => iconDisplay?.Push() ?? ImRaii.PushFont(UiBuilder.IconFont);
 
-    public static IDisposable PushIconFor(float unscaledPx)
+    // The smallest tier that still covers the target, so a glyph fitted to a shape only ever shrinks.
+    public static IDisposable PushIconFor(float targetHeight)
     {
-        if (unscaledPx >= 30f) return PushIconDisplay();
-        if (unscaledPx >= 20f) return PushIconLarge();
-        return ImRaii.PushFont(UiBuilder.IconFont);
+        var unit = unitPx * ImGuiHelpers.GlobalScale;
+        if (targetHeight > unit * IconLargeScale)
+        {
+            return PushIconDisplay();
+        }
+
+        if (targetHeight > unit * IconScale)
+        {
+            return PushIconLarge();
+        }
+
+        return PushIcon();
     }
 
     // The game's AXIS font and Dalamud's Noto Sans CJK both stop at Latin-1, and merging a second font
@@ -115,7 +147,11 @@ internal static class Fonts
     {
         try
         {
-            if (File.Exists(path)) return File.ReadAllBytes(path);
+            if (File.Exists(path))
+            {
+                return File.ReadAllBytes(path);
+            }
+
             Svc.Log.Warning($"{AdtConstants.LogPrefix} Latin font missing at '{path}'; falling back to the Dalamud default font, Latin Extended letters will not render");
         }
         catch (Exception exception)
@@ -126,46 +162,77 @@ internal static class Fonts
         return null;
     }
 
-    private static IFontHandle TextHandle(float sizePx)
+    private static IFontHandle TextHandle(float scale)
         => atlas!.NewDelegateFontHandle(e => e.OnPreBuild(tk =>
         {
+            var sizePx = unitPx * scale;
             var primary = latinFont is not null
                 ? tk.AddFontFromMemory(latinFont, new SafeFontConfig { SizePx = sizePx, GlyphRanges = latinRanges }, LatinFontFile)
                 : tk.AddDalamudDefaultFont(sizePx, latinRanges);
             tk.Font = primary;
 
-            if (mergeRanges.Length <= 1) return;
+            if (mergeRanges.Length <= 1)
+            {
+                return;
+            }
+
             tk.AddDalamudAssetFont(DalamudAsset.NotoSansCjkRegular, new SafeFontConfig
             {
                 SizePx = sizePx,
                 GlyphRanges = mergeRanges,
                 MergeFont = primary,
+                FontNo = cjkFace,
             });
         }));
 
-    // The delegates above run again on every atlas rebuild, so refreshing these arrays and queueing a
-    // rebuild is all a language switch needs to bake the new script's glyphs. Every language's native
-    // name is always included so the language picker renders in any active language.
+    private static IFontHandle IconHandle(float scale)
+        => atlas!.NewDelegateFontHandle(e => e.OnPreBuild(tk => tk.AddFontAwesomeIconFont(new SafeFontConfig { SizePx = unitPx * scale })));
+
+    private static void Rebuild()
+    {
+        RefreshRanges();
+        if (atlas is not null)
+        {
+            _ = atlas.BuildFontsAsync();
+        }
+    }
+
+    // The delegates above run again on every atlas rebuild, so refreshing these values and queueing a
+    // rebuild is all a language switch or a Dalamud font change needs. Every language's native name is
+    // always included so the language picker renders in any active language.
     private static void RefreshRanges()
     {
-        var latin = new bool[char.MaxValue + 1];
-        var merge = new bool[char.MaxValue + 1];
-        var extra = new bool[char.MaxValue + 1];
-        MarkRanges(latin, LatinBlocks);
-        MarkRanges(merge, SymbolBlocks);
-        MarkRanges(extra, Loc.Current.ExtraGlyphRanges);
-        MarkRanges(extra, Loc.CatalogGlyphRanges);
+        unitPx = builder?.DefaultFontSpec.SizePx ?? UiBuilder.DefaultFontSizePx;
+
+        var latin = new bool[GlyphRanges.CodepointCount];
+        var merge = new bool[GlyphRanges.CodepointCount];
+        var extra = new bool[GlyphRanges.CodepointCount];
+        GlyphRanges.MarkRanges(latin, LatinBlocks);
+        GlyphRanges.MarkRanges(merge, SymbolBlocks);
+        GlyphRanges.MarkRanges(extra, Loc.Current.ExtraGlyphRanges);
+        GlyphRanges.MarkRanges(extra, Loc.CatalogGlyphRanges);
         MarkNativeNames(extra);
 
-        for (var codepoint = FirstNonAsciiCodepoint; codepoint <= char.MaxValue; codepoint++)
+        for (var codepoint = GlyphRanges.FirstNonAsciiCodepoint; codepoint < GlyphRanges.CodepointCount; codepoint++)
         {
-            if (!extra[codepoint] || latin[codepoint]) continue;
-            if (IsLatinCodepoint(codepoint)) latin[codepoint] = true;
-            else merge[codepoint] = true;
+            if (latin[codepoint] || !extra[codepoint])
+            {
+                continue;
+            }
+
+            if (IsLatinCodepoint(codepoint))
+            {
+                latin[codepoint] = true;
+            }
+            else
+            {
+                merge[codepoint] = true;
+            }
         }
 
-        latinRanges = ToRanges(latin);
-        mergeRanges = ToRanges(merge);
+        latinRanges = GlyphRanges.ToRanges(latin);
+        mergeRanges = GlyphRanges.ToRanges(merge);
+        cjkFace = ReferenceEquals(Loc.Current, Languages.Chinese) ? NotoCjkSimplifiedChineseFace : NotoCjkJapaneseFace;
     }
 
     private static bool IsLatinCodepoint(int codepoint)
@@ -176,52 +243,8 @@ internal static class Fonts
         var languages = Languages.All;
         for (var languageIndex = 0; languageIndex < languages.Length; languageIndex++)
         {
-            var name = languages[languageIndex].NativeName;
-            for (var charIndex = 0; charIndex < name.Length; charIndex++)
-            {
-                var codepoint = name[charIndex];
-                if (codepoint < FirstNonAsciiCodepoint || char.IsSurrogate(codepoint)) continue;
-                extra[codepoint] = true;
-            }
+            GlyphRanges.MarkText(extra, languages[languageIndex].NativeName);
         }
-    }
-
-    private static void MarkRanges(bool[] target, ushort[]? ranges)
-    {
-        if (ranges is null) return;
-        for (var index = 0; index + 1 < ranges.Length; index += 2)
-        {
-            if (ranges[index] == 0) return;
-            for (int codepoint = ranges[index]; codepoint <= ranges[index + 1]; codepoint++) target[codepoint] = true;
-        }
-    }
-
-    private static ushort[] ToRanges(bool[] present)
-    {
-        var ranges = new List<ushort>();
-        var runStart = -1;
-        for (var codepoint = 1; codepoint <= char.MaxValue; codepoint++)
-        {
-            if (present[codepoint])
-            {
-                if (runStart < 0) runStart = codepoint;
-                continue;
-            }
-
-            if (runStart < 0) continue;
-            ranges.Add((ushort)runStart);
-            ranges.Add((ushort)(codepoint - 1));
-            runStart = -1;
-        }
-
-        if (runStart >= 0)
-        {
-            ranges.Add((ushort)runStart);
-            ranges.Add(char.MaxValue);
-        }
-
-        ranges.Add(0);
-        return [.. ranges];
     }
 
     private sealed class NoOpScope : IDisposable

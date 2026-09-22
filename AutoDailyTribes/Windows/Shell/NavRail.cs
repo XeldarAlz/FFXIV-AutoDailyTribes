@@ -14,7 +14,6 @@ internal static class NavRail
 
     private const float TopPad = 12f;
     private const float Gap = 8f;
-    private const float IconHeight = 17f;
 
     private static readonly Entry[] entries =
     [
@@ -70,7 +69,7 @@ internal static class NavRail
 
             var center = new Vector2(x + button * 0.5f, y + button * 0.5f);
             var color = selected ? Styling.TextStrong : Vector4.Lerp(Styling.TextDim, Styling.TextSecondary, hover);
-            ProgressRing.CenterIcon(center, entry.Icon, color, IconHeight * scale);
+            TextDraw.IconCentered(entry.Icon, center, color);
 
             DrawBadge(dl, entry.Page, center, button, missingPlugins, running);
 

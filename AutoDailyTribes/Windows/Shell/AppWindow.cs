@@ -20,7 +20,7 @@ public sealed class AppWindow : Window, IDisposable
     private const ImGuiWindowFlags BaseFlags =
         ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoCollapse;
 
-    private static readonly Vector2 DefaultSize = new(960, 720);
+    private static readonly Vector2 DefaultSize = new(1040, 780);
     private static readonly Vector2 Unbounded = new(float.MaxValue, float.MaxValue);
     private static readonly WindowSizeConstraints CompactConstraints = new()
     {

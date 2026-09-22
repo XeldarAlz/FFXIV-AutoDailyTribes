@@ -120,7 +120,7 @@ internal static class SettingsRow
 
         var labelWidth = ImGui.CalcTextSize(label).X;
         var iconString = FontAwesomeIcon.InfoCircle.ToIconString();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (Fonts.PushIcon())
         {
             var iconSize = ImGui.CalcTextSize(iconString);
             ImGui.SetCursorScreenPos(new Vector2(

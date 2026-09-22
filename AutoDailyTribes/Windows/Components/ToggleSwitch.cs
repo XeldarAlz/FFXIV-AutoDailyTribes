@@ -49,7 +49,7 @@ internal static class ToggleSwitch
         var travel = size.X - (inset + knobRadius) * 2f;
         var knobCenter = new Vector2(origin.X + inset + knobRadius + travel * on, origin.Y + size.Y * 0.5f);
         dl.AddCircleFilled(knobCenter + new Vector2(0f, 1f * scale), knobRadius, Paint.Col(new Vector4(0f, 0f, 0f, 0.30f)));
-        dl.AddCircleFilled(knobCenter, knobRadius, Paint.Col(Vector4.Lerp(Styling.TextSecondary, Styling.TextStrong, on)));
+        dl.AddCircleFilled(knobCenter, knobRadius, Paint.Col(Vector4.Lerp(Styling.TextSecondary, Styling.ForegroundOn(onColor), on)));
 
         return changed;
     }

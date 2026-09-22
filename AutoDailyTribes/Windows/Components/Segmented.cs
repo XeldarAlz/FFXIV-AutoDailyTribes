@@ -55,7 +55,7 @@ internal static class Segmented
         var indicatorMax = indicatorMin + new Vector2(indicatorWidth, size.Y - inset * 2f);
         var indicatorAccent = enabled ? Styling.AccentTeal : Styling.Surface3;
         Paint.Gradient(dl, indicatorMin, indicatorMax,
-            Styling.Tint(Styling.Surface3, indicatorAccent, 0.55f), Styling.Tint(Styling.Surface2, indicatorAccent, 0.45f), rounding - inset);
+            Styling.Tint(Styling.Surface3, indicatorAccent, 0.30f), Styling.Tint(Styling.Surface2, indicatorAccent, 0.22f), rounding - inset);
         Paint.TopLight(dl, indicatorMin, indicatorMax, rounding - inset, 0.10f);
         Paint.Stroke(dl, indicatorMin, indicatorMax, Styling.WithAlpha(enabled ? Styling.AccentTealSoft : Styling.BorderDim, 0.55f), rounding - inset);
 

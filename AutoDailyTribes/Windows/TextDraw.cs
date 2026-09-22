@@ -1,14 +1,22 @@
 using AutoDailyTribes.Core.Localization;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows;
 
 internal static class TextDraw
 {
+    public const string Separator = "  ·  ";
+
     private const string Ellipsis = "…";
+    private const int TruncateCacheSize = 16;
+
+    private static readonly TruncatedText[] truncateCache = new TruncatedText[TruncateCacheSize];
+
+    private static int truncateCacheNext;
+
+    private readonly record struct TruncatedText(string Source, float MaxWidth, float FontSize, string Result);
 
     public static string Upper(string text) => Loc.Upper(text);
 
@@ -34,21 +42,31 @@ internal static class TextDraw
     public static void Wrapped(string text, Vector2 pos, float wrapWidth, Vector4 color)
         => ImGui.GetWindowDrawList().AddText(ImGui.GetFont(), ImGui.GetFontSize(), pos, Paint.Col(color), text, wrapWidth);
 
+    public static void Hint(string text)
+    {
+        At(text, ImGui.GetCursorScreenPos(), Styling.TextMuted);
+        ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight()));
+    }
+
     public static Vector2 IconSize(FontAwesomeIcon icon)
     {
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (Fonts.PushIcon())
+        {
             return Measure(icon.ToIconString());
+        }
     }
 
     public static void Icon(FontAwesomeIcon icon, Vector2 pos, Vector4 color)
     {
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (Fonts.PushIcon())
+        {
             At(icon.ToIconString(), pos, color);
+        }
     }
 
     public static void IconCentered(FontAwesomeIcon icon, Vector2 center, Vector4 color)
     {
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (Fonts.PushIcon())
         {
             var glyph = icon.ToIconString();
             var size = Measure(glyph);
@@ -56,9 +74,20 @@ internal static class TextDraw
         }
     }
 
+    // An animated glyph grows through the draw list at an explicit size, so the window font scale is never touched.
+    public static void IconCentered(FontAwesomeIcon icon, Vector2 center, Vector4 color, float sizeScale)
+    {
+        using (Fonts.PushIcon())
+        {
+            var glyph = icon.ToIconString();
+            var size = Measure(glyph) * sizeScale;
+            ImGui.GetWindowDrawList().AddText(ImGui.GetFont(), ImGui.GetFontSize() * sizeScale, center - size * 0.5f, Paint.Col(color), glyph, 0f);
+        }
+    }
+
     public static void IconRight(FontAwesomeIcon icon, float rightX, float centerY, Vector4 color)
     {
-        using (ImRaii.PushFont(UiBuilder.IconFont))
+        using (Fonts.PushIcon())
         {
             var glyph = icon.ToIconString();
             var size = Measure(glyph);
@@ -66,6 +95,8 @@ internal static class TextDraw
         }
     }
 
+    // A line that overflows its slot overflows on every frame it is drawn, so its cut is cached, and prefixes are measured
+    // in place, so finding the cut allocates only the result.
     public static string Truncate(string text, float maxWidth)
     {
         if (string.IsNullOrEmpty(text) || maxWidth <= 0f)
@@ -78,6 +109,24 @@ internal static class TextDraw
             return text;
         }
 
+        var fontSize = ImGui.GetFontSize();
+        for (var index = 0; index < truncateCache.Length; index++)
+        {
+            var cached = truncateCache[index];
+            if (ReferenceEquals(cached.Source, text) && cached.MaxWidth == maxWidth && cached.FontSize == fontSize)
+            {
+                return cached.Result;
+            }
+        }
+
+        var result = Cut(text, maxWidth);
+        truncateCache[truncateCacheNext] = new TruncatedText(text, maxWidth, fontSize, result);
+        truncateCacheNext = (truncateCacheNext + 1) % TruncateCacheSize;
+        return result;
+    }
+
+    private static string Cut(string text, float maxWidth)
+    {
         var budget = maxWidth - Measure(Ellipsis).X;
         if (budget <= 0f)
         {
@@ -88,36 +137,62 @@ internal static class TextDraw
         var high = text.Length - 1;
         while (low < high)
         {
-            var mid = (low + high + 1) / 2;
-            if (Measure(text[..mid]).X <= budget) low = mid;
-            else high = mid - 1;
+            var middle = (low + high + 1) / 2;
+            if (ImGui.CalcTextSize(text.AsSpan(0, middle)).X <= budget)
+            {
+                low = middle;
+            }
+            else
+            {
+                high = middle - 1;
+            }
         }
 
-        return text[..low] + Ellipsis;
+        return string.Concat(text.AsSpan(0, low), Ellipsis);
+    }
+
+    public static void Trailing(string text, float x, float rightX, float y, Vector4 color)
+    {
+        var separatorWidth = Measure(Separator).X;
+        if (string.IsNullOrWhiteSpace(text) || rightX - x <= separatorWidth)
+        {
+            return;
+        }
+
+        At(Separator, new Vector2(x, y), color);
+        At(Truncate(text, rightX - x - separatorWidth), new Vector2(x + separatorWidth, y), color);
     }
 
     public static void SmallCaps(string label, Vector2 pos, Vector4 color)
     {
         using (Fonts.PushCaption())
+        {
             At(Upper(label), pos, color);
+        }
     }
 
     public static Vector2 SmallCapsSize(string label)
     {
         using (Fonts.PushCaption())
+        {
             return Measure(Upper(label));
+        }
     }
 
     public static void SectionTitle(string label, Vector2 pos, Vector4 color)
     {
         using (Fonts.PushHeadline())
+        {
             At(label, pos, color);
+        }
     }
 
     public static Vector2 SectionTitleSize(string label)
     {
         using (Fonts.PushHeadline())
+        {
             return Measure(label);
+        }
     }
 
     public static float LineHeight() => ImGui.GetTextLineHeight();

@@ -50,7 +50,7 @@ internal static class HeroButton
         var padX = PadX * scale;
         var midY = min.Y + height * 0.5f;
         var glyph = enabled ? icon : FontAwesomeIcon.Lock;
-        var textColor = enabled ? Styling.TextStrong : Styling.TextMuted;
+        var textColor = enabled ? Styling.ForegroundOn(accent) : Styling.TextMuted;
 
         var iconSize = TextDraw.IconSize(glyph);
         TextDraw.Icon(glyph, new Vector2(min.X + padX, midY - iconSize.Y * 0.5f), textColor);
@@ -65,7 +65,7 @@ internal static class HeroButton
         {
             var subSize = TextDraw.Measure(sub);
             TextDraw.At(sub, new Vector2(max.X - padX - subSize.X, midY - subSize.Y * 0.5f),
-                enabled ? Styling.WithAlpha(Styling.TextStrong, 0.8f) : Styling.TextDim);
+                enabled ? Styling.WithAlpha(textColor, 0.8f) : Styling.TextDim);
         }
 
         return hit.Clicked;
