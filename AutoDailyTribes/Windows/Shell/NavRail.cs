@@ -22,6 +22,7 @@ internal static class NavRail
         new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", L.Shell.NavSettings),
         new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  L.Shell.NavPlugins),
         new(AppWindow.Page.Log,      FontAwesomeIcon.Terminal,   "##adt_nav_log",      L.Shell.NavLog),
+        new(AppWindow.Page.Changelog, FontAwesomeIcon.Newspaper, "##adt_nav_changelog", L.Shell.NavChangelog),
         new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    L.Shell.NavAbout),
     ];
 
@@ -95,6 +96,11 @@ internal static class NavRail
             dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.AccentRose));
         }
         else if (page == AppWindow.Page.Tribes && running)
+        {
+            dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
+            dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.PulseColor(Styling.AccentTeal, Styling.AccentTealSoft, Styling.PulseMedium)));
+        }
+        else if (page == AppWindow.Page.Changelog && current != AppWindow.Page.Changelog && Plugin.Cfg.HasUnseenChangelog)
         {
             dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
             dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.PulseColor(Styling.AccentTeal, Styling.AccentTealSoft, Styling.PulseMedium)));

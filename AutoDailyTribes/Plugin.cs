@@ -135,6 +135,8 @@ public sealed class Plugin : IDalamudPlugin
             ToggleDependenciesUi();
         else if (trimmed.Equals("log", StringComparison.OrdinalIgnoreCase))
             ToggleLogUi();
+        else if (trimmed.Equals("changelog", StringComparison.OrdinalIgnoreCase))
+            ToggleChangelogUi();
         else if (trimmed.Equals("target", StringComparison.OrdinalIgnoreCase))
             TargetDumper.Dump();
         else
@@ -156,4 +158,5 @@ public sealed class Plugin : IDalamudPlugin
     public void ToggleAboutUi() => appWindow.TogglePage(AppWindow.Page.About);
     public void ToggleDependenciesUi() => appWindow.TogglePage(AppWindow.Page.Plugins);
     public void ToggleLogUi() => appWindow.TogglePage(AppWindow.Page.Log);
+    public void ToggleChangelogUi() => appWindow.TogglePage(AppWindow.Page.Changelog);
 }

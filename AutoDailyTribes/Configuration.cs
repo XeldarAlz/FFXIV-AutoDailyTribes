@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core.Changelog;
 using AutoDailyTribes.Core.Tribes;
 using Dalamud.Configuration;
 using ECommons.Throttlers;
@@ -39,6 +40,22 @@ public sealed class Configuration : IPluginConfiguration
     // Per character+tribe rank-cycle memory (key "{contentId}:{beastTribeId}") so a plugin
     // reload mid-day doesn't forget that a rank-up already refreshed the daily offers.
     public Dictionary<string, TribeCycleState> RankCycles { get; set; } = [];
+
+    public string LastSeenChangelogVersion { get; set; } = string.Empty;
+
+    [Newtonsoft.Json.JsonIgnore]
+    public bool HasUnseenChangelog => !string.Equals(LastSeenChangelogVersion, ChangelogData.LatestVersion, StringComparison.Ordinal);
+
+    public void MarkChangelogSeen()
+    {
+        if (!HasUnseenChangelog)
+        {
+            return;
+        }
+
+        LastSeenChangelogVersion = ChangelogData.LatestVersion;
+        Save();
+    }
 
     public void Save() => Plugin.PluginInterface.SavePluginConfig(this);
 
