@@ -13,7 +13,7 @@ internal sealed class AboutPage
     private const string Name = "Auto Daily Tribes";
     private const string RepoUrl = "https://github.com/XeldarAlz/FFXIV-AutoDailyTribes";
     private const string PatreonUrl = "https://www.patreon.com/XeldarAlz";
-    private const string DiscordUrl = "https://discord.gg/3HbJCscMyS";
+    private const string DiscordUrl = "https://discord.gg/hppkAvdBEE";
     private const string HubUrl = "https://github.com/XeldarAlz/DalamudPlugins";
     private const string Author = "XeldarAlz";
 

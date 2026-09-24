@@ -5,6 +5,7 @@
 <h1 align="center">Auto Daily Tribes</h1>
 
 <p align="center">
+  <a href="https://discord.gg/hppkAvdBEE"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoDailyTribes?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoDailyTribes/total?style=flat-square&color=blue"></a>
   <a href="https://github.com/XeldarAlz/FFXIV-AutoDailyTribes/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoDailyTribes/release.yml?style=flat-square"></a>
@@ -63,8 +64,16 @@ Tick **Enabled**, click **+**, then **Save and Close**. Open `/xlplugins` → **
 | `/dailytribes` | Alias for `/adt` |
 | `/adt config` | Open the Settings page |
 | `/adt deps` | Open the Plugins page |
+| `/adt log` | Open the Console page |
+| `/adt changelog` | Open the Changelog page |
 | `/adt about` | Open the About page |
 | `/adt target` | Log targeted NPC's BaseId (debug helper) |
+
+## Community
+
+Questions, ideas, or just want to hang out with other players? Come say hi on Discord.
+
+→ [Join our Discord](https://discord.gg/hppkAvdBEE)
 
 ## More from me
 
