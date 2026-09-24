@@ -309,24 +309,23 @@ internal static class L
         [
             new("changelog.r2900.1", "Added the Console page to view, filter and copy the plugin's logs"),
             new("changelog.r2900.2", "Added this changelog, with a badge whenever an update brings something new"),
+            new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
         ];
     }
 
     internal static class About
     {
-        public static readonly LocString Connect = new("about.connect", "Connect");
         public static readonly LocString Version = new("about.version", "v {0}");
         public static readonly LocString MadeBy = new("about.madeBy", "Made by {0}");
-        public static readonly LocString SupportTitle = new("about.supportTitle", "Made with care");
-        public static readonly LocString SupportBody = new("about.supportBody", "I build and maintain this in my spare time. If it has helped you, a Patreon membership lets me keep improving it. No pressure, and thank you for being here.");
+        public static readonly LocString Community = new("about.community", "Community");
+        public static readonly LocString DiscordTitle = new("about.discordTitle", "Join the Discord");
+        public static readonly LocString DiscordBody = new("about.discordBody", "Get help, report bugs, share ideas and hear about updates first.");
+        public static readonly LocString GitHubTitle = new("about.githubTitle", "View on GitHub");
+        public static readonly LocString GitHubBody = new("about.githubBody", "Browse the source code and every release.");
+        public static readonly LocString SupportTitle = new("about.supportTitle", "Made with love and care");
+        public static readonly LocString SupportBody = new("about.supportBody", "This plugin is a one-person project, built in my free time because I love this game and its community. Keeping it updated takes a lot of those hours. If it has helped you, supporting me on Patreon means I can keep giving it that time. Thank you for being here.");
         public static readonly LocString SupportButton = new("about.supportButton", "Support on Patreon");
         public static readonly LocString PatreonHint = new("about.patreonHint", "Open Patreon · right-click to copy");
-        public static readonly LocString LinkGitHub = new("about.link.github", "GitHub");
-        public static readonly LocString LinkDiscord = new("about.link.discord", "Discord");
-        public static readonly LocString LinkDiscussions = new("about.link.discussions", "Discussions");
-        public static readonly LocString LinkBug = new("about.link.bug", "Report a bug");
-        public static readonly LocString LinkMore = new("about.link.more", "More plugins");
-        public static readonly LocString LinkSecurity = new("about.link.security", "Security");
 
         public static readonly LocString ReminderTitle = new("about.reminderTitle", "A little reminder");
         public static readonly LocString[] Reminders =
