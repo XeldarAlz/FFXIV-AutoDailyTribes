@@ -18,7 +18,7 @@ internal static class TextAdvanceIPC
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning(ex, "[TextAdvanceIPC] subscribe failed");
+            RunLog.Warning(ex, "subscribe failed");
         }
     }
 
@@ -26,6 +26,6 @@ internal static class TextAdvanceIPC
     {
         EnsureInit();
         try { return isEnabled?.HasFunction != true || isEnabled.InvokeFunc(); }
-        catch (Exception ex) { Svc.Log.Warning(ex, "[TextAdvanceIPC] IsEnabled failed"); return true; }
+        catch (Exception ex) { RunLog.Warning(ex, "IsEnabled failed"); return true; }
     }
 }

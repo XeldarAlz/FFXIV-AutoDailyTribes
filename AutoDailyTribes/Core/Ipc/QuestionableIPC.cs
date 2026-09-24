@@ -38,7 +38,7 @@ internal sealed class QuestionableIPC
     {
         if (!getCurrentQuestId.HasFunction) return null;
         try { return getCurrentQuestId.InvokeFunc(); }
-        catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] Questionable.GetCurrentQuestId failed"); return null; }
+        catch (Exception ex) { RunLog.Warning(ex, "Questionable.GetCurrentQuestId failed"); return null; }
     }
 
     public static string Compact(uint questId) => (questId & 0xFFFF).ToString(System.Globalization.CultureInfo.InvariantCulture);

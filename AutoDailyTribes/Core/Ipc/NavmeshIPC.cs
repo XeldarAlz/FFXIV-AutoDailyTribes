@@ -29,7 +29,7 @@ internal sealed class NavmeshIPC
     {
         if (!navIsReady.HasFunction) return true;
         try { return navIsReady.InvokeFunc(); }
-        catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] NavmeshIPC.IsReady failed"); return true; }
+        catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.IsReady failed"); return true; }
     }
 
     // 0..1 while building; -1 when idle/complete
@@ -37,14 +37,14 @@ internal sealed class NavmeshIPC
     {
         if (!navBuildProgress.HasFunction) return -1f;
         try { return navBuildProgress.InvokeFunc(); }
-        catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] NavmeshIPC.BuildProgress failed"); return -1f; }
+        catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.BuildProgress failed"); return -1f; }
     }
 
     public bool IsRunning()
     {
         if (!pathIsRunning.HasFunction) return false;
         try { return pathIsRunning.InvokeFunc(); }
-        catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] NavmeshIPC.IsRunning failed"); return false; }
+        catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.IsRunning failed"); return false; }
     }
 
     public bool IsBusy()
@@ -53,12 +53,12 @@ internal sealed class NavmeshIPC
         if (simpleMovePathfindInProgress.HasFunction)
         {
             try { if (simpleMovePathfindInProgress.InvokeFunc()) return true; }
-            catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] NavmeshIPC.PathfindInProgress(SimpleMove) failed"); }
+            catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.PathfindInProgress(SimpleMove) failed"); }
         }
         if (navPathfindInProgress.HasFunction)
         {
             try { if (navPathfindInProgress.InvokeFunc()) return true; }
-            catch (Exception ex) { Svc.Log.Warning(ex, "[ADT] NavmeshIPC.PathfindInProgress(Nav) failed"); }
+            catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.PathfindInProgress(Nav) failed"); }
         }
         return false;
     }

@@ -53,7 +53,7 @@ internal static class L
         public static readonly LocString NavSettings = new("shell.nav.settings", "Settings");
         public static readonly LocString NavPlugins = new("shell.nav.plugins", "Plugins");
         public static readonly LocString NavAbout = new("shell.nav.about", "About");
-        public static readonly LocString NavLog = new("shell.nav.log", "Log");
+        public static readonly LocString NavLog = new("shell.nav.log", "Console");
         public static readonly LocString StatusRunning = new("shell.status.running", "Running");
         public static readonly LocString StatusReady = new("shell.status.ready", "Ready");
         public static readonly LocString StatusPickTribes = new("shell.status.pickTribes", "Pick tribes");
@@ -258,12 +258,41 @@ internal static class L
 
     internal static class Log
     {
-        public static readonly LocString Title = new("log.title", "Run log");
-        public static readonly LocPlural Entries = new("log.entries", "{0} line", "{0} lines");
+        public static readonly LocString Title = new("log.title", "Console");
+        public static readonly LocPlural Entries = new("log.entries", "{0} line in the buffer", "{0} lines in the buffer");
         public static readonly LocString Empty = new("log.empty", "Nothing logged yet. Start a run and every step the plugin takes shows up here.");
-        public static readonly LocString Copy = new("log.copy", "Copy");
-        public static readonly LocString Copied = new("log.copied", "Copied to the clipboard");
-        public static readonly LocString Footer = new("log.footer", "The same lines go to the Dalamud log (/xllog) with the [ADT] prefix. When reporting a bug, copy this log and paste it into the issue.");
+        public static readonly LocString NoMatches = new("log.noMatches", "No lines match the current filters.");
+        public static readonly LocString Footer = new("log.footer", "Every line also goes to the Dalamud log (/xllog) with the {0} prefix. When reporting a bug, press Copy log and paste the result into the issue.");
+        public static readonly LocString SearchHint = new("log.searchHint", "Search messages and sources");
+        public static readonly LocString CopyAll = new("log.copyAll", "Copy log");
+        public static readonly LocPlural CopyFiltered = new("log.copyFiltered", "Copy {0} line", "Copy {0} lines");
+        public static readonly LocString CopyTooltip = new("log.copyTooltip", "Copies the lines shown below with a header naming the plugin version, Dalamud version and zone, ready to paste into a bug report.");
+        public static readonly LocString Copied = new("log.copied", "Copied");
+        public static readonly LocPlural CopiedLines = new("log.copiedLines", "Copied {0} line to the clipboard", "Copied {0} lines to the clipboard");
+        public static readonly LocString Clear = new("log.clear", "Clear");
+        public static readonly LocString ConfirmClear = new("log.confirmClear", "Click again to clear");
+        public static readonly LocString Close = new("log.close", "Close");
+        public static readonly LocString LevelVerbose = new("log.level.verbose", "Verbose");
+        public static readonly LocString LevelDebug = new("log.level.debug", "Debug");
+        public static readonly LocString LevelInfo = new("log.level.info", "Info");
+        public static readonly LocString LevelWarning = new("log.level.warning", "Warnings");
+        public static readonly LocString LevelError = new("log.level.error", "Errors");
+        public static readonly LocString LevelTooltip = new("log.levelTooltip", "Click to show or hide these lines. Shift-click to show only this level.");
+        public static readonly LocString SourceChip = new("log.sourceChip", "Source: {0}");
+        public static readonly LocString SourceChipTooltip = new("log.sourceChipTooltip", "Click to stop filtering by source.");
+        public static readonly LocString JumpLatest = new("log.jumpLatest", "Jump to latest");
+        public static readonly LocPlural NewLines = new("log.newLines", "{0} new line", "{0} new lines");
+        public static readonly LocString Showing = new("log.showing", "Showing {0} of {1}");
+        public static readonly LocString ResetFilters = new("log.resetFilters", "Reset filters");
+        public static readonly LocString Shortcuts = new("log.shortcuts", "Ctrl+F search · Ctrl+C copy · Shift-click selects a range · Double-click copies a line");
+        public static readonly LocPlural Selected = new("log.selected", "{0} line selected", "{0} lines selected");
+        public static readonly LocString CopySelection = new("log.copySelection", "Copy selection");
+        public static readonly LocString ClearSelection = new("log.clearSelection", "Clear selection");
+        public static readonly LocString CopyLine = new("log.copyLine", "Copy line");
+        public static readonly LocString CopyToEnd = new("log.copyToEnd", "Copy from here to the end");
+        public static readonly LocString OnlySource = new("log.onlySource", "Show only {0}");
+        public static readonly LocString Repeated = new("log.repeated", "Repeated {0} times in a row");
+        public static readonly LocString HasDetails = new("log.hasDetails", "Has a stack trace. Select the line to read it.");
     }
 
     internal static class About

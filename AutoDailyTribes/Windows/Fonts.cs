@@ -152,11 +152,11 @@ internal static class Fonts
                 return File.ReadAllBytes(path);
             }
 
-            Svc.Log.Warning($"{AdtConstants.LogPrefix} Latin font missing at '{path}'; falling back to the Dalamud default font, Latin Extended letters will not render");
+            RunLog.Warning($"Latin font missing at '{path}'; falling back to the Dalamud default font, Latin Extended letters will not render");
         }
         catch (Exception exception)
         {
-            Svc.Log.Error(exception, $"{AdtConstants.LogPrefix} Failed to read the Latin font");
+            RunLog.Error(exception, $"Failed to read the Latin font");
         }
 
         return null;

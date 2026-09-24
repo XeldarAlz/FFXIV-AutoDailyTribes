@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.External;
 using AutoDailyTribes.Core.Localization;
 using AutoDailyTribes.Windows.Components;
@@ -20,7 +21,7 @@ internal static class NavRail
         new(AppWindow.Page.Tribes,   FontAwesomeIcon.Users,      "##adt_nav_tribes",   L.Shell.NavTribes),
         new(AppWindow.Page.Settings, FontAwesomeIcon.SlidersH,   "##adt_nav_settings", L.Shell.NavSettings),
         new(AppWindow.Page.Plugins,  FontAwesomeIcon.Plug,       "##adt_nav_plugins",  L.Shell.NavPlugins),
-        new(AppWindow.Page.Log,      FontAwesomeIcon.FileAlt,    "##adt_nav_log",      L.Shell.NavLog),
+        new(AppWindow.Page.Log,      FontAwesomeIcon.Terminal,   "##adt_nav_log",      L.Shell.NavLog),
         new(AppWindow.Page.About,    FontAwesomeIcon.InfoCircle, "##adt_nav_about",    L.Shell.NavAbout),
     ];
 
@@ -71,7 +72,7 @@ internal static class NavRail
             var color = selected ? Styling.TextStrong : Vector4.Lerp(Styling.TextDim, Styling.TextSecondary, hover);
             TextDraw.IconCentered(entry.Icon, center, color);
 
-            DrawBadge(dl, entry.Page, center, button, missingPlugins, running);
+            DrawBadge(dl, entry.Page, current, center, button, missingPlugins, running);
 
             if (hit.Hovered) Tooltip.Show(Loc.T(entry.Label));
             if (hit.Clicked) clicked = entry.Page;
@@ -82,7 +83,7 @@ internal static class NavRail
         return clicked;
     }
 
-    private static void DrawBadge(ImDrawListPtr dl, AppWindow.Page page, Vector2 center, float button, bool missingPlugins, bool running)
+    private static void DrawBadge(ImDrawListPtr dl, AppWindow.Page page, AppWindow.Page current, Vector2 center, float button, bool missingPlugins, bool running)
     {
         var scale = ImGuiHelpers.GlobalScale;
         var badgeCenter = center + new Vector2(button * 0.30f, -button * 0.30f);
@@ -97,6 +98,11 @@ internal static class NavRail
         {
             dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
             dl.AddCircleFilled(badgeCenter, radius, Paint.Col(Styling.PulseColor(Styling.AccentTeal, Styling.AccentTealSoft, Styling.PulseMedium)));
+        }
+        else if (page == AppWindow.Page.Log && current != AppWindow.Page.Log && RunLog.Unseen is { } unseen)
+        {
+            dl.AddCircleFilled(badgeCenter, radius + 1.5f * scale, Paint.Col(Styling.WindowBg));
+            dl.AddCircleFilled(badgeCenter, radius, Paint.Col(unseen == RunLogLevel.Error ? Styling.AccentRose : Styling.AccentAmber));
         }
     }
 }

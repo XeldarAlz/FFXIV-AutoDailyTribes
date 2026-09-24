@@ -27,7 +27,7 @@ internal static class QuestionableQuestPaths
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning(ex, "[ADT] Could not read Questionable's disabled quest paths");
+            RunLog.Warning(ex, "Could not read Questionable's disabled quest paths");
             return [];
         }
     }

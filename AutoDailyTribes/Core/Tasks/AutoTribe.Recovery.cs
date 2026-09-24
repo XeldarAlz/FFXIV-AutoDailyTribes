@@ -75,7 +75,7 @@ public sealed partial class AutoTribe
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning(ex, "[ADT] GameMain.ExecuteCommand revive failed");
+            RunLog.Warning(ex, "GameMain.ExecuteCommand revive failed");
             return false;
         }
     }

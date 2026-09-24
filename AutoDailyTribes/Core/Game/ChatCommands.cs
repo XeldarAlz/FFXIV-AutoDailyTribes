@@ -17,7 +17,7 @@ internal static class ChatCommands
             if (command.Length == 0) continue;
             if (!command.StartsWith('/'))
             {
-                Svc.Log.Warning($"[ADT] Post-run line skipped, commands must start with '/': {command}");
+                RunLog.Warning($"Post-run line skipped, commands must start with '/': {command}");
                 continue;
             }
 
@@ -31,12 +31,12 @@ internal static class ChatCommands
     {
         try
         {
-            Svc.Log.Info($"[ADT] Post-run command: {command}");
+            RunLog.Info($"Post-run command: {command}");
             Chat.ExecuteCommand(command);
         }
         catch (Exception exception)
         {
-            Svc.Log.Error($"[ADT] Post-run command '{command}' failed: {exception.Message}");
+            RunLog.Error($"Post-run command '{command}' failed: {exception.Message}");
         }
     }
 }

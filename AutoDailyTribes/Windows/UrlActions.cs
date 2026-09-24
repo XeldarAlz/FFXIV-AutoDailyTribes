@@ -1,3 +1,4 @@
+using AutoDailyTribes.Core;
 using Dalamud.Bindings.ImGui;
 using ECommons.DalamudServices;
 using System.Diagnostics;
@@ -15,7 +16,7 @@ internal static class UrlActions
         catch (Exception ex)
         {
             if (log)
-                Svc.Log.Warning(ex, "[AutoDailyTribes] failed to launch browser for {0}, copied to clipboard instead", url);
+                RunLog.Warning(ex, $"failed to launch browser for {url}, copied to clipboard instead");
             ImGui.SetClipboardText(url);
         }
     }

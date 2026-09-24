@@ -4,159 +4,242 @@ using AutoDailyTribes.Windows.Components;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using System.Numerics;
 
 namespace AutoDailyTribes.Windows.Pages;
 
-internal sealed class LogPage
+internal sealed partial class LogPage
 {
-    private const float TimeColumn = 60f;
-    private const float MarkerRadius = 3f;
-    private const float MarkerGap = 12f;
-    private const float RowGap = 5f;
     private const float ToolbarGap = 8f;
-    private const float FooterGap = 8f;
-    private const float MinimumListHeight = 90f;
-    private const float ListPadX = 12f;
-    private const float ListPadY = 10f;
-    private const int CopiedNoticeMs = 1800;
+    private const float SectionGap = 10f;
+    private const float MinimumListHeight = 120f;
+    private const int NoticeMs = 1800;
+    private const int ClearConfirmMs = 3000;
 
-    private int seenVersion = -1;
+    private static readonly RunLogLevel[] chipLevels = [RunLogLevel.Verbose, RunLogLevel.Debug, RunLogLevel.Info, RunLogLevel.Warning, RunLogLevel.Error];
+    private static readonly LocString[] chipLabels = [L.Log.LevelVerbose, L.Log.LevelDebug, L.Log.LevelInfo, L.Log.LevelWarning, L.Log.LevelError];
+    private static readonly string[] chipIds = ["##adt_log_verbose", "##adt_log_debug", "##adt_log_info", "##adt_log_warning", "##adt_log_error"];
+
+    private readonly RunLogLine[] view = new RunLogLine[RunLog.Capacity];
+    private readonly int[] levelTotals = new int[RunLog.LevelCount];
+
+    private int viewCount;
+    private int bufferedCount;
+    private int builtVersion = -1;
+    private RunLogFilter builtFilter;
+
+    private int levelMask = RunLogFilter.AllLevels;
+    private string search = string.Empty;
+    private string? source;
+    private bool searchFocused;
+    private bool focusSearch;
+
     private long copiedAtMs;
+    private long clearArmedAtMs;
+    private string? notice;
+    private long noticeAtMs;
+
+    private RunLogFilter Filter => new(levelMask, search, source);
 
     public void Draw()
     {
-        var count = RunLog.Count;
-        PageHeader.Draw(Loc.T(L.Log.Title), Loc.Plural(L.Log.Entries, count));
+        RunLog.MarkSeen();
+        Refresh();
+        PageHeader.Draw(Loc.T(L.Log.Title), Loc.Plural(L.Log.Entries, bufferedCount));
 
-        DrawToolbar(count);
+        DrawToolbar();
         Styling.VSpace(ToolbarGap);
-        DrawList(count);
-        DrawFooter();
+        DrawFilters();
+        Styling.VSpace(SectionGap);
+
+        var scale = ImGuiHelpers.GlobalScale;
+        var spacing = ImGui.GetStyle().ItemSpacing.Y;
+        var inspectorHeight = InspectorHeight();
+        var inspectorBlock = inspectorHeight > 0f ? SectionGap * scale + spacing + inspectorHeight + spacing : 0f;
+        var reserved = spacing + inspectorBlock + StatusGap * scale + spacing + StatusLineHeight();
+        var listHeight = MathF.Max(MinimumListHeight * scale, ImGui.GetContentRegionAvail().Y - reserved);
+        DrawList(listHeight);
+        DrawInspector(inspectorHeight);
+        DrawStatus();
+        HandleShortcuts();
     }
 
-    private void DrawToolbar(int count)
+    private void Refresh()
     {
-        var scale = ImGuiHelpers.GlobalScale;
-        var origin = ImGui.GetCursorScreenPos();
-        var width = ImGui.GetContentRegionAvail().X;
-        var height = Layout.ActionPillHeight * scale;
-
-        var copied = Environment.TickCount64 - copiedAtMs < CopiedNoticeMs;
-        var copyLabel = Loc.T(copied ? L.Log.Copied : L.Log.Copy);
-        var copyWidth = PillButton.Width(copyLabel, FontAwesomeIcon.Copy);
-
-        ImGui.SetCursorScreenPos(origin);
-        if (PillButton.Draw("##adt_log_copy", copyLabel, Styling.AccentTeal, PillButton.Emphasis.Filled, FontAwesomeIcon.Copy,
-                enabled: count > 0, height: Layout.ActionPillHeight))
+        var filter = Filter;
+        var currentVersion = RunLog.Version;
+        if (currentVersion == builtVersion && filter == builtFilter)
         {
-            ImGui.SetClipboardText(RunLog.ToText());
-            copiedAtMs = Environment.TickCount64;
+            return;
         }
 
-        ImGui.SetCursorScreenPos(origin + new Vector2(copyWidth + ToolbarGap * scale, 0f));
-        if (PillButton.Draw("##adt_log_clear", Loc.T(L.Common.Clear), Styling.TextSecondary, PillButton.Emphasis.Ghost, FontAwesomeIcon.Eraser,
-                enabled: count > 0, height: Layout.ActionPillHeight))
+        var previousTail = viewCount > 0 ? view[viewCount - 1].Sequence : 0;
+        viewCount = RunLog.Snapshot(filter, view, levelTotals);
+        bufferedCount = 0;
+        for (var level = 0; level < RunLog.LevelCount; level++)
         {
-            RunLog.Clear();
+            bufferedCount += levelTotals[level];
+        }
+
+        OnViewRebuilt(previousTail, filter != builtFilter);
+        builtVersion = currentVersion;
+        builtFilter = filter;
+    }
+
+    private void DrawToolbar()
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var height = Layout.ActionPillHeight * scale;
+        var origin = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var gap = ToolbarGap * scale;
+        var now = Environment.TickCount64;
+
+        var copyLabel = now - copiedAtMs < NoticeMs ? Loc.T(L.Log.Copied)
+            : builtFilter.IsNarrowed ? Loc.Plural(L.Log.CopyFiltered, viewCount)
+            : Loc.T(L.Log.CopyAll);
+        var clearArmed = now - clearArmedAtMs < ClearConfirmMs;
+        var clearLabel = Loc.T(clearArmed ? L.Log.ConfirmClear : L.Log.Clear);
+        var copyWidth = PillButton.Width(copyLabel, FontAwesomeIcon.Copy);
+        var clearWidth = PillButton.Width(clearLabel, FontAwesomeIcon.Eraser);
+        var searchWidth = MathF.Max(1f, width - copyWidth - clearWidth - gap * 2f);
+
+        ImGui.SetCursorScreenPos(origin);
+        if (SearchField.Draw("##adt_log_search", Loc.T(L.Log.SearchHint), ref search, ref searchFocused, searchWidth, height, focusSearch))
+        {
+            ClearSelection();
+        }
+
+        focusSearch = false;
+
+        ImGui.SetCursorScreenPos(origin + new Vector2(searchWidth + gap, 0f));
+        if (PillButton.Draw("##adt_log_copy", copyLabel, Styling.AccentTeal, PillButton.Emphasis.Filled, FontAwesomeIcon.Copy,
+                enabled: viewCount > 0, height: Layout.ActionPillHeight, tooltip: Loc.T(L.Log.CopyTooltip)))
+        {
+            CopyView();
+        }
+
+        ImGui.SetCursorScreenPos(origin + new Vector2(searchWidth + copyWidth + gap * 2f, 0f));
+        if (PillButton.Draw("##adt_log_clear", clearLabel, clearArmed ? Styling.AccentRose : Styling.TextSecondary,
+                clearArmed ? PillButton.Emphasis.Tinted : PillButton.Emphasis.Ghost, FontAwesomeIcon.Eraser,
+                enabled: bufferedCount > 0, height: Layout.ActionPillHeight))
+        {
+            if (clearArmed)
+            {
+                RunLog.Clear();
+                ClearSelection();
+                clearArmedAtMs = 0;
+            }
+            else
+            {
+                clearArmedAtMs = now;
+            }
         }
 
         ImGui.SetCursorScreenPos(origin);
         ImGui.Dummy(new Vector2(width, height));
     }
 
-    private void DrawList(int count)
+    private void DrawFilters()
     {
         var scale = ImGuiHelpers.GlobalScale;
-        var width = ImGui.GetContentRegionAvail().X;
-
-        float footerHeight;
-        using (Fonts.PushCaption())
-            footerHeight = TextDraw.MeasureWrapped(Loc.T(L.Log.Footer), width).Y;
-
-        var height = ImGui.GetContentRegionAvail().Y - footerHeight - FooterGap * 2f * scale;
-        if (height < MinimumListHeight * scale) height = MinimumListHeight * scale;
-
+        var height = Layout.ConsoleChipHeight * scale;
+        var gap = ToolbarGap * scale;
         var origin = ImGui.GetCursorScreenPos();
-        var end = origin + new Vector2(width, height);
-        Paint.Surface(ImGui.GetWindowDrawList(), origin, end, Styling.CardRounding * scale,
-            Styling.WithAlpha(Styling.Surface0, 0.7f), Styling.WithAlpha(Styling.BorderDim, 0.5f));
+        var width = ImGui.GetContentRegionAvail().X;
+        var x = origin.X;
+        var y = origin.Y;
 
-        using (ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(ListPadX * scale, ListPadY * scale)))
-        using (var child = ImRaii.Child("##adt_log_list", new Vector2(width, height), false, ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.AlwaysUseWindowPadding))
+        for (var index = 0; index < chipLevels.Length; index++)
         {
-            if (!child) return;
+            var level = chipLevels[index];
+            var label = Loc.T(chipLabels[index]);
+            var count = levelTotals[(int)level].ToString(Loc.Culture);
+            var chipWidth = FilterChip.Width(label, count);
+            WrapIfNeeded(ref x, ref y, chipWidth, origin.X, width, height, gap);
 
-            if (count == 0)
+            ImGui.SetCursorScreenPos(new Vector2(x, y));
+            if (FilterChip.Draw(chipIds[index], label, count, LevelColor(level), builtFilter.Shows(level), height, tooltip: Loc.T(L.Log.LevelTooltip)))
             {
-                DrawEmpty();
-                return;
+                ToggleLevel(level, ImGui.GetIO().KeyShift);
             }
 
-            var innerWidth = ImGui.GetContentRegionAvail().X;
-            var followTail = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - Layout.LogRowHeight * scale;
-            for (var index = 0; index < count; index++) DrawRow(RunLog.At(index), innerWidth);
-
-            if (RunLog.Version == seenVersion) return;
-            seenVersion = RunLog.Version;
-            if (followTail) ImGui.SetScrollHereY(1f);
+            x += chipWidth + gap;
         }
+
+        if (source is not null)
+        {
+            var label = Loc.T(L.Log.SourceChip, source);
+            var chipWidth = FilterChip.Width(label, null, FontAwesomeIcon.Times);
+            WrapIfNeeded(ref x, ref y, chipWidth, origin.X, width, height, gap);
+
+            ImGui.SetCursorScreenPos(new Vector2(x, y));
+            if (FilterChip.Draw("##adt_log_source", label, null, Styling.AccentViolet, true, height, FontAwesomeIcon.Times, Loc.T(L.Log.SourceChipTooltip)))
+            {
+                source = null;
+                ClearSelection();
+            }
+        }
+
+        ImGui.SetCursorScreenPos(origin);
+        ImGui.Dummy(new Vector2(width, y - origin.Y + height));
     }
 
-    private static void DrawEmpty()
+    private static void WrapIfNeeded(ref float x, ref float y, float itemWidth, float left, float width, float height, float gap)
     {
-        var origin = ImGui.GetCursorScreenPos();
-        var width = ImGui.GetContentRegionAvail().X;
-        using (Fonts.PushCaption())
+        if (x <= left || x + itemWidth <= left + width)
         {
-            var text = Loc.T(L.Log.Empty);
-            TextDraw.Wrapped(text, origin, width, Styling.TextMuted);
-            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(text, width).Y));
+            return;
         }
+
+        x = left;
+        y += height + gap;
     }
 
-    private static void DrawRow(RunLogLine line, float width)
+    private void ToggleLevel(RunLogLevel level, bool solo)
     {
-        var scale = ImGuiHelpers.GlobalScale;
-        var origin = ImGui.GetCursorScreenPos();
-        var dl = ImGui.GetWindowDrawList();
-        var color = line.Level switch
+        var bit = 1 << (int)level;
+        if (solo)
         {
-            RunLogLevel.Warning => Styling.AccentAmber,
-            RunLogLevel.Error   => Styling.AccentRose,
-            _                   => Styling.TextSecondary,
-        };
-
-        var lineHeight = TextDraw.LineHeight();
-        using (Fonts.PushCaption())
+            levelMask = levelMask == bit ? RunLogFilter.AllLevels : bit;
+        }
+        else
         {
-            var time = RunLog.Time(line);
-            var timeHeight = TextDraw.Measure(time).Y;
-            TextDraw.At(time, new Vector2(origin.X, origin.Y + (lineHeight - timeHeight) * 0.5f), Styling.TextMuted);
+            levelMask ^= bit;
         }
 
-        var markerX = origin.X + TimeColumn * scale;
-        dl.AddCircleFilled(new Vector2(markerX, origin.Y + lineHeight * 0.5f), MarkerRadius * scale, Paint.Col(color));
-
-        var textX = markerX + MarkerGap * scale;
-        var textWidth = Math.Max(1f, width - (textX - origin.X));
-        var textHeight = TextDraw.MeasureWrapped(line.Message, textWidth).Y;
-        TextDraw.Wrapped(line.Message, new Vector2(textX, origin.Y), textWidth, color);
-
-        ImGui.Dummy(new Vector2(width, textHeight + RowGap * scale));
+        ClearSelection();
     }
 
-    private static void DrawFooter()
+    private void ResetFilters()
     {
-        Styling.VSpace(FooterGap);
-        using (Fonts.PushCaption())
-        {
-            var footer = Loc.T(L.Log.Footer);
-            var origin = ImGui.GetCursorScreenPos();
-            var width = ImGui.GetContentRegionAvail().X;
-            TextDraw.Wrapped(footer, origin, width, Styling.TextMuted);
-            ImGui.Dummy(new Vector2(width, TextDraw.MeasureWrapped(footer, width).Y));
-        }
+        levelMask = RunLogFilter.AllLevels;
+        search = string.Empty;
+        source = null;
+        ClearSelection();
     }
+
+    private void ShowNotice(string text)
+    {
+        notice = text;
+        noticeAtMs = Environment.TickCount64;
+    }
+
+    private static Vector4 LevelColor(RunLogLevel level) => level switch
+    {
+        RunLogLevel.Verbose => Styling.TextDim,
+        RunLogLevel.Debug   => Styling.AccentBlue,
+        RunLogLevel.Warning => Styling.AccentAmber,
+        RunLogLevel.Error   => Styling.AccentRose,
+        _                   => Styling.AccentTeal,
+    };
+
+    private static Vector4 MessageColor(RunLogLevel level) => level switch
+    {
+        RunLogLevel.Verbose => Styling.TextMuted,
+        RunLogLevel.Debug   => Styling.TextDim,
+        RunLogLevel.Warning => Styling.AccentAmberSoft,
+        RunLogLevel.Error   => Styling.AccentRoseSoft,
+        _                   => Styling.TextSecondary,
+    };
 }

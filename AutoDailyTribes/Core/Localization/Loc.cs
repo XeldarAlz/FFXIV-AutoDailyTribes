@@ -109,7 +109,7 @@ internal static class Loc
         }
         catch (CultureNotFoundException exception)
         {
-            Svc.Log.Warning(exception, $"{AdtConstants.LogPrefix} Culture '{name}' is unavailable; falling back to the invariant culture");
+            RunLog.Warning(exception, $"Culture '{name}' is unavailable; falling back to the invariant culture");
             return CultureInfo.InvariantCulture;
         }
     }

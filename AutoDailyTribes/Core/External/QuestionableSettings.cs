@@ -42,7 +42,7 @@ internal static class QuestionableSettings
 
         property.SetValue(advancedConfiguration, false);
         borrowedAdvancedConfiguration = advancedConfiguration;
-        Svc.Log.Info($"[ADT] Questionable's '{SettingDisplayName}' was on — disabled for this run, restoring afterwards.");
+        RunLog.Info($"Questionable's '{SettingDisplayName}' was on — disabled for this run, restoring afterwards.");
         return true;
     }
 
@@ -58,11 +58,11 @@ internal static class QuestionableSettings
             advancedConfiguration.GetType()
                 .GetProperty(PreventQuestCompletionPropertyName, ReflectionHelper.InstanceFlags)
                 ?.SetValue(advancedConfiguration, true);
-            Svc.Log.Info($"[ADT] Restored Questionable's '{SettingDisplayName}'.");
+            RunLog.Info($"Restored Questionable's '{SettingDisplayName}'.");
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning(ex, $"[ADT] Could not restore Questionable's '{SettingDisplayName}'");
+            RunLog.Warning(ex, $"Could not restore Questionable's '{SettingDisplayName}'");
         }
     }
 

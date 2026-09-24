@@ -16,16 +16,16 @@ public static class PluginInstaller
         try
         {
             var info = ExternalPlugins.Catalog[plugin];
-            Svc.Log.Info($"[ExternalPlugin] Installing {info.DisplayName} from {info.RepoUrl}");
+            RunLog.Info($"Installing {info.DisplayName} from {info.RepoUrl}");
             var ok = await DalamudReflector.AddPlugin(info.RepoUrl, info.InternalName);
-            Svc.Log.Info(ok
+            RunLog.Info(ok
                 ? $"[ExternalPlugin] {info.DisplayName} installed."
                 : $"[ExternalPlugin] {info.DisplayName} install reported failure — repo may need to be added manually.");
             return ok;
         }
         catch (Exception ex)
         {
-            Svc.Log.Warning(ex, "[ExternalPlugin] install threw");
+            RunLog.Warning(ex, "install threw");
             return false;
         }
         finally
