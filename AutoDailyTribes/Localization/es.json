@@ -250,6 +250,7 @@
   "changelog.new": "Nuevo",
   "changelog.changes.one": "{0} cambio",
   "changelog.changes.other": "{0} cambios",
+  "changelog.r2910.1": "Añadido un botón de Buy Me a Coffee debajo de Patreon en la página Acerca de",
   "changelog.r2900.1": "Añadida la página Consola para ver, filtrar y copiar los registros del plugin",
   "changelog.r2900.2": "Añadido este registro de cambios, con un aviso cada vez que una actualización trae novedades",
   "changelog.r2900.3": "Renovada por completo la página Acerca de, con el enlace de Discord actualizado",

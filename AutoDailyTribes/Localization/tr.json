@@ -250,6 +250,7 @@
   "changelog.new": "Yeni",
   "changelog.changes.one": "{0} değişiklik",
   "changelog.changes.other": "{0} değişiklik",
+  "changelog.r2910.1": "Hakkında sayfasında Patreon'un altına Buy Me a Coffee düğmesi eklendi",
   "changelog.r2900.1": "Eklentinin günlüklerini görüntülemek, filtrelemek ve kopyalamak için Konsol sayfası eklendi",
   "changelog.r2900.2": "Bu değişiklik günlüğü eklendi; bir güncelleme yenilik getirdiğinde rozetle bildirir",
   "changelog.r2900.3": "Hakkında sayfası baştan yenilendi, Discord bağlantısı güncellendi",

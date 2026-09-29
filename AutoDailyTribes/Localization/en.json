@@ -250,6 +250,7 @@
   "changelog.new": "New",
   "changelog.changes.one": "{0} change",
   "changelog.changes.other": "{0} changes",
+  "changelog.r2910.1": "Added a Buy Me a Coffee button under Patreon on the About page",
   "changelog.r2900.1": "Added the Console page to view, filter and copy the plugin's logs",
   "changelog.r2900.2": "Added this changelog, with a badge whenever an update brings something new",
   "changelog.r2900.3": "Overhauled the About page, with the updated Discord link",

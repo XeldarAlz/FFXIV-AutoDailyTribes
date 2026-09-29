@@ -250,6 +250,7 @@
   "changelog.new": "新",
   "changelog.changes.one": "{0} 项更改",
   "changelog.changes.other": "{0} 项更改",
+  "changelog.r2910.1": "在关于页面的 Patreon 下方新增 Buy Me a Coffee 按钮",
   "changelog.r2900.1": "新增控制台页面，可查看、筛选和复制插件日志",
   "changelog.r2900.2": "新增此更新日志，每当更新带来新内容时都会显示徽标",
   "changelog.r2900.3": "全面改版“关于”页面，并更新了 Discord 链接",

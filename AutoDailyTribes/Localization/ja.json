@@ -250,6 +250,7 @@
   "changelog.new": "新着",
   "changelog.changes.one": "{0}件の変更",
   "changelog.changes.other": "{0}件の変更",
+  "changelog.r2910.1": "情報ページのPatreonの下にBuy Me a Coffeeボタンを追加",
   "changelog.r2900.1": "プラグインのログを表示、絞り込み、コピーできるコンソールを追加",
   "changelog.r2900.2": "この更新履歴を追加。新しい更新があるとバッジで知らせます",
   "changelog.r2900.3": "情報ページを全面刷新し、Discordのリンクを更新",
