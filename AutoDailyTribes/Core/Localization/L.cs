@@ -323,9 +323,11 @@ internal static class L
         public static readonly LocString GitHubTitle = new("about.githubTitle", "View on GitHub");
         public static readonly LocString GitHubBody = new("about.githubBody", "Browse the source code and every release.");
         public static readonly LocString SupportTitle = new("about.supportTitle", "Made with love and care");
-        public static readonly LocString SupportBody = new("about.supportBody", "This plugin is a one-person project, built in my free time because I love this game and its community. Keeping it updated takes a lot of those hours. If it has helped you, supporting me on Patreon means I can keep giving it that time. Thank you for being here.");
+        public static readonly LocString SupportBody = new("about.supportBody", "This plugin is a one-person project, built in my free time because I love this game and its community. Keeping it updated takes a lot of those hours. If it has helped you, supporting me on Patreon or buying me a coffee means I can keep giving it that time. Thank you for being here.");
         public static readonly LocString SupportButton = new("about.supportButton", "Support on Patreon");
         public static readonly LocString PatreonHint = new("about.patreonHint", "Open Patreon · right-click to copy");
+        public static readonly LocString CoffeeButton = new("about.coffeeButton", "Buy me a coffee");
+        public static readonly LocString CoffeeHint = new("about.coffeeHint", "Open Buy Me a Coffee · right-click to copy");
 
         public static readonly LocString ReminderTitle = new("about.reminderTitle", "A little reminder");
         public static readonly LocString[] Reminders =
