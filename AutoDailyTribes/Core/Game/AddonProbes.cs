@@ -8,14 +8,13 @@ internal static unsafe class AddonProbes
     public static AtkUnitBase* Get(string name)
         => RaptureAtkUnitManager.Instance()->GetAddonByName(name);
 
-    public static bool Ready(string name)
-    {
-        var a = Get(name);
-        return a != null
-            && a->IsVisible
-            && a->UldManager.LoadedState == AtkLoadState.Loaded
-            && a->IsFullyLoaded();
-    }
+    public static bool Ready(string name) => Ready(Get(name));
+
+    public static bool Ready(AtkUnitBase* a)
+        => a != null
+        && a->IsVisible
+        && a->UldManager.LoadedState == AtkLoadState.Loaded
+        && a->IsFullyLoaded();
 
     public static bool TalkActive() => Ready("Talk");
     public static bool SelectStringActive() => Ready("SelectString");

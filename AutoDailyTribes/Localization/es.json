@@ -259,6 +259,7 @@
   "changelog.r2900.2": "Añadido este registro de cambios, con un aviso cada vez que una actualización trae novedades",
   "changelog.r2900.3": "Renovada por completo la página Acerca de, con el enlace de Discord actualizado",
   "changelog.r21000.1": "Las misiones de ascenso de rango se completan automáticamente cuando la reputación de una tribu está llena, así las 3 diarias nuevas que desbloquean se recogen en la misma ejecución",
+  "changelog.r21000.2": "Los teletransportes ya no se quedan atascados en la pregunta del juego sobre el billete de eterita: el plugin la responde pagando con gil, así las ejecuciones con billetes en el inventario siguen adelante",
   "about.version": "v {0}",
   "about.madeBy": "Creado por {0}",
   "about.community": "Comunidad",

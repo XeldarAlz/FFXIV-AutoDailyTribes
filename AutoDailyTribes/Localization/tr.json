@@ -259,6 +259,7 @@
   "changelog.r2900.2": "Bu değişiklik günlüğü eklendi; bir güncelleme yenilik getirdiğinde rozetle bildirir",
   "changelog.r2900.3": "Hakkında sayfası baştan yenilendi, Discord bağlantısı güncellendi",
   "changelog.r21000.1": "Bir kabilenin itibarı dolduğunda rütbe atlama görevleri otomatik oynanır, böylece açtıkları 3 yeni günlük aynı çalıştırmada alınır",
+  "changelog.r21000.2": "Işınlanmalar artık oyunun etherit bileti sorusunda takılmıyor: eklenti soruyu gil ödeyerek yanıtlıyor, böylece envanterde bilet varken çalıştırmalar devam ediyor",
   "about.version": "v {0}",
   "about.madeBy": "{0} tarafından yapıldı",
   "about.community": "Topluluk",

@@ -19,6 +19,8 @@ public abstract class AutoCommon : TaskBase
     internal  const int   StaleTeleportRequestMs = 5_000;
     private   const int   TeleportWaitReportMs = 3_000;
 
+    private bool ticketPromptSeen;
+
     protected static string QuestName(uint questId)
         => Svc.Data.GetExcelSheet<Lumina.Excel.Sheets.Quest>()?.GetRowOrDefault(questId)?.Name.ToString() ?? questId.ToString();
 
@@ -97,6 +99,7 @@ public abstract class AutoCommon : TaskBase
         while (Environment.TickCount64 < deadline)
         {
             if (CancelToken.IsCancellationRequested) return false;
+            AnswerTicketPrompt(label);
             var now = Environment.TickCount64;
 
             if (IsTeleportInTransit())
@@ -173,6 +176,7 @@ public abstract class AutoCommon : TaskBase
         while (!work.IsCompleted && Environment.TickCount64 < deadline)
         {
             if (CancelToken.IsCancellationRequested) break;
+            AnswerTicketPrompt(label);
             if (abortIf is not null)
             {
                 bool trip;
@@ -204,6 +208,18 @@ public abstract class AutoCommon : TaskBase
             Diag($"WATCHDOG: '{label}' did not unwind {SubTaskUnwindGraceMs / 1000}s after Cancel (unexpected)");
 
         return false;
+    }
+
+    private void AnswerTicketPrompt(string label)
+    {
+        if (!TeleportTicketPrompt.IsOpen) return;
+
+        Diag(ticketPromptSeen
+            ? $"{label}: answered the aetheryte ticket question again (paying gil)"
+            : $"{label}: the game asked whether to spend an aetheryte ticket on this teleport; paying gil instead. " +
+              "Pick Always Use or Never Use under Aetheryte Ticket Usage in the Teleport window's settings to skip the question.");
+        ticketPromptSeen = true;
+        TeleportTicketPrompt.PayGil();
     }
 
     private void TryCancel(MoveOp op, string label)

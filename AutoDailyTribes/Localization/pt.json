@@ -259,6 +259,7 @@
   "changelog.r2900.2": "Adicionado este registro de mudanças, com um aviso sempre que uma atualização trouxer novidades",
   "changelog.r2900.3": "Página Sobre totalmente reformulada, com o link do Discord atualizado",
   "changelog.r21000.1": "As missões de promoção são feitas automaticamente quando a reputação de uma tribo está cheia, e as 3 diárias novas que elas liberam são pegas na mesma execução",
+  "changelog.r21000.2": "Os teleportes não travam mais na pergunta do jogo sobre usar um bilhete de eterita: o plugin responde pagando com gil, então execuções com bilhetes na mochila continuam",
   "about.version": "v {0}",
   "about.madeBy": "Feito por {0}",
   "about.community": "Comunidade",

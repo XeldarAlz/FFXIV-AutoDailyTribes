@@ -324,6 +324,7 @@ internal static class L
         public static readonly LocString[] Release21000 =
         [
             new("changelog.r21000.1", "Rank-up quests are played automatically when a tribe's reputation is full, so the 3 fresh dailies they unlock are picked up in the same run"),
+            new("changelog.r21000.2", "Teleports no longer hang on the game's aetheryte ticket question: the plugin answers it by paying gil, so runs with tickets in the bag keep going"),
         ];
     }
 
