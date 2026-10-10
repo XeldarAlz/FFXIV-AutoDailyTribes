@@ -323,8 +323,8 @@ internal static class L
 
         public static readonly LocString[] Release21000 =
         [
-            new("changelog.r21000.1", "Rank-up quests are played automatically when a tribe's reputation is full, so the 3 fresh dailies they unlock are picked up in the same run"),
-            new("changelog.r21000.2", "Teleports no longer hang on the game's aetheryte ticket question: the plugin answers it by paying gil, so runs with tickets in the bag keep going"),
+            new("changelog.r21000.1", "Added rank-up quests: when a tribe's reputation is capped, its rank-up quest is played and the 3 dailies it unlocks are picked up in the same run"),
+            new("changelog.r21000.2", "Fixed teleports hanging on the game's aetheryte ticket question, which is now answered by paying gil"),
             new("changelog.r21000.3", "Fixed the All together turn-in order stalling on dailies whose hand-in starts with a ferry ride or a walk away from the area (Sahagin, some Namazu and Pixie dailies), which are now turned in as soon as they are done"),
         ];
     }
