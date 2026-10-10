@@ -2,7 +2,7 @@ using AutoDailyTribes.Core.Tribes;
 
 namespace AutoDailyTribes.Core.Tasks;
 
-public enum TribePhase { Idle, Preparing, SwitchingJob, Traveling, Accepting, Delegating, Recovering, Done }
+public enum TribePhase { Idle, Preparing, SwitchingJob, Traveling, Accepting, Delegating, RankingUp, Recovering, Done }
 
 public enum RunOutcome { Completed, Partial, Skipped, Stopped }
 

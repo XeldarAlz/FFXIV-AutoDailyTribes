@@ -138,6 +138,7 @@ internal static class L
         public static readonly LocString TipSlots = new("tribes.tip.slots", "{0} / {1} daily slots used · {2} allowances shared across all tribes.");
         public static readonly LocString TipAllUsed = new("tribes.tip.allUsed", "All daily slots used for this tribe today.");
         public static readonly LocString TipCanRankUp = new("tribes.tip.canRankUp", "Daily rep is full. Finish the rank-up quest in game to refresh 3 more dailies today.");
+        public static readonly LocString TipCanRankUpAuto = new("tribes.tip.canRankUpAuto", "Daily rep is full. The next run plays the rank-up quest first, then picks up the 3 fresh dailies it unlocks.");
         public static readonly LocString TipKeepSelected = new("tribes.tip.keepSelected", "Still in your list, so it runs again after the reset. Click to drop it.");
         public static readonly LocString TipKeepUnselected = new("tribes.tip.keepUnselected", "Click to keep it in your list for after the reset.");
         public static readonly LocString TipInJournal = new("tribes.tip.inJournal", "{0} accepted quest(s) still in the journal. Click to run them.");
@@ -157,6 +158,7 @@ internal static class L
         public static readonly LocString PhaseDone = new("run.phase.done", "Tribe complete");
         public static readonly LocString PhasePreparing = new("run.phase.preparing", "Preparing");
         public static readonly LocString PhaseStandingBy = new("run.phase.standingBy", "Standing by");
+        public static readonly LocString PhaseRankingUp = new("run.phase.rankingUp", "Ranking up");
 
         public static readonly LocString HeaderFooter = new("run.headerFooter", "Tribe {0} of {1} · {2}");
         public static readonly LocString RingCaption = new("run.ringCaption", "tribes");
@@ -203,6 +205,8 @@ internal static class L
         public static readonly LocString TurnInEachDetail = new("settings.turnIn.eachDetail", "Each daily is turned in as soon as its objectives are done, then the next one starts.");
         public static readonly LocString TurnInAll = new("settings.turnIn.all", "All together");
         public static readonly LocString TurnInAllDetail = new("settings.turnIn.allDetail", "All of the tribe's dailies are completed first, then turned in one after another, the way Questionable runs them on its own.");
+        public static readonly LocString RankUp = new("settings.rankUp", "Play rank-up quests");
+        public static readonly LocString RankUpHelp = new("settings.rankUpHelp", "When a tribe's reputation is full, its rank-up quest is handed to Questionable before the dailies, and the 3 fresh dailies the new rank unlocks are picked up in the same run. Story cutscenes are skipped.");
 
         public static readonly LocString JobRow = new("settings.jobRow", "Job to use");
         public static readonly LocString JobSpecificRow = new("settings.jobSpecificRow", "Which job");
@@ -315,6 +319,11 @@ internal static class L
             new("changelog.r2900.1", "Added the Console page to view, filter and copy the plugin's logs"),
             new("changelog.r2900.2", "Added this changelog, with a badge whenever an update brings something new"),
             new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
+        ];
+
+        public static readonly LocString[] Release21000 =
+        [
+            new("changelog.r21000.1", "Rank-up quests are played automatically when a tribe's reputation is full, so the 3 fresh dailies they unlock are picked up in the same run"),
         ];
     }
 

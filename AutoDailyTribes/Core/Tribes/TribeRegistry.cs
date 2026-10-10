@@ -230,6 +230,8 @@ public static class TribeRegistry
 
     private static readonly TribeInfo[][] EraBuckets = BuildEraBuckets();
 
+    public static readonly uint HighestTribeId = FindHighestTribeId();
+
     public static TribeInfo[] ByEra(TribeEra era) => EraBuckets[(int)era];
 
     private static TribeInfo[][] BuildEraBuckets()
@@ -255,5 +257,19 @@ public static class TribeRegistry
         }
 
         return buckets;
+    }
+
+    private static uint FindHighestTribeId()
+    {
+        var highest = 0u;
+        for (var tribeIndex = 0; tribeIndex < Tribes.Length; tribeIndex++)
+        {
+            if (Tribes[tribeIndex].BeastTribeId > highest)
+            {
+                highest = Tribes[tribeIndex].BeastTribeId;
+            }
+        }
+
+        return highest;
     }
 }

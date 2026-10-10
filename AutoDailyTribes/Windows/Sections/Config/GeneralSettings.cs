@@ -46,5 +46,9 @@ internal static class GeneralSettings
             }));
 
         SettingsRow.Caption(Loc.T(TurnInDetails[selected]));
+
+        SettingsRow.Draw(Loc.T(L.Settings.RankUp), Loc.T(L.Settings.RankUpHelp), SettingsControls.ToggleWidth,
+            () => SettingsControls.DrawToggle(cfg, () => cfg.RunRankUpQuests, value => cfg.RunRankUpQuests = value, "##adt_rank_up"),
+            SettingsRow.ToggleHeight);
     }
 }

@@ -276,6 +276,7 @@ internal static class TribeCard
         if (tribe.HasInProgressQuests) Tooltip.Text(Loc.T(L.Tribes.TipInJournal, tribe.InProgressQuestIds.Length), Styling.AccentAmberSoft);
         else Tooltip.Text(Loc.T(selected ? L.Tribes.TipRemove : L.Tribes.TipAdd), Styling.AccentTealSoft);
 
+        if (tribe.CanAutoRankUp) Tooltip.Text(Loc.T(L.Tribes.TipCanRankUpAuto), Styling.AccentAmberSoft);
         if (tribe.DailiesRefreshedByRankUp) Tooltip.Text(Loc.T(L.Tribes.TipRefreshed), Styling.AccentMint);
         if (tribe.Kind == TribeKind.Gatherer) Tooltip.Text(Loc.T(L.Tribes.TipGatherer), Styling.TextDim);
     }

@@ -40,6 +40,9 @@ internal static unsafe class TribeStateReader
         tribe.InProgressQuestIds = ScanInProgress(tribe, qm, questSheet);
         var slotEntries = CountDailySlotEntries(tribe.BeastTribeId, qm, questSheet);
         tribe.DailyAllowanceLeft = (int)qm->GetBeastTribeAllowance();
+        tribe.RankUpQuestId = tribe.CanRankUp && Plugin.Cfg is { RunRankUpQuests: true }
+            ? TribeRankUpQuests.NextStep(tribe.BeastTribeId, tribe.Rank)
+            : 0;
 
         // Ranking up mid-day refreshes the tribe's three daily offers, but the completed ones stay
         // in the daily-done slots until reset — baseline them so they stop counting as "today's".
@@ -107,6 +110,9 @@ internal static unsafe class TribeStateReader
 
     public const int NotInJournal = -1;
     public const int ReadyToTurnIn = byte.MaxValue;
+
+    // The permanent completion bit: right for story quests, meaningless for repeatable dailies.
+    public static bool IsQuestComplete(uint fullQuestId) => QuestManager.IsQuestComplete((ushort)(fullQuestId & 0xFFFF));
 
     // The journal sequence of an accepted quest. The game parks a quest at 255 once every
     // objective is done and only the hand-in is left, which is what the batched turn-in keys on.

@@ -80,6 +80,7 @@ internal static class ReadyState
         TribePhase.Traveling    => L.Run.PhaseTraveling,
         TribePhase.Accepting    => L.Run.PhaseAccepting,
         TribePhase.Delegating   => L.Run.PhaseDelegating,
+        TribePhase.RankingUp    => L.Run.PhaseRankingUp,
         TribePhase.Recovering   => L.Run.PhaseRecovering,
         TribePhase.Done         => L.Run.PhaseDone,
         TribePhase.Preparing    => L.Run.PhasePreparing,

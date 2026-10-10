@@ -42,6 +42,12 @@ public sealed class TribeInfo
 
     public bool DailiesRefreshedByRankUp => RankCycleBaseline > 0;
 
+    // The story quest that lifts the tribe past its current rank, 0 unless the reputation sits at
+    // the rank cap, the plugin is set to play rank-ups and Questionable can be handed the quest.
+    public uint RankUpQuestId;
+
+    public bool CanAutoRankUp => RankUpQuestId != 0;
+
     public bool MeetsRankRequirement => Rank >= MinRankForDailies;
     public int AcceptSlotsRemaining => Math.Max(0, AdtConstants.MaxAcceptsPerTribe - AcceptedTodayCount);
     public bool HasInProgressQuests => InProgressQuestIds.Length > 0;

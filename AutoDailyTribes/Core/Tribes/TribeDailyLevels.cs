@@ -34,7 +34,7 @@ internal static class TribeDailyLevels
             return [];
         }
 
-        var table = new byte[HighestRegisteredTribeId() + 1][];
+        var table = new byte[TribeRegistry.HighestTribeId + 1][];
         for (var rowIndex = 0; rowIndex < questSheet.Count; rowIndex++)
         {
             var quest = questSheet.GetRowAt(rowIndex);
@@ -103,19 +103,5 @@ internal static class TribeDailyLevels
             }
         }
         return 0;
-    }
-
-    private static uint HighestRegisteredTribeId()
-    {
-        var tribes = TribeRegistry.Tribes;
-        var highest = 0u;
-        for (var tribeIndex = 0; tribeIndex < tribes.Length; tribeIndex++)
-        {
-            if (tribes[tribeIndex].BeastTribeId > highest)
-            {
-                highest = tribes[tribeIndex].BeastTribeId;
-            }
-        }
-        return highest;
     }
 }

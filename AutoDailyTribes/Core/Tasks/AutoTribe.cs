@@ -27,7 +27,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
     private const int   MaxTravelStuckRetries = 2;
     private const int   MaxTeleportPasses = 2;
 
-    private enum TribeState { Idle, Done, Unconscious, SwitchingJob, WrongZone, TravelToIssuer, AcceptDailies, Delegate }
+    private enum TribeState { Idle, Done, Unconscious, SwitchingJob, WrongZone, TravelToIssuer, AcceptDailies, Delegate, RankUp }
     private enum ExitReason { Continue, Quit }
     private enum IssuerMoveResult { Arrived, StuckRetry, StuckInCombat, OutOfReach }
 
@@ -130,6 +130,10 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
                         delegated = true;
                         break;
 
+                    case TribeState.RankUp:
+                        await RunRankUp();
+                        break;
+
                     case TribeState.Idle:
                     default:
                         await NextFrame(30);
@@ -187,6 +191,14 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             jobResolved = false;   // the new rank can ask a higher level than the equipped job clears
         }
 
+        // Reputation at the rank cap is wasted on every further daily and the rank-up hand-in
+        // refreshes the offers, so it comes before accepting, once nothing is left in the journal.
+        if (ShouldRankUp())
+        {
+            if (!jobResolved && !JobSwitcher.CurrentJobSatisfies(tribe, Plugin.Cfg)) return TribeState.SwitchingJob;
+            return TribeState.RankUp;
+        }
+
         if (delegated) return TribeState.Done;
 
         if (!needAccept && !tribe.HasInProgressQuests) return TribeState.Done;
@@ -213,6 +225,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             TribeState.TravelToIssuer => "Running to the quest issuer",
             TribeState.AcceptDailies  => "Accepting daily quests",
             TribeState.Delegate       => "Handing quests to Questionable",
+            TribeState.RankUp         => "Playing the rank-up quest",
             TribeState.Unconscious    => "Recovering — reviving",
             TribeState.Done           => "Done",
             _                         => "Preparing",
@@ -225,6 +238,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
             TribeState.WrongZone or TribeState.TravelToIssuer => TribePhase.Traveling,
             TribeState.AcceptDailies                  => TribePhase.Accepting,
             TribeState.Delegate                       => TribePhase.Delegating,
+            TribeState.RankUp                         => TribePhase.RankingUp,
             TribeState.Unconscious                    => TribePhase.Recovering,
             TribeState.Done                           => TribePhase.Done,
             _                                         => TribePhase.Preparing,
@@ -239,7 +253,7 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         var nav = NavmeshIPC.Instance;
         Diag($"HEARTBEAT {tribe.Name} state={state} ({inState}s) terr={Svc.ClientState.TerritoryType} issuerTerr={tribe.IssuerTerritoryId} " +
              $"pos={posStr} nav=run={nav.IsRunning()},busy={nav.IsBusy()} rank={tribe.Rank} allowance={tribe.DailyAllowanceLeft} " +
-             $"accepted={tribe.AcceptedTodayCount} inProgress={tribe.InProgressQuestIds.Length} issuer={issuerIndex + 1}/{tribe.Issuers.Length}");
+             $"accepted={tribe.AcceptedTodayCount} inProgress={tribe.InProgressQuestIds.Length} rankUp={tribe.RankUpQuestId:X} issuer={issuerIndex + 1}/{tribe.Issuers.Length}");
 
         if (inState >= StallWarningMs / 1000)
             Diag($"STALL WARNING: {tribe.Name} state {state} held {inState}s — see prior heartbeats for context.");

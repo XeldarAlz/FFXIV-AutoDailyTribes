@@ -33,6 +33,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public TurnInMode TurnInMode { get; set; } = TurnInMode.EachQuest;
 
+    public bool RunRankUpQuests { get; set; } = true;
+
     // Chat commands (one per line, each starting with '/') dispatched after a batch run
     // finishes naturally — e.g. "/ays m" to hand off to AutoRetainer. See issue #17.
     public string PostRunCommands { get; set; } = string.Empty;

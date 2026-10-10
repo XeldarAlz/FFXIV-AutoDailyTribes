@@ -37,7 +37,8 @@ internal static class RunPlan
     }
 
     public static bool IsRunnable(TribeInfo tribe)
-        => tribe.Unlocked && tribe.MeetsRankRequirement && (tribe.AcceptSlotsRemaining > 0 || tribe.HasInProgressQuests);
+        => tribe.Unlocked && tribe.MeetsRankRequirement
+        && (tribe.AcceptSlotsRemaining > 0 || tribe.HasInProgressQuests || tribe.CanAutoRankUp);
 
     public static bool IsMaxed(TribeInfo tribe) => tribe.Unlocked && tribe.Rank >= AdtConstants.MaxTribeRank;
 
@@ -74,7 +75,7 @@ internal static class RunPlan
     }
 
     private static bool HasWorkToday(Configuration configuration, TribeInfo tribe, bool exhausted)
-        => IsRunnable(tribe) && PassesFilters(configuration, tribe) && (tribe.HasInProgressQuests || !exhausted);
+        => IsRunnable(tribe) && PassesFilters(configuration, tribe) && (tribe.HasInProgressQuests || tribe.CanAutoRankUp || !exhausted);
 
     private static void Compute(Configuration cfg)
     {

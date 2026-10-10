@@ -68,6 +68,7 @@ internal static class RunningPanel
         TribePhase.Traveling    => 0.35f,
         TribePhase.Accepting    => 0.45f + 0.25f * AcceptFraction(current),
         TribePhase.Delegating   => 0.72f + 0.28f * DelegateFraction(current),
+        TribePhase.RankingUp    => 0.60f,
         TribePhase.Recovering   => 0.30f,
         TribePhase.Done         => 1.00f,
         _                       => 0.05f,
@@ -275,6 +276,7 @@ internal static class RunningPanel
         TribePhase.Traveling    => 2,
         TribePhase.Accepting    => 3,
         TribePhase.Delegating   => 4,
+        TribePhase.RankingUp    => 4,
         TribePhase.Done         => 5,
         _                       => 0,
     };
