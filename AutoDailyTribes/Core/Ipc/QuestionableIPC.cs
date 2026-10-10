@@ -1,67 +1,109 @@
 using Dalamud.Plugin.Ipc;
+using ECommons.Automation;
 using ECommons.DalamudServices;
 
 namespace AutoDailyTribes.Core.Ipc;
 
+// WigglyQuest is a Questionable fork that answers the same calls under its own prefix. It has no Stop
+// or IsQuestLockedReason, so it is stopped through its chat command. It is the one asked when both are loaded.
 internal sealed class QuestionableIPC
 {
-    private readonly ICallGateSubscriber<bool>         isRunning;
-    private readonly ICallGateSubscriber<string, bool> startQuest;
-    private readonly ICallGateSubscriber<string, bool> startSingleQuest;
-    private readonly ICallGateSubscriber<string, bool> stop;
-    private readonly ICallGateSubscriber<bool>         clearQuestPriority;
-    private readonly ICallGateSubscriber<string, bool> addQuestPriority;
-    private readonly ICallGateSubscriber<string, bool> isQuestAccepted;
-    private readonly ICallGateSubscriber<string>       getCurrentQuestId;
-    private readonly ICallGateSubscriber<string, bool> isReadyToAcceptQuest;
-    private readonly ICallGateSubscriber<string, (bool, string)> isQuestLockedReason;
+    private readonly QuestingPlugin wigglyQuest = new("WigglyQuest", "/wqst stop");
+    private readonly QuestingPlugin questionable = new("Questionable", "/qst stop");
 
-    public QuestionableIPC()
+    private QuestingPlugin Active => wigglyQuest.IsRunning.HasFunction ? wigglyQuest : questionable;
+
+    public bool IsAvailable => Active.IsRunning.HasFunction;
+
+    public bool IsRunning()
     {
-        isRunning = Svc.PluginInterface.GetIpcSubscriber<bool>("Questionable.IsRunning");
-        startQuest         = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.StartQuest");
-        startSingleQuest   = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.StartSingleQuest");
-        stop               = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.Stop");
-        clearQuestPriority = Svc.PluginInterface.GetIpcSubscriber<bool>("Questionable.ClearQuestPriority");
-        addQuestPriority   = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.AddQuestPriority");
-        isQuestAccepted    = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.IsQuestAccepted");
-        getCurrentQuestId  = Svc.PluginInterface.GetIpcSubscriber<string>("Questionable.GetCurrentQuestId");
-        isReadyToAcceptQuest = Svc.PluginInterface.GetIpcSubscriber<string, bool>("Questionable.IsReadyToAcceptQuest");
-        isQuestLockedReason  = Svc.PluginInterface.GetIpcSubscriber<string, (bool, string)>("Questionable.IsQuestLockedReason");
+        var gate = Active.IsRunning;
+        return gate.HasFunction && gate.InvokeFunc();
     }
 
-    public bool IsAvailable => isRunning.HasFunction;
+    public bool StartQuest(uint questId) => Invoke(Active.StartQuest, questId);
+    public bool StartSingleQuest(uint questId) => Invoke(Active.StartSingleQuest, questId);
+    public bool AddQuestPriority(uint questId) => Invoke(Active.AddQuestPriority, questId);
+    public bool IsQuestAccepted(uint questId) => Invoke(Active.IsQuestAccepted, questId);
 
-    public bool IsRunning() => isRunning.HasFunction && isRunning.InvokeFunc();
-    public bool StartQuest(uint questId) => startQuest.HasFunction && startQuest.InvokeFunc(Compact(questId));
-    public bool StartSingleQuest(uint questId) => startSingleQuest.HasFunction && startSingleQuest.InvokeFunc(Compact(questId));
-    public bool Stop(string label) => stop.HasFunction && stop.InvokeFunc(label);
-    public bool ClearQuestPriority() => clearQuestPriority.HasFunction && clearQuestPriority.InvokeFunc();
-    public bool AddQuestPriority(uint questId) => addQuestPriority.HasFunction && addQuestPriority.InvokeFunc(Compact(questId));
-    public bool IsQuestAccepted(uint questId) => isQuestAccepted.HasFunction && isQuestAccepted.InvokeFunc(Compact(questId));
+    public bool ClearQuestPriority()
+    {
+        var gate = Active.ClearQuestPriority;
+        return gate.HasFunction && gate.InvokeFunc();
+    }
+
+    public bool Stop(string label)
+    {
+        var active = Active;
+        if (active.Stop.HasFunction) return active.Stop.InvokeFunc(label);
+        if (!active.IsRunning.HasFunction) return false;
+
+        Chat.ExecuteCommand(active.StopCommand);
+        return true;
+    }
 
     // Compact decimal id of the quest Questionable is currently working on (null when idle/unavailable).
     public string? CurrentQuestId()
     {
-        if (!getCurrentQuestId.HasFunction) return null;
-        try { return getCurrentQuestId.InvokeFunc(); }
+        var gate = Active.GetCurrentQuestId;
+        if (!gate.HasFunction) return null;
+        try { return gate.InvokeFunc(); }
         catch (Exception ex) { RunLog.Warning(ex, "Questionable.GetCurrentQuestId failed"); return null; }
     }
 
     // A build without the probe cannot say no, so the quest is handed over and Questionable decides.
-    public bool IsReadyToAcceptQuest(uint questId) => !isReadyToAcceptQuest.HasFunction || isReadyToAcceptQuest.InvokeFunc(Compact(questId));
+    public bool IsReadyToAcceptQuest(uint questId)
+    {
+        var gate = Active.IsReadyToAcceptQuest;
+        return !gate.HasFunction || gate.InvokeFunc(Compact(questId));
+    }
 
     // Why Questionable will not accept the quest; empty when it is not locked or the build cannot say.
     public string LockedReason(uint questId)
     {
-        if (!isQuestLockedReason.HasFunction) return string.Empty;
+        var gate = Active.IsQuestLockedReason;
+        if (!gate.HasFunction) return string.Empty;
         try
         {
-            var (locked, reason) = isQuestLockedReason.InvokeFunc(Compact(questId));
+            var (locked, reason) = gate.InvokeFunc(Compact(questId));
             return locked ? reason : string.Empty;
         }
         catch (Exception ex) { RunLog.Warning(ex, "Questionable.IsQuestLockedReason failed"); return string.Empty; }
     }
 
     public static string Compact(uint questId) => (questId & 0xFFFF).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static bool Invoke(ICallGateSubscriber<string, bool> gate, uint questId)
+        => gate.HasFunction && gate.InvokeFunc(Compact(questId));
+
+    private sealed class QuestingPlugin
+    {
+        public QuestingPlugin(string ipcPrefix, string stopCommand)
+        {
+            var pluginInterface = Svc.PluginInterface;
+            IsRunning            = pluginInterface.GetIpcSubscriber<bool>(ipcPrefix + ".IsRunning");
+            StartQuest           = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".StartQuest");
+            StartSingleQuest     = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".StartSingleQuest");
+            Stop                 = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".Stop");
+            ClearQuestPriority   = pluginInterface.GetIpcSubscriber<bool>(ipcPrefix + ".ClearQuestPriority");
+            AddQuestPriority     = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".AddQuestPriority");
+            IsQuestAccepted      = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".IsQuestAccepted");
+            GetCurrentQuestId    = pluginInterface.GetIpcSubscriber<string>(ipcPrefix + ".GetCurrentQuestId");
+            IsReadyToAcceptQuest = pluginInterface.GetIpcSubscriber<string, bool>(ipcPrefix + ".IsReadyToAcceptQuest");
+            IsQuestLockedReason  = pluginInterface.GetIpcSubscriber<string, (bool, string)>(ipcPrefix + ".IsQuestLockedReason");
+            StopCommand          = stopCommand;
+        }
+
+        public ICallGateSubscriber<bool>                    IsRunning { get; }
+        public ICallGateSubscriber<string, bool>            StartQuest { get; }
+        public ICallGateSubscriber<string, bool>            StartSingleQuest { get; }
+        public ICallGateSubscriber<string, bool>            Stop { get; }
+        public ICallGateSubscriber<bool>                    ClearQuestPriority { get; }
+        public ICallGateSubscriber<string, bool>            AddQuestPriority { get; }
+        public ICallGateSubscriber<string, bool>            IsQuestAccepted { get; }
+        public ICallGateSubscriber<string>                  GetCurrentQuestId { get; }
+        public ICallGateSubscriber<string, bool>            IsReadyToAcceptQuest { get; }
+        public ICallGateSubscriber<string, (bool, string)>  IsQuestLockedReason { get; }
+        public string                                       StopCommand { get; }
+    }
 }

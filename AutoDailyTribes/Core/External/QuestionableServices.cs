@@ -4,16 +4,16 @@ namespace AutoDailyTribes.Core.External;
 
 internal static class QuestionableServices
 {
-    private const string PluginInternalName = "Questionable";
+    // WigglyQuest is a Questionable fork that keeps Questionable's type names, so every lookup works on
+    // either. It comes first because it is also the one QuestionableIPC drives when both are loaded.
+    private static readonly string[] PluginInternalNames = ["WigglyQuest", "Questionable"];
     private const string ServiceProviderFieldName = "_serviceProvider";
 
     public static bool TryResolve(string serviceTypeName, out object service, out string failure)
     {
         service = null!;
 
-        // ignoreCache avoids ECommons' DalamudReflector module (and its per-frame plugin monitor),
-        // which ADT does not initialise; this runs once per run, so the lookup cost is irrelevant.
-        if (!DalamudReflector.TryGetDalamudPlugin(PluginInternalName, out var plugin, suppressErrors: true, ignoreCache: true))
+        if (!TryGetPlugin(out var plugin))
         {
             failure = "Questionable's plugin instance is not reachable";
             return false;
@@ -41,5 +41,21 @@ internal static class QuestionableServices
         service = resolved;
         failure = string.Empty;
         return true;
+    }
+
+    private static bool TryGetPlugin(out object plugin)
+    {
+        // ignoreCache avoids ECommons' DalamudReflector module (and its per-frame plugin monitor),
+        // which ADT does not initialise; this runs once per run, so the lookup cost is irrelevant.
+        for (var nameIndex = 0; nameIndex < PluginInternalNames.Length; nameIndex++)
+        {
+            if (DalamudReflector.TryGetDalamudPlugin(PluginInternalNames[nameIndex], out plugin, suppressErrors: true, ignoreCache: true))
+            {
+                return true;
+            }
+        }
+
+        plugin = null!;
+        return false;
     }
 }

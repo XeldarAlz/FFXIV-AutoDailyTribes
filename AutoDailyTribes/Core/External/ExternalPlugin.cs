@@ -17,7 +17,9 @@ public sealed record ExternalPluginInfo(
     string DisplayName,
     string RepoUrl,
     string Purpose,
-    bool Required);
+    bool Required,
+    // Alternate InternalNames (community forks that ADT drives the same way).
+    string[]? Aliases = null);
 
 public static class ExternalPlugins
 {
@@ -35,7 +37,8 @@ public static class ExternalPlugins
             DisplayName: "Questionable",
             RepoUrl: "https://puni.sh/api/plugins",
             Purpose: "Plays out each daily quest after the plugin accepts it.",
-            Required: true),
+            Required: true,
+            Aliases: ["WigglyQuest"]),
         [ExternalPlugin.TextAdvance] = new(
             InternalName: "TextAdvance",
             DisplayName: "TextAdvance",
@@ -61,8 +64,14 @@ public static class ExternalPlugins
     public static bool IsInstalled(ExternalPlugin plugin)
     {
         var info = Catalog[plugin];
-        return Svc.PluginInterface.InstalledPlugins
-            .Any(p => p.InternalName == info.InternalName && p.IsLoaded);
+        foreach (var installed in Svc.PluginInterface.InstalledPlugins)
+        {
+            if (!installed.IsLoaded) continue;
+            if (installed.InternalName == info.InternalName) return true;
+            if (info.Aliases is not null && Array.IndexOf(info.Aliases, installed.InternalName) >= 0) return true;
+        }
+
+        return false;
     }
 
     public static bool AllRequiredInstalled()
