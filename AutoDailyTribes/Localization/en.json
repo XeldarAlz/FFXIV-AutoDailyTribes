@@ -260,6 +260,7 @@
   "changelog.r2900.3": "Overhauled the About page, with the updated Discord link",
   "changelog.r21000.1": "Rank-up quests are played automatically when a tribe's reputation is full, so the 3 fresh dailies they unlock are picked up in the same run",
   "changelog.r21000.2": "Teleports no longer hang on the game's aetheryte ticket question: the plugin answers it by paying gil, so runs with tickets in the bag keep going",
+  "changelog.r21000.3": "Fixed the All together turn-in order stalling on dailies whose hand-in starts with a ferry ride or a walk away from the area (Sahagin, some Namazu and Pixie dailies), which are now turned in as soon as they are done",
   "about.version": "v {0}",
   "about.madeBy": "Made by {0}",
   "about.community": "Community",

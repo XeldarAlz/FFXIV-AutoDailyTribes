@@ -260,6 +260,7 @@
   "changelog.r2900.3": "Renovada por completo la página Acerca de, con el enlace de Discord actualizado",
   "changelog.r21000.1": "Las misiones de ascenso de rango se completan automáticamente cuando la reputación de una tribu está llena, así las 3 diarias nuevas que desbloquean se recogen en la misma ejecución",
   "changelog.r21000.2": "Los teletransportes ya no se quedan atascados en la pregunta del juego sobre el billete de eterita: el plugin la responde pagando con gil, así las ejecuciones con billetes en el inventario siguen adelante",
+  "changelog.r21000.3": "Corregido el bloqueo del orden de entrega Todas juntas en las diarias cuya entrega empieza con un viaje en ferry o una caminata fuera de la zona (Sahagin, algunas diarias Namazu y Pixie), que ahora se entregan en cuanto se completan",
   "about.version": "v {0}",
   "about.madeBy": "Creado por {0}",
   "about.community": "Comunidad",

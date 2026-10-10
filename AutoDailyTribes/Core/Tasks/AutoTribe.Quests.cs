@@ -258,12 +258,16 @@ public sealed partial class AutoTribe
         }
 
         var holdTurnIns = Plugin.Cfg.TurnInMode == TurnInMode.AllAtOnce;
+        // A daily whose hand-in path first has to leave the objective site (the Sahagin ferry back, a
+        // walk out of a pond) cannot be picked up again later, so it is handed in as soon as it is done.
+        var siteBound = holdTurnIns ? QuestionableQuestPaths.TurnInsBoundToObjectiveSite(deliverable) : [];
         var active    = new List<uint>(deliverable);        // quests still worth delegating
         var skipped   = new List<uint>();                   // quests Questionable couldn't finish
         var queued    = new List<uint>(deliverable.Length); // what Questionable's priority list holds right now
         var inJournal = new List<uint>(deliverable.Length);
         var plan      = new List<uint>(deliverable.Length);
-        var readyCount = 0;
+        var onTheSpot = new List<uint>(deliverable.Length); // finished dailies handed in right away
+        var readyCount = 0;                                 // finished dailies held for the batch
 
         void Queue(List<uint> quests, bool start)
         {
@@ -280,20 +284,38 @@ public sealed partial class AutoTribe
 
         // Questionable works the first accepted entry of its priority list through to the hand-in,
         // so holding the hand-ins back means listing only the dailies that still have objectives,
-        // and listing the finished ones once nothing else is left.
+        // and listing the finished ones once nothing else is left. A finished daily whose hand-in is
+        // bound to the objective site leads the list instead, while the player is still there.
         void PlanQueue()
         {
             inJournal.Clear();
             plan.Clear();
+            onTheSpot.Clear();
             readyCount = 0;
             for (var index = 0; index < active.Count; index++)
             {
-                var sequence = TribeStateReader.QuestSequence(active[index]);
-                if (sequence == TribeStateReader.NotInJournal) continue;
-                inJournal.Add(active[index]);
-                if (sequence == TribeStateReader.ReadyToTurnIn) readyCount++;
-                else plan.Add(active[index]);
+                var questId = active[index];
+                var sequence = TribeStateReader.QuestSequence(questId);
+                if (sequence == TribeStateReader.NotInJournal)
+                {
+                    continue;
+                }
+
+                inJournal.Add(questId);
+                if (sequence != TribeStateReader.ReadyToTurnIn)
+                {
+                    plan.Add(questId);
+                }
+                else if (Array.IndexOf(siteBound, questId) >= 0)
+                {
+                    onTheSpot.Add(questId);
+                }
+                else
+                {
+                    readyCount++;
+                }
             }
+            plan.InsertRange(0, onTheSpot);
             if (holdTurnIns && plan.Count > 0) return;
             plan.Clear();
             plan.AddRange(inJournal);
@@ -323,6 +345,8 @@ public sealed partial class AutoTribe
 
             if (readyCount == inJournal.Count)
                 Diag($"{tribe.Name}: all {inJournal.Count} dailies have their objectives done; turning them in");
+            else if (onTheSpot.Count > 0)
+                Diag($"{tribe.Name}: {QuestName(plan[0])} is done and its hand-in path leaves the objective site first; turning it in now, {readyCount} held");
             else
                 Diag($"{tribe.Name}: {readyCount}/{inJournal.Count} dailies ready to turn in; holding them and continuing with {QuestName(plan[0])}");
             Queue(plan, start: !questionable.IsRunning());
@@ -341,6 +365,11 @@ public sealed partial class AutoTribe
         Diag($"{tribe.Name}: handing {active.Count} quest(s) to Questionable" +
              (holdTurnIns ? " (turn-ins held until every objective is done): " : ": ") +
              string.Join(", ", active.ConvertAll(q => $"{q:X} ({QuestName(q)})")));
+        if (siteBound.Length > 0)
+        {
+            Diag($"{tribe.Name}: turned in as soon as done instead of held, because the hand-in path starts with a ride or walk away from the objective site: " +
+                 string.Join(", ", Array.ConvertAll(siteBound, QuestName)));
+        }
         Queue(plan.Count > 0 ? plan : active, start: true);
 
         var deadline = Environment.TickCount64 + AdtConstants.QuestCompleteTimeoutMs;
@@ -351,6 +380,7 @@ public sealed partial class AutoTribe
         var lastCurrentId = questionable.CurrentQuestId();
         var moveAnchor = Svc.Objects.LocalPlayer?.Position;
         var progressSinceMs = Environment.TickCount64;
+        var lastProgress = "none";
 
         try
         {
@@ -393,21 +423,28 @@ public sealed partial class AutoTribe
                 var playerPos = Svc.Objects.LocalPlayer?.Position;
                 var moved = playerPos is { } pos
                          && (moveAnchor is null || Vector3.Distance(moveAnchor.Value, pos) > StuckMoveThresholdMeters);
-                if (pending.Count < lastPending || currentId != lastCurrentId
-                    || moved || IsActivelyBusy() || NavmeshIPC.Instance.IsBusy())
+                var progress = pending.Count < lastPending  ? "turn-in"
+                             : currentId != lastCurrentId   ? "quest"
+                             : moved                        ? "moved"
+                             : IsActivelyBusy()             ? "busy"
+                             : NavmeshIPC.Instance.IsBusy() ? "nav"
+                             : null;
+                if (progress is not null)
                 {
                     lastPending = pending.Count;
                     lastCurrentId = currentId;
                     moveAnchor = playerPos ?? moveAnchor;
                     progressSinceMs = now;
+                    lastProgress = progress;
                 }
 
                 if (now - lastHeartbeatAtMs >= HeartbeatMs)
                 {
                     lastHeartbeatAtMs = now;
+                    var posStr = playerPos is { } at ? $"({at.X:F0},{at.Y:F0},{at.Z:F0})" : "?";
                     Diag($"HEARTBEAT {tribe.Name} delegating: questionable running={questionable.IsRunning()} " +
                          $"current={currentId ?? "none"} pending={pending.Count}" + (holdTurnIns ? $" ready={readyCount}" : "") +
-                         $" noProgressFor={(now - progressSinceMs) / 1000}s");
+                         $" noProgressFor={(now - progressSinceMs) / 1000}s lastProgress={lastProgress} pos={posStr}");
                 }
 
                 if (now - progressSinceMs >= AdtConstants.QuestStuckMs)

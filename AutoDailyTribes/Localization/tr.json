@@ -260,6 +260,7 @@
   "changelog.r2900.3": "Hakkında sayfası baştan yenilendi, Discord bağlantısı güncellendi",
   "changelog.r21000.1": "Bir kabilenin itibarı dolduğunda rütbe atlama görevleri otomatik oynanır, böylece açtıkları 3 yeni günlük aynı çalıştırmada alınır",
   "changelog.r21000.2": "Işınlanmalar artık oyunun etherit bileti sorusunda takılmıyor: eklenti soruyu gil ödeyerek yanıtlıyor, böylece envanterde bilet varken çalıştırmalar devam ediyor",
+  "changelog.r21000.3": "Hepsi birlikte teslim sırasının, teslimi feribot yolculuğu veya bölgeden yürüyerek çıkmakla başlayan günlüklerde (Sahagin, bazı Namazu ve Pixie günlükleri) takılması düzeltildi; bunlar artık biter bitmez teslim ediliyor",
   "about.version": "v {0}",
   "about.madeBy": "{0} tarafından yapıldı",
   "about.community": "Topluluk",

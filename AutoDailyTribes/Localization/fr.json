@@ -260,6 +260,7 @@
   "changelog.r2900.3": "Refonte complète de la page À propos, avec le nouveau lien Discord",
   "changelog.r21000.1": "Les quêtes de passage de rang sont jouées automatiquement quand la réputation d'une tribu est pleine, pour récupérer les 3 nouvelles quotidiennes dans la même exécution",
   "changelog.r21000.2": "Les téléportations ne restent plus bloquées sur la question du jeu à propos du ticket d'éthérite : le plugin y répond en payant en gils, les exécutions avec des tickets dans l'inventaire continuent donc",
+  "changelog.r21000.3": "Correction du blocage de l'ordre de remise Toutes ensemble sur les quotidiennes dont la remise commence par un trajet en ferry ou une marche hors de la zone (Sahagin, certaines quotidiennes Namazu et Pixie), désormais rendues dès qu'elles sont terminées",
   "about.version": "v {0}",
   "about.madeBy": "Réalisé par {0}",
   "about.community": "Communauté",
