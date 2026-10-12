@@ -19,9 +19,11 @@ namespace AutoDailyTribes.Core
     internal static class RunLog
     {
         public static List<Exception> Errors { get; } = [];
+        public static List<string> Warnings { get; } = [];
         public static void Info(string message) { }
         public static void Error(Exception exception, string message) => Errors.Add(exception);
         public static void Warning(Exception exception, string message) => Errors.Add(exception);
+        public static void Warning(string message) => Warnings.Add(message);
     }
 }
 
@@ -120,11 +122,12 @@ namespace clib.Services
             CurrentTask?.Cancel();
             CurrentTask = null;
         }
-        public void Complete(Exception? fault = null)
+        public void Complete(Exception? fault = null, RunOutcome outcome = RunOutcome.Completed, string detail = "done", bool recordOutcome = true)
         {
             var task = CurrentTask!;
             task.Fault = fault;
-            if (fault is not null) task.Progress.LogOutcome(task.Tribe, RunOutcome.Stopped, fault.Message);
+            if (recordOutcome)
+                task.Progress.LogOutcome(task.Tribe, fault is null ? outcome : RunOutcome.Stopped, fault?.Message ?? detail);
             CurrentTask = null;
             Completion!(); // clib calls this even after a fault.
         }
@@ -140,6 +143,11 @@ namespace ECommons.DalamudServices
     internal sealed class FakeChat
     {
         public int Errors;
-        public void PrintError(string message) => Errors++;
+        public List<string> Messages { get; } = [];
+        public void PrintError(string message)
+        {
+            Errors++;
+            Messages.Add(message);
+        }
     }
 }

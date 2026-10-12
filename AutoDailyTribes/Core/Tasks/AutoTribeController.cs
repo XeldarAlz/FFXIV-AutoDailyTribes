@@ -94,9 +94,23 @@ internal sealed class AutoTribeController
         if (queue.Count == 0)
         {
             Diag("RunAll: all queued tribes processed.");
+            var incomplete = progress.Log.Where(entry => entry.Outcome != RunOutcome.Completed).ToArray();
+            var allCompleted = progress.Log.Count == progress.Total && incomplete.Length == 0;
             QuestionableSettings.RestoreQuestCompletion();
             progress.End();
-            ChatCommands.Dispatch(Plugin.Cfg.PostRunCommands);
+            if (allCompleted)
+            {
+                ChatCommands.Dispatch(Plugin.Cfg.PostRunCommands);
+            }
+            else
+            {
+                var detail = incomplete.Length == 0
+                    ? "Not every tribe reported a completed outcome."
+                    : "Needs attention: " + string.Join("; ", incomplete.Select(entry => $"{entry.Name}: {entry.Detail}")) + ".";
+                var message = $"Run finished with incomplete tribes. {detail} Post-run commands were skipped. Open /adt log for details.";
+                RunLog.Warning(message);
+                ECommons.DalamudServices.Svc.Chat.PrintError($"[ADT] {message}");
+            }
             return;
         }
 

@@ -44,7 +44,7 @@ var tests = new (string Name, Action Body)[]
         controller.RunAll(Tribes());
         Svc.Automation.Complete();
         CheckStopped(controller);
-        Check(controller.Progress.Log.Single().Name == "Second");
+        Check(controller.Progress.Log.Last().Name == "Second");
     }),
     ("start failure cancels constructed task", () =>
     {
@@ -80,6 +80,60 @@ var tests = new (string Name, Action Body)[]
         controller.RunAll(Tribes());
         Check(ReferenceEquals(active, Svc.Automation.CurrentTask) && AutoTribe.Created == 1);
         Check(QuestionableSettings.BorrowCalls == 1);
+    }),
+    ("stuck last tribe suppresses commands and reports its unfinished quest", () =>
+    {
+        var controller = new AutoTribeController();
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete();
+        Svc.Automation.Complete(outcome: RunOutcome.Partial, detail: "2 done, 1 stuck; remaining: Gulal Generosity");
+        CheckStopped(controller);
+        Check(controller.Progress.Log.Count == 2);
+        Check(RunLog.Warnings.Single().Contains("Gulal Generosity"));
+        var message = ECommons.DalamudServices.Svc.Chat.Messages.Single();
+        Check(message.Contains("Second") && message.Contains("Gulal Generosity") && message.Contains("Post-run commands were skipped"));
+    }),
+    ("successful last tribe cannot hide an earlier partial result", () =>
+    {
+        var controller = new AutoTribeController();
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete(outcome: RunOutcome.Partial, detail: "1 fisher-only");
+        Check(controller.Running && QuestionableSettings.Borrowed);
+        Svc.Automation.Complete();
+        CheckStopped(controller);
+        Check(RunLog.Warnings.Single().Contains("First: 1 fisher-only"));
+    }),
+    ("skipped tribe suppresses commands", () =>
+    {
+        var controller = new AutoTribeController();
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete(outcome: RunOutcome.Skipped, detail: "no usable gearset");
+        Svc.Automation.Complete();
+        CheckStopped(controller);
+        Check(RunLog.Warnings.Single().Contains("no usable gearset"));
+    }),
+    ("missing outcome never counts as success", () =>
+    {
+        var controller = new AutoTribeController();
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete(recordOutcome: false);
+        Svc.Automation.Complete();
+        CheckStopped(controller);
+        Check(RunLog.Warnings.Single().Contains("Not every tribe reported"));
+    }),
+    ("a new successful run is not blocked by an old partial result", () =>
+    {
+        var controller = new AutoTribeController();
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete(outcome: RunOutcome.Partial);
+        Svc.Automation.Complete();
+        CheckStopped(controller);
+        controller.RunAll(Tribes());
+        Svc.Automation.Complete();
+        Svc.Automation.Complete();
+        Check(!controller.Running && !QuestionableSettings.Borrowed);
+        Check(ChatCommands.Calls == 1);
+        Check(controller.Progress.Log.All(entry => entry.Outcome == RunOutcome.Completed));
     }),
     ("old completion after Stop cannot advance a new run", () =>
     {
@@ -149,4 +203,7 @@ static void Reset()
     QuestionableSettings.BorrowCalls = 0;
     ChatCommands.Calls = 0;
     RunLog.Errors.Clear();
+    RunLog.Warnings.Clear();
+    ECommons.DalamudServices.Svc.Chat.Messages.Clear();
+    ECommons.DalamudServices.Svc.Chat.Errors = 0;
 }

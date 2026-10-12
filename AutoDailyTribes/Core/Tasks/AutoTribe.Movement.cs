@@ -66,6 +66,8 @@ public sealed partial class AutoTribe
                         return ExitReason.Continue;
                     }
                     Warn($"{tribe.Name}: cannot reach the issuer (stuck after retry + teleport recovery); skipping");
+                    runOutcome = RunOutcome.Skipped;
+                    runDetail = "cannot reach the issuer";
                     return ExitReason.Quit;
                 }
                 Diag($"{tribe.Name}: stuck en route to issuer; retrying ({consecutiveStuckRetries}/{MaxTravelStuckRetries})");

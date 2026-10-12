@@ -54,7 +54,17 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         {
             await RunSupervised();
             CancelToken.ThrowIfCancellationRequested();
-            RunLog.Info($"{tribe.Name}: done.");
+            TribeStateReader.Refresh(tribe);
+            if (tribe.HasInProgressQuests)
+            {
+                if (runOutcome == RunOutcome.Completed)
+                {
+                    runOutcome = RunOutcome.Partial;
+                    runDetail = "quests remain unfinished";
+                }
+                runDetail += "; remaining: " + string.Join(", ", tribe.InProgressQuestIds.Select(QuestName));
+            }
+            RunLog.Info($"{tribe.Name}: {runOutcome} ({runDetail}).");
             progress?.LogOutcome(tribe, runOutcome, runDetail);
         }
         catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)

@@ -236,7 +236,7 @@ internal static class L
 
         public static readonly LocString PostRunGroup = new("settings.postRun.group", "Chat commands");
         public static readonly LocString PostRunLabel = new("settings.postRun.label", "Run when the batch finishes");
-        public static readonly LocString PostRunHelp = new("settings.postRun.help", "One command per line, each starting with a slash. They fire only when every queued tribe has finished on its own, never after Stop.");
+        public static readonly LocString PostRunHelp = new("settings.postRun.help", "One command per line, each starting with a slash. They run only when every queued tribe completes successfully, never after Stop or an incomplete or skipped tribe.");
         public static readonly LocString PostRunCaption = new("settings.postRun.caption", "Lines that do not start with a slash are skipped, so nothing is ever said in chat. Try /li home to head home or /ays m to hand off to AutoRetainer.");
     }
 
@@ -319,6 +319,15 @@ internal static class L
             new("changelog.r2900.1", "Added the Console page to view, filter and copy the plugin's logs"),
             new("changelog.r2900.2", "Added this changelog, with a badge whenever an update brings something new"),
             new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
+        ];
+
+        public static readonly LocString[] Release21100 =
+        [
+            new("changelog.r21100.1", "Added WigglyQuest support as an alternative to Questionable, with WigglyQuest preferred when both are loaded"),
+            new("changelog.r21100.2", "Fixed the MemoryBuffer error that could prevent a run from starting and break the plugin window"),
+            new("changelog.r21100.3", "Fixed unexpected run errors leaving the quest-completion setting changed or allowing post-run commands to execute"),
+            new("changelog.r21100.4", "Fixed queued tribes continuing after unloading the plugin"),
+            new("changelog.r21100.5", "Post-run commands now require every tribe to complete successfully; incomplete runs report the tribes and quests that need attention"),
         ];
 
         public static readonly LocString[] Release21000 =
