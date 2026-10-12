@@ -42,24 +42,45 @@ internal sealed class AutoTribeController
 
     public void RunAll(IEnumerable<TribeInfo> tribes)
     {
-        if (!RequiredPluginsReady()) return;
-        if (!QuestCompletionReady()) return;
+        if (Running) return;
 
-        var list = tribes.ToList();
-        if (list.Count == 0) return;
+        try
+        {
+            var list = tribes.ToList();
+            if (list.Count == 0 || !RequiredPluginsReady()) return;
+            if (!QuestCompletionReady())
+            {
+                QuestionableSettings.RestoreQuestCompletion();
+                return;
+            }
 
-        var generation = Interlocked.Increment(ref runGeneration);
-        progress.Begin(list);
-        Diag($"RunAll: {list.Count} tribe(s) queued.");
-        StartNext(new Queue<TribeInfo>(list), generation);
+            var generation = Interlocked.Increment(ref runGeneration);
+            progress.Begin(list);
+            Diag($"RunAll: {list.Count} tribe(s) queued.");
+            StartNext(new Queue<TribeInfo>(list), generation);
+        }
+        catch (Exception ex)
+        {
+            FailRun(ex, null);
+        }
     }
 
     public void Stop()
     {
         Interlocked.Increment(ref runGeneration);
-        Svc.Automation.Stop();
-        QuestionableSettings.RestoreQuestCompletion();
-        progress.End();
+        try
+        {
+            Svc.Automation.Stop();
+        }
+        catch (Exception ex)
+        {
+            RunLog.Error(ex, "Could not stop automation cleanly");
+        }
+        finally
+        {
+            QuestionableSettings.RestoreQuestCompletion();
+            progress.End();
+        }
     }
 
     private void StartNext(Queue<TribeInfo> queue, int generation)
@@ -81,11 +102,39 @@ internal sealed class AutoTribeController
 
         var tribe = queue.Dequeue();
         Diag($"RunAll: starting {tribe.Name} ({queue.Count} remaining after this).");
-        Svc.Automation.Start(new AutoTribe(tribe, progress), OnCompleted: () =>
+        AutoTribe? task = null;
+        try
         {
-            if (Volatile.Read(ref runGeneration) != generation) return;
-            progress.CompleteTribe();
-            StartNext(queue, generation);
-        });
+            task = new AutoTribe(tribe, progress);
+            Svc.Automation.Start(task, OnCompleted: () =>
+            {
+                if (Volatile.Read(ref runGeneration) != generation) return;
+                // clib invokes OnCompleted even when Execute faulted.
+                if (task.Fault is { } fault)
+                {
+                    FailRun(fault, tribe, outcomeRecorded: true);
+                    return;
+                }
+                progress.CompleteTribe();
+                StartNext(queue, generation);
+            });
+        }
+        catch (Exception ex)
+        {
+            // Start can throw before handing the task to Automation.
+            try { task?.Cancel(); }
+            catch (Exception cleanupEx) { RunLog.Warning(cleanupEx, "Could not cancel the failed task"); }
+            FailRun(ex, tribe);
+        }
+    }
+
+    private void FailRun(Exception exception, TribeInfo? tribe, bool outcomeRecorded = false)
+    {
+        RunLog.Error(exception, tribe is null ? "Could not start the run" : $"Run stopped at {tribe.Name}");
+        if (tribe is not null && !outcomeRecorded)
+            progress.LogOutcome(tribe, RunOutcome.Stopped, exception.Message);
+        Stop();
+        ECommons.DalamudServices.Svc.Chat.PrintError(
+            "[ADT] The run stopped because of an error. Open /adt log for details.");
     }
 }

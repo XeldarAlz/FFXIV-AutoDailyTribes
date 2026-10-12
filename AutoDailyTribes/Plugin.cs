@@ -68,6 +68,8 @@ public sealed class Plugin : IDalamudPlugin
     public void Dispose()
     {
         ProperOnLogin.Unregister(OnLogin);
+        // Invalidate queued completion callbacks before tearing down automation/services.
+        Controller.Stop();
 
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= ToggleConfigUi;
@@ -79,8 +81,6 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(AdtConstants.PrimaryCommand);
         CommandManager.RemoveHandler(AdtConstants.AliasCommand);
-
-        QuestionableSettings.RestoreQuestCompletion();
 
         CLibMain.Dispose();
         ECommonsMain.Dispose();

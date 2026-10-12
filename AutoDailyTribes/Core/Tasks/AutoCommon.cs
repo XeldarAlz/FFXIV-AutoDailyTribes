@@ -1,14 +1,15 @@
 using AutoDailyTribes.Core.Game;
 using AutoDailyTribes.Core.Ipc;
-using clib.TaskSystem;
 using Dalamud.Game.ClientState.Conditions;
 using ECommons.DalamudServices;
 using System.Numerics;
 using System.Threading.Tasks;
+using AutoTask = clib.Services.AutoTask;
 
 namespace AutoDailyTribes.Core.Tasks;
 
-public abstract class AutoCommon : TaskBase
+// TaskBase eagerly allocates native movement hooks. ADT delegates movement to vnavmesh.
+public abstract class AutoCommon : AutoTask
 {
     protected const int   SubTaskUnwindGraceMs = 5_000;
     internal  const float StuckMoveThresholdMeters = 1.5f;
@@ -165,6 +166,10 @@ public abstract class AutoCommon : TaskBase
 
     internal async Task<bool> RunCancellable(MoveOp op, int timeoutMs, string label, Func<bool>? abortIf = null)
     {
+        // Register with the parent before starting the child. Also cancel on an unexpected
+        // exception in this supervisor, so an orphaned path cannot outlive its tribe.
+        using var cleanup = new clib.Services.OnDispose(() => TryCancel(op, label));
+        CancelToken.ThrowIfCancellationRequested();
         var tcs = new TaskCompletionSource();
         op.Run(() => tcs.TrySetResult());
         var work = tcs.Task;

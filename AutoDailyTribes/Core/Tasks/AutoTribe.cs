@@ -9,6 +9,7 @@ namespace AutoDailyTribes.Core.Tasks;
 public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progress = null) : AutoCommon
 {
     private readonly QuestionableIPC questionable = new();
+    internal Exception? Fault { get; private set; }
 
     private const int   HeartbeatMs = 30_000;
     private const int   StallWarningMs = 180_000;
@@ -52,15 +53,21 @@ public sealed partial class AutoTribe(TribeInfo tribe, TribeRunProgress? progres
         try
         {
             await RunSupervised();
+            CancelToken.ThrowIfCancellationRequested();
             RunLog.Info($"{tribe.Name}: done.");
             progress?.LogOutcome(tribe, runOutcome, runDetail);
         }
+        catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
+            Fault = ex;
             var msg = ex.Message;
             var lastBracket = msg.LastIndexOf("] ");
             if (lastBracket >= 0) msg = msg[(lastBracket + 2)..];
-            RunLog.Error($"{tribe.Name} stopped: {msg}");
+            RunLog.Error(ex, $"{tribe.Name} stopped: {msg}");
             if (!CancelToken.IsCancellationRequested)
                 progress?.LogOutcome(tribe, RunOutcome.Stopped, msg);
             throw;
