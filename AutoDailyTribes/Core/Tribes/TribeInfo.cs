@@ -1,3 +1,6 @@
+using Dalamud.Game;
+using ECommons.DalamudServices;
+using Lumina.Excel.Sheets;
 using System.Numerics;
 
 namespace AutoDailyTribes.Core.Tribes;
@@ -5,7 +8,31 @@ namespace AutoDailyTribes.Core.Tribes;
 public sealed class TribeInfo
 {
     public required uint BeastTribeId { get; init; }
-    public required string Name { get; init; }
+    private string fallbackName = string.Empty;
+    private string? localizedName;
+
+    // Keep the registry's English name as a fallback. The game's BeastTribe name follows the
+    // client language and can include the allied faction after a colon (e.g. 蜥蜴人族：灰党).
+    public required string Name
+    {
+        get
+        {
+            // The English sheet lowercases several standalone names (sylphs, pixies, etc.).
+            // Keep the registry's display casing for the English client.
+            if (Svc.Data.Language == ClientLanguage.English) return fallbackName;
+            if (localizedName is not null) return localizedName;
+
+            var name = Svc.Data.GetExcelSheet<BeastTribe>()?.GetRowOrDefault(BeastTribeId)?.Name.ToString();
+            if (string.IsNullOrWhiteSpace(name)) return fallbackName;
+
+            var factionSeparator = name.IndexOfAny([':', '：']);
+            if (factionSeparator > 0) name = name[..factionSeparator].TrimEnd();
+
+            localizedName = name;
+            return name;
+        }
+        init => fallbackName = value;
+    }
     public required TribeEra Era { get; init; }
     public required TribeKind Kind { get; init; }
     public required int MinRankForDailies { get; init; }

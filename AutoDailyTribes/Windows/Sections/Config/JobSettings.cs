@@ -1,4 +1,5 @@
 using AutoDailyTribes.Core.Localization;
+using AutoDailyTribes.Core.Tribes;
 using AutoDailyTribes.Windows.Components;
 
 namespace AutoDailyTribes.Windows.Sections.Config;
@@ -11,6 +12,7 @@ internal static class JobSettings
     {
         public required LocString Title;
         public required LocString Scope;
+        public required TribeKind Kind;
         public required LocString Help;
         public required string ChoiceId;
         public required string JobId;
@@ -28,6 +30,7 @@ internal static class JobSettings
     {
         Title = L.Settings.CrafterTitle,
         Scope = L.Settings.CrafterScope,
+        Kind = TribeKind.Crafter,
         Help = L.Settings.CrafterHelp,
         ChoiceId = "##adt_job_crafter",
         JobId = "##adt_job_crafter_pick",
@@ -53,6 +56,7 @@ internal static class JobSettings
     {
         Title = L.Settings.GathererTitle,
         Scope = L.Settings.GathererScope,
+        Kind = TribeKind.Gatherer,
         Help = L.Settings.GathererHelp,
         ChoiceId = "##adt_job_gatherer",
         JobId = "##adt_job_gatherer_pick",
@@ -70,6 +74,7 @@ internal static class JobSettings
     {
         Title = L.Settings.CombatTitle,
         Scope = L.Settings.CombatScope,
+        Kind = TribeKind.Combat,
         Help = L.Settings.CombatHelp,
         ChoiceId = "##adt_job_combat",
         JobId = "##adt_job_combat_pick",
@@ -133,7 +138,7 @@ internal static class JobSettings
                     setChoice(ChoiceOrder[choice]);
                     cfg.SaveDebounced();
                 }));
-            SettingsRow.Caption(Loc.T(section.Scope));
+            SettingsRow.Caption(ClientScope(section));
 
             using var specific = Motion.PushSection(section.SectionId, current == JobChoice.Specific);
             if (specific is not null) DrawJobPicker(cfg, section, currentJob, setJob);
@@ -166,5 +171,21 @@ internal static class JobSettings
         var labels = new string[jobs.Length];
         for (var index = 0; index < jobs.Length; index++) labels[index] = jobs[index].Label;
         return labels;
+    }
+
+    private static string ClientScope(KindSection section)
+    {
+        // The scope is UI copy: respect the selected translation even when it differs from
+        // the game's data language. English can still follow localized client names.
+        if (!ReferenceEquals(Loc.Current, Languages.English)) return Loc.T(section.Scope);
+
+        var names = new List<string>();
+        var tribes = TribeRegistry.Tribes;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            if (tribes[index].Kind == section.Kind) names.Add(tribes[index].Name);
+        }
+
+        return names.Count > 0 ? string.Join(" · ", names) : Loc.T(section.Scope);
     }
 }
