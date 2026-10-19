@@ -1,11 +1,14 @@
 using AutoDailyTribes.Core;
 using AutoDailyTribes.Core.Localization;
+using AutoDailyTribes.Core.Tribes;
 using Dalamud;
+using Dalamud.Game;
 using Dalamud.Interface;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using ECommons.DalamudServices;
+using Lumina.Excel.Sheets;
 using System.IO;
 
 namespace AutoDailyTribes.Windows;
@@ -53,6 +56,7 @@ internal static class Fonts
     private static byte[]? latinFont;
     private static ushort[] latinRanges = [0];
     private static ushort[] mergeRanges = [0];
+    private static ushort[]? questGlyphRanges;
     private static int cjkFace = NotoCjkJapaneseFace;
     private static float unitPx = UiBuilder.DefaultFontSizePx;
 
@@ -106,6 +110,7 @@ internal static class Fonts
         builder = null;
         atlas = null;
         latinFont = null;
+        questGlyphRanges = null;
     }
 
     public static IDisposable PushBody() => body?.Push() ?? noOp;
@@ -171,18 +176,24 @@ internal static class Fonts
                 : tk.AddDalamudDefaultFont(sizePx, latinRanges);
             tk.Font = primary;
 
-            if (mergeRanges.Length <= 1)
-            {
-                return;
-            }
-
-            tk.AddDalamudAssetFont(DalamudAsset.NotoSansCjkRegular, new SafeFontConfig
+            // Quest names can begin with game-specific characters such as the synced-quest icon.
+            // Add game symbols before the CJK face so its private-use glyphs keep priority.
+            tk.AddGameSymbol(new SafeFontConfig
             {
                 SizePx = sizePx,
-                GlyphRanges = mergeRanges,
                 MergeFont = primary,
-                FontNo = cjkFace,
             });
+
+            if (mergeRanges.Length > 1)
+            {
+                tk.AddDalamudAssetFont(DalamudAsset.NotoSansCjkRegular, new SafeFontConfig
+                {
+                    SizePx = sizePx,
+                    GlyphRanges = mergeRanges,
+                    MergeFont = primary,
+                    FontNo = cjkFace,
+                });
+            }
         }));
 
     private static IFontHandle IconHandle(float scale)
@@ -211,7 +222,9 @@ internal static class Fonts
         GlyphRanges.MarkRanges(merge, SymbolBlocks);
         GlyphRanges.MarkRanges(extra, Loc.Current.ExtraGlyphRanges);
         GlyphRanges.MarkRanges(extra, Loc.CatalogGlyphRanges);
+        GlyphRanges.MarkRanges(extra, questGlyphRanges ??= ScanQuestGlyphRanges());
         MarkNativeNames(extra);
+        MarkTribeNames(extra);
 
         for (var codepoint = GlyphRanges.FirstNonAsciiCodepoint; codepoint < GlyphRanges.CodepointCount; codepoint++)
         {
@@ -232,7 +245,37 @@ internal static class Fonts
 
         latinRanges = GlyphRanges.ToRanges(latin);
         mergeRanges = GlyphRanges.ToRanges(merge);
-        cjkFace = ReferenceEquals(Loc.Current, Languages.Chinese) ? NotoCjkSimplifiedChineseFace : NotoCjkJapaneseFace;
+        // The game data language can differ from the plugin UI language. Give Japanese and CN
+        // game text the matching glyph variants; CN uses language value 4 in Dalamud.
+        cjkFace = Svc.Data.Language switch
+        {
+            ClientLanguage.Japanese => NotoCjkJapaneseFace,
+            (ClientLanguage)4 => NotoCjkSimplifiedChineseFace,
+            _ => ReferenceEquals(Loc.Current, Languages.Chinese)
+                ? NotoCjkSimplifiedChineseFace : NotoCjkJapaneseFace,
+        };
+    }
+
+    // Quest names come from the game sheet, not our translation catalog. Include the names of
+    // every tribe quest so a newly accepted daily or rank-up can render without another rebuild.
+    private static ushort[]? ScanQuestGlyphRanges()
+    {
+        var quests = Svc.Data.GetExcelSheet<Quest>();
+
+        var present = new bool[GlyphRanges.CodepointCount];
+        for (var index = 0; index < quests.Count; index++)
+        {
+            var quest = quests.GetRowAt(index);
+            var tribeId = quest.BeastTribe.RowId;
+            if (tribeId == 0 || tribeId > TribeRegistry.HighestTribeId)
+            {
+                continue;
+            }
+
+            GlyphRanges.MarkText(present, quest.Name.ToString());
+        }
+
+        return GlyphRanges.ToRanges(present);
     }
 
     private static bool IsLatinCodepoint(int codepoint)
@@ -244,6 +287,15 @@ internal static class Fonts
         for (var languageIndex = 0; languageIndex < languages.Length; languageIndex++)
         {
             GlyphRanges.MarkText(extra, languages[languageIndex].NativeName);
+        }
+    }
+
+    private static void MarkTribeNames(bool[] extra)
+    {
+        var tribes = TribeRegistry.Tribes;
+        for (var index = 0; index < tribes.Length; index++)
+        {
+            GlyphRanges.MarkText(extra, tribes[index].Name);
         }
     }
 
