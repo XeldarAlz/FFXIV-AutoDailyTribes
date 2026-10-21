@@ -323,6 +323,11 @@ internal static class L
             new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
         ];
 
+        public static readonly LocString[] Release21120 =
+        [
+            new("changelog.r21120.1", "The main window now moves only when you drag its top bar, so a drag inside it no longer moves it by accident; turn on Drag from anywhere in the settings for the old behaviour"),
+        ];
+
         public static readonly LocString[] Release21110 =
         [
             new("changelog.r21110.1", "Fixed tribe names showing in English on non-English clients, and missing characters or symbols in quest names. Contributed by lizvik"),

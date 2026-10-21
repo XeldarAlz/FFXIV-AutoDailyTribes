@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Beklenmeyen hatalardan sonra görev tamamlama ayarının değiştirilmiş kalması veya çalıştırma sonrası komutların yürütülmesi düzeltildi",
   "changelog.r21100.4": "Eklenti devre dışı bırakıldıktan sonra sıradaki kabilelere devam edilmesi düzeltildi",
   "changelog.r21100.5": "Çalıştırma sonrası komutlar artık tüm kabilelerin başarıyla tamamlanmasını gerektirir; eksik kalan çalıştırmalarda ilgilenilmesi gereken kabileler ve görevler bildirilir",
+  "changelog.r21120.1": "Ana pencere artık yalnızca üst çubuğundan sürüklenince hareket ediyor, böylece içinde sürüklemek onu yanlışlıkla taşımıyor; eski davranış için ayarlardan Her yerden sürükle seçeneğini açın",
   "changelog.r21110.1": "İngilizce olmayan istemcilerde kabile adlarının İngilizce görünmesi ve görev adlarında eksik karakter veya simgeler düzeltildi. Katkı: lizvik",
   "about.version": "v {0}",
   "about.madeBy": "{0} tarafından yapıldı",

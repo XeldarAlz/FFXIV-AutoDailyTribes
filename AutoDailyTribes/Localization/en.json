@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Fixed unexpected run errors leaving the quest-completion setting changed or allowing post-run commands to execute",
   "changelog.r21100.4": "Fixed queued tribes continuing after unloading the plugin",
   "changelog.r21100.5": "Post-run commands now require every tribe to complete successfully; incomplete runs report the tribes and quests that need attention",
+  "changelog.r21120.1": "The main window now moves only when you drag its top bar, so a drag inside it no longer moves it by accident; turn on Drag from anywhere in the settings for the old behaviour",
   "changelog.r21110.1": "Fixed tribe names showing in English on non-English clients, and missing characters or symbols in quest names. Contributed by lizvik",
   "about.version": "v {0}",
   "about.madeBy": "Made by {0}",

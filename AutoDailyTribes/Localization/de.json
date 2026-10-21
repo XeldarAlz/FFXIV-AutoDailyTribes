@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Behoben, dass unerwartete Fehler die Einstellung zum Questabschluss verändert ließen oder Befehle nach dem Durchlauf ausführten",
   "changelog.r21100.4": "Behoben, dass vorgemerkte Stämme nach dem Entladen des Plugins weiterbearbeitet wurden",
   "changelog.r21100.5": "Befehle nach dem Lauf erfordern jetzt den erfolgreichen Abschluss aller Stämme; unvollständige Läufe melden Stämme und Quests, die Aufmerksamkeit benötigen",
+  "changelog.r21120.1": "Das Hauptfenster bewegt sich jetzt nur noch beim Ziehen an der oberen Leiste, Ziehen im Fenster verschiebt es also nicht mehr versehentlich; aktiviere Überall ziehen in den Einstellungen für das alte Verhalten",
   "changelog.r21110.1": "Behoben, dass Stammesnamen auf nicht englischen Clients auf Englisch erschienen und in Questnamen Zeichen oder Symbole fehlten. Beigetragen von lizvik",
   "about.version": "v {0}",
   "about.madeBy": "Erstellt von {0}",

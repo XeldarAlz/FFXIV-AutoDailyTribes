@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Correction des erreurs inattendues qui laissaient le réglage de validation des quêtes modifié ou permettaient l’exécution des commandes de fin de session",
   "changelog.r21100.4": "Correction de la poursuite des tribus en attente après le déchargement du plugin",
   "changelog.r21100.5": "Les commandes de fin exigent désormais la réussite de toutes les tribus ; les exécutions incomplètes indiquent les tribus et quêtes nécessitant une intervention",
+  "changelog.r21120.1": "La fenêtre principale ne se déplace plus qu'en faisant glisser sa barre du haut, un glissement à l'intérieur ne la déplace donc plus par accident ; activez Déplacer depuis n'importe où dans les réglages pour retrouver l'ancien comportement",
   "changelog.r21110.1": "Correction des noms de tribus affichés en anglais sur les clients non anglais et des caractères ou symboles manquants dans les noms de quêtes. Contribution de lizvik",
   "about.version": "v {0}",
   "about.madeBy": "Réalisé par {0}",
