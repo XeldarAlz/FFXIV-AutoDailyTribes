@@ -31,6 +31,10 @@ internal static class GeneralSettings
         SettingsRow.Draw(Loc.T(L.Settings.OpenOnLogin), Loc.T(L.Settings.OpenOnLoginHelp), SettingsControls.ToggleWidth,
             () => SettingsControls.DrawToggle(cfg, () => cfg.AutoShowIfDailiesAvailable, value => cfg.AutoShowIfDailiesAvailable = value, "##adt_autoshow"),
             SettingsRow.ToggleHeight);
+
+        SettingsRow.Draw(Loc.T(L.Settings.DragAnywhere), Loc.T(L.Settings.DragAnywhereHelp), SettingsControls.ToggleWidth,
+            () => SettingsControls.DrawToggle(cfg, () => cfg.DragWindowFromAnywhere, value => cfg.DragWindowFromAnywhere = value, "##adt_draganywhere"),
+            SettingsRow.ToggleHeight);
     }
 
     private static void DrawDailiesGroup(Configuration cfg)

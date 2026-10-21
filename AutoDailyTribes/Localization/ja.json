@@ -153,6 +153,8 @@
   "settings.group.window": "ウィンドウ",
   "settings.openOnLogin": "デイリーがあるときログイン時に開く",
   "settings.openOnLoginHelp": "使い切っていないデイリー許可が残っている場合、ログイン後にこのウィンドウを表示します。",
+  "settings.dragAnywhere": "どこでもドラッグで移動",
+  "settings.dragAnywhereHelp": "ウィンドウ内のどこをドラッグしても移動できます。オフにすると上部のバーでのみ移動します。",
   "settings.group.dailies": "デイリークエスト",
   "settings.turnInMode": "報告の順番",
   "settings.turnInModeHelp": "各デイリーを達成するたびに報告するか、部族のデイリーをすべて達成してからまとめて報告するかを選びます。",

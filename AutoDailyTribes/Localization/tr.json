@@ -153,6 +153,8 @@
   "settings.group.window": "Pencere",
   "settings.openOnLogin": "Günlükler varken girişte aç",
   "settings.openOnLoginHelp": "Harcanacak günlük hakkın kaldıysa, giriş yaptıktan sonra bu pencereyi gösterir.",
+  "settings.dragAnywhere": "Her yerden sürükle",
+  "settings.dragAnywhereHelp": "Pencereyi içinde herhangi bir yerden sürükleyerek taşır. Kapalıyken yalnızca üst çubuk taşır.",
   "settings.group.dailies": "Günlük görevler",
   "settings.turnInMode": "Teslim sırası",
   "settings.turnInModeHelp": "Her günlük görevin biter bitmez mi teslim edileceği, yoksa bir kabilenin tüm günlük görevlerinin önce tamamlanıp birlikte mi teslim edileceği.",

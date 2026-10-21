@@ -153,6 +153,8 @@
   "settings.group.window": "Janela",
   "settings.openOnLogin": "Abrir ao entrar quando houver diárias disponíveis",
   "settings.openOnLoginHelp": "Mostra esta janela após o login sempre que ainda houver permissões diárias para gastar.",
+  "settings.dragAnywhere": "Arrastar de qualquer lugar",
+  "settings.dragAnywhereHelp": "Move a janela ao arrastar de qualquer ponto dentro dela. Desativado, só a barra superior a move.",
   "settings.group.dailies": "Diárias",
   "settings.turnInMode": "Ordem de entrega",
   "settings.turnInModeHelp": "Se cada diária é entregue assim que termina, ou se todas as diárias de uma tribo são concluídas primeiro e entregues juntas.",

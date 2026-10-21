@@ -153,6 +153,8 @@
   "settings.group.window": "窗口",
   "settings.openOnLogin": "有每日任务时登录后自动打开",
   "settings.openOnLoginHelp": "只要还有未用完的每日许可，登录后就会显示此窗口。",
+  "settings.dragAnywhere": "任意位置拖动",
+  "settings.dragAnywhereHelp": "在窗口内任意位置拖动即可移动窗口。关闭后只能通过顶部栏移动。",
   "settings.group.dailies": "每日任务",
   "settings.turnInMode": "交付顺序",
   "settings.turnInModeHelp": "每个每日任务完成后立即交付，还是先完成该部族的全部每日任务再一起交付。",

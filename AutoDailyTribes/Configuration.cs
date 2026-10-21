@@ -16,6 +16,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool AutoShowIfDailiesAvailable { get; set; } = true;
 
+    public bool DragWindowFromAnywhere { get; set; }
+
     public JobChoice CrafterJobType { get; set; } = JobChoice.HighestXP;
     public uint SelectedCrafterJob { get; set; } = 8;
 

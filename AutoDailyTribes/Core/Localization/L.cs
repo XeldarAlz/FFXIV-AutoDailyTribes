@@ -197,6 +197,8 @@ internal static class L
         public static readonly LocString GroupWindow = new("settings.group.window", "Window");
         public static readonly LocString OpenOnLogin = new("settings.openOnLogin", "Open on login when dailies are available");
         public static readonly LocString OpenOnLoginHelp = new("settings.openOnLoginHelp", "Shows this window after logging in whenever you still have daily allowances to spend.");
+        public static readonly LocString DragAnywhere = new("settings.dragAnywhere", "Drag from anywhere");
+        public static readonly LocString DragAnywhereHelp = new("settings.dragAnywhereHelp", "Move the window by dragging anywhere inside it. When off, only the top bar moves it.");
 
         public static readonly LocString GroupDailies = new("settings.group.dailies", "Dailies");
         public static readonly LocString TurnInMode = new("settings.turnInMode", "Turn-in order");

@@ -153,6 +153,8 @@
   "settings.group.window": "Fenster",
   "settings.openOnLogin": "Beim Login öffnen, wenn Tagesaufträge verfügbar sind",
   "settings.openOnLoginHelp": "Zeigt dieses Fenster nach dem Login, solange du noch tägliche Freigaben übrig hast.",
+  "settings.dragAnywhere": "Überall ziehen",
+  "settings.dragAnywhereHelp": "Verschiebt das Fenster beim Ziehen an einer beliebigen Stelle. Ist das aus, verschiebt nur die obere Leiste das Fenster.",
   "settings.group.dailies": "Tagesquests",
   "settings.turnInMode": "Abgabereihenfolge",
   "settings.turnInModeHelp": "Ob jede Tagesquest sofort nach Abschluss abgegeben wird oder erst alle Tagesquests eines Stammes erledigt und dann gemeinsam abgegeben werden.",

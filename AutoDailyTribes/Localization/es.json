@@ -153,6 +153,8 @@
   "settings.group.window": "Ventana",
   "settings.openOnLogin": "Abrir al iniciar sesión si hay diarias disponibles",
   "settings.openOnLoginHelp": "Muestra esta ventana tras iniciar sesión siempre que te queden permisos diarios por gastar.",
+  "settings.dragAnywhere": "Arrastrar desde cualquier punto",
+  "settings.dragAnywhereHelp": "Mueve la ventana arrastrando desde cualquier punto de su interior. Si está desactivado, solo la barra superior la mueve.",
   "settings.group.dailies": "Diarias",
   "settings.turnInMode": "Orden de entrega",
   "settings.turnInModeHelp": "Si cada diaria se entrega en cuanto se completa, o si primero se completan todas las diarias de una tribu y luego se entregan juntas.",
