@@ -321,6 +321,11 @@ internal static class L
             new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
         ];
 
+        public static readonly LocString[] Release21110 =
+        [
+            new("changelog.r21110.1", "Fixed tribe names showing in English on non-English clients, and missing characters or symbols in quest names. Contributed by lizvik"),
+        ];
+
         public static readonly LocString[] Release21100 =
         [
             new("changelog.r21100.1", "Added WigglyQuest support as an alternative to Questionable, with WigglyQuest preferred when both are loaded"),
