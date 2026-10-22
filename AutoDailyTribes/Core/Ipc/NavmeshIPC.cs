@@ -18,6 +18,7 @@ internal sealed class NavmeshIPC
     private readonly ICallGateSubscriber<float> pathGetTolerance;
     private readonly ICallGateSubscriber<Vector3, bool, float, bool> pathfindAndMoveCloseTo;
     private readonly ICallGateSubscriber<Vector3, float, float, Vector3?> nearestPointReachable;
+    private readonly ICallGateSubscriber<List<Vector3>, bool, object> pathMoveTo;
 
     private NavmeshIPC()
     {
@@ -30,6 +31,7 @@ internal sealed class NavmeshIPC
         pathGetTolerance             = Svc.PluginInterface.GetIpcSubscriber<float>("vnavmesh.Path.GetTolerance");
         pathfindAndMoveCloseTo        = Svc.PluginInterface.GetIpcSubscriber<Vector3, bool, float, bool>("vnavmesh.SimpleMove.PathfindAndMoveCloseTo");
         nearestPointReachable        = Svc.PluginInterface.GetIpcSubscriber<Vector3, float, float, Vector3?>("vnavmesh.Query.Mesh.NearestPointReachable");
+        pathMoveTo                   = Svc.PluginInterface.GetIpcSubscriber<List<Vector3>, bool, object>("vnavmesh.Path.MoveTo");
     }
 
     public bool IsAvailable => pathIsRunning.HasFunction;
@@ -48,6 +50,30 @@ internal sealed class NavmeshIPC
     public void Stop()
     {
         if (pathStop.HasAction) pathStop.InvokeAction();
+    }
+
+    // Landing picks its spots outside any movement operation, so a failed query reads as no floor instead of throwing.
+    public Vector3? ReachableFloorNear(Vector3 position, float halfExtentXZ, float halfExtentY)
+    {
+        if (!nearestPointReachable.HasFunction)
+        {
+            return null;
+        }
+
+        try { return nearestPointReachable.InvokeFunc(position, halfExtentXZ, halfExtentY); }
+        catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.ReachableFloorNear failed"); return null; }
+    }
+
+    // Follows the waypoints as given, with no path search, so the caller has to know the way is clear.
+    public void MoveAlong(List<Vector3> waypoints, bool fly)
+    {
+        if (!pathMoveTo.HasAction)
+        {
+            return;
+        }
+
+        try { pathMoveTo.InvokeAction(waypoints, fly); }
+        catch (Exception ex) { RunLog.Warning(ex, "NavmeshIPC.MoveAlong failed"); }
     }
 
     public bool IsReady()

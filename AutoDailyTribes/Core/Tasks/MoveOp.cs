@@ -21,6 +21,9 @@ internal sealed partial class MoveOp(System.Func<MoveOp, Task> body) : AutoTask
                      System.Func<bool>? stopCondition, bool allowAethernetWithinTerritory)
         => Travel(territoryId, dest, config, allowTeleportIfFaster, stopCondition, allowAethernetWithinTerritory);
 
+    public Task MoveInZone(Vector3 destination, MovementConfig config, System.Func<bool>? stopCondition)
+        => Navigate(destination, config, stopCondition: stopCondition);
+
     public Task Teleport(uint territoryId, Vector3 dest, bool allowSameZoneTeleport)
         => TeleportToTerritory(territoryId, dest, allowSameZoneTeleport);
 

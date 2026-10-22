@@ -9,7 +9,7 @@ using AutoTask = clib.Services.AutoTask;
 namespace AutoDailyTribes.Core.Tasks;
 
 // TaskBase eagerly allocates native movement hooks. ADT delegates movement to vnavmesh.
-public abstract class AutoCommon : AutoTask
+public abstract partial class AutoCommon : AutoTask
 {
     protected const int   SubTaskUnwindGraceMs = 5_000;
     internal  const float StuckMoveThresholdMeters = 1.5f;

@@ -80,7 +80,8 @@ public sealed partial class AutoTribe
         await WaitForNavmeshReady();
 
         var dest = CurrentIssuer.Location;
-        var config = MovementConfig.Everything.WithTolerance(3f);
+        // No dismount option: the operation's own landing drops straight down from wherever the flight ended.
+        var config = MovementConfig.Default.WithOptions(MovementOptions.Mount | MovementOptions.Fly).WithTolerance(3f);
         var label = $"Travelling to {tribe.Name}";
         var deadline = Environment.TickCount64 + MoveToIssuerWatchdogMs;
         var nextLogMs = Environment.TickCount64 + MoveProgressLogMs;
@@ -124,9 +125,9 @@ public sealed partial class AutoTribe
         await RunCancellable(op, MoveToIssuerWatchdogMs + MoveOpUnwindSlackMs, "move-to-issuer", AbortIfFrozen);
         if (CancelToken.IsCancellationRequested) return IssuerMoveResult.StuckRetry;
 
-        if (IsNearIssuer() && Svc.Condition[ConditionFlag.Mounted])
+        if (IsNearIssuer())
         {
-            await RunCancellable(new MoveOp(o => o.DismountNow()), DismountWatchdogMs, $"dismount-{tribe.BeastTribeId}");
+            await FinishApproach();
         }
 
         if (IsAtIssuer())
@@ -137,6 +138,20 @@ public sealed partial class AutoTribe
         if (stuckInCombat) return IssuerMoveResult.StuckInCombat;
         if (op.Fault is { } fault) Diag($"{tribe.Name}: move to issuer faulted: {fault.Message}; retrying");
         return IsNearIssuer() ? IssuerMoveResult.OutOfReach : IssuerMoveResult.StuckRetry;
+    }
+
+    // The landing can take a spot a few metres off the issuer, so the last leg is walked on the navmesh.
+    private async Task FinishApproach()
+    {
+        if (!await LandAndDismount(CurrentIssuer.Location, $"dismount-{tribe.BeastTribeId}") || IsAtIssuer())
+        {
+            return;
+        }
+
+        Diag($"{tribe.Name}: walking the last {DistanceTo(CurrentIssuer.Location):F1}m to {CurrentIssuerName}");
+        var stuck = new TravelStuckTracker();
+        var walk = new MoveOp(move => move.MoveInZone(CurrentIssuer.Location, MovementConfig.Default.WithTolerance(IssuerWalkArriveMeters), IsAtIssuer));
+        await RunCancellable(walk, IssuerWalkWatchdogMs, $"walk-to-issuer-{tribe.BeastTribeId}", () => stuck.Check() != StallKind.None);
     }
 
     private bool IsNearIssuer()
