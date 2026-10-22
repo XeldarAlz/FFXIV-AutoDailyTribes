@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Corrigidos erros inesperados que deixavam a configuração de conclusão de missões alterada ou permitiam executar comandos de fim de execução",
   "changelog.r21100.4": "Corrigido o processamento de tribos na fila após descarregar o plugin",
   "changelog.r21100.5": "Os comandos finais agora exigem a conclusão de todas as tribos com sucesso; execuções incompletas informam as tribos e missões que precisam de atenção",
+  "changelog.r21130.1": "Corrigido o voo até quem dá as missões terminar sobre algo em que a montaria não consegue pousar, como a cerca ao lado de Yadovv Gah: agora pousa em chão alcançável por perto, tenta outro ponto se a descida travar e faz o resto a pé, em vez de passar para as missões diárias com menos reputação de outro NPC",
   "changelog.r21120.1": "A janela principal agora só se move ao arrastar a barra superior, então arrastar dentro dela não a move mais sem querer; ative Arrastar de qualquer lugar nas configurações para o comportamento antigo",
   "changelog.r21110.1": "Corrigidos os nomes de tribos exibidos em inglês em clientes que não estão em inglês e os caracteres ou símbolos ausentes nos nomes de missões. Contribuição de lizvik",
   "about.version": "v {0}",

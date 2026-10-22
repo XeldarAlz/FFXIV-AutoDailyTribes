@@ -323,6 +323,11 @@ internal static class L
             new("changelog.r2900.3", "Overhauled the About page, with the updated Discord link"),
         ];
 
+        public static readonly LocString[] Release21130 =
+        [
+            new("changelog.r21130.1", "Fixed the flight to a quest giver ending over something the mount cannot land on, such as the fence beside Yadovv Gah: it now lands on reachable floor nearby, tries another spot if the descent stalls and walks the rest of the way, instead of moving on to another quest giver's lower-reputation dailies"),
+        ];
+
         public static readonly LocString[] Release21120 =
         [
             new("changelog.r21120.1", "The main window now moves only when you drag its top bar, so a drag inside it no longer moves it by accident; turn on Drag from anywhere in the settings for the old behaviour"),

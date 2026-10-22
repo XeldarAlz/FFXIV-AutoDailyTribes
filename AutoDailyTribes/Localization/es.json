@@ -268,6 +268,7 @@
   "changelog.r21100.3": "Corregidos los errores inesperados que dejaban modificado el ajuste de entrega de misiones o permitían ejecutar los comandos de fin de sesión",
   "changelog.r21100.4": "Corregido que las tribus en cola continuaran tras descargar el plugin",
   "changelog.r21100.5": "Los comandos posteriores requieren ahora completar todas las tribus correctamente; las ejecuciones incompletas indican las tribus y misiones que necesitan atención",
+  "changelog.r21130.1": "Corregido que el vuelo hacia quien da las misiones terminara sobre algo donde la montura no puede aterrizar, como la valla junto a Yadovv Gah: ahora aterriza en suelo alcanzable cerca, prueba otro punto si el descenso se atasca y recorre el resto a pie, en lugar de pasar a las misiones diarias con menos reputación de otro PNJ",
   "changelog.r21120.1": "La ventana principal ahora solo se mueve al arrastrar su barra superior, así que arrastrar dentro de ella ya no la mueve sin querer; activa Arrastrar desde cualquier punto en los ajustes para el comportamiento anterior",
   "changelog.r21110.1": "Corregidos los nombres de tribus que aparecían en inglés en clientes no ingleses y los caracteres o símbolos que faltaban en los nombres de misiones. Contribución de lizvik",
   "about.version": "v {0}",
